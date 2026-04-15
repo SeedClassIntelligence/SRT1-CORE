@@ -1,0 +1,52 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "SRT1-CORE"
+version = "2.1.0"
+description = "SRT-1 — Cognitive Operating System for Software Repositories. Anti-hallucination guardrails for AI code assistants."
+readme = "README_PYPI.md"
+license = {text = "Proprietary - SCIA"}
+requires-python = ">=3.9"
+authors = [
+    {name = "William Darnell Jernigan IV"}
+]
+keywords = [
+    "scia", "srt-1", "code-indexer", "anti-hallucination",
+    "static-analysis", "ai-governance",
+    "code-assistant", "context-injection",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Quality Assurance",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+[project.urls]
+Homepage = "https://seedreflection.com"
+
+[project.scripts]
+srt1-index = "srt1_code_indexer.indexer:main"
+srt1-code-indexer = "srt1_code_indexer.indexer:main"
+srt1-bundle = "srt1_pro.context_bundler:main"
+srt1-execute = "srt1_pro.execution_engine:main"
+srt1-heal = "srt1_pro.self_heal:main"
+srt1-middleware = "srt1_platform.middleware:main"
+
+[project.optional-dependencies]
+pro = []
+platform = []
+all = []
+
+[tool.setuptools.packages.find]
+include = ["srt1_code_indexer*", "srt1_pro*", "srt1_platform*"]
+exclude = ["srt1_code_indexer_pkg*"]
+
