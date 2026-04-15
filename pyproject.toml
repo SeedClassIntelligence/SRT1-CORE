@@ -4,9 +4,9 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "SRT1-CORE"
-version = "2.1.0"
+version = "2.2.0"
 description = "SRT-1 — Cognitive Operating System for Software Repositories. Anti-hallucination guardrails for AI code assistants."
-readme = "README_PYPI.md"
+readme = "README.md"
 license = {text = "Apache 2.0"}
 requires-python = ">=3.9"
 authors = [
