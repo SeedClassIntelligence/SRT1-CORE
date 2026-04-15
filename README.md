@@ -104,5 +104,5 @@ srt1_platform/              → Middleware, queueing, bridge, thread recovery
 
 ## License
 
-Proprietary — Seed-Class Intelligence Architecture (SCIA)
+Apache License 2.0
 Author: William Darnell Jernigan IV
