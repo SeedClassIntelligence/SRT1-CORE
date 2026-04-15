@@ -3,7 +3,7 @@
 **Brain Over the Repo** — Anti-hallucination and architectural-coherence guardrails for AI-assisted software work.
 
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
-[![License: Proprietary](https://img.shields.io/badge/license-SCIA-red.svg)](https://seedreflection.com)
+[![License: Apache 2.0](https://img.shields.io/badge/license-Apache_2.0-blue.svg)](https://seedreflection.com)
 [![PyPI version](https://badge.fury.io/py/srt1-core.svg)](https://pypi.org/project/srt1-core/)
 
 ---

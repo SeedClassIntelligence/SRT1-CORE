@@ -17,7 +17,7 @@ Architecture:
     Phase 3 (Executor) -->  validates and executes via AI assistant
 
 Author : William Darnell Jernigan IV (Architect)
-License: Proprietary - Seed-Class Intelligence Architecture (SCIA)
+License: Apache License 2.0
 """
 
 import os

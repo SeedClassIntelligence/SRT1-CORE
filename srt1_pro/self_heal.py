@@ -27,7 +27,7 @@ SAFETY MODEL:
     - --force required for high-risk actions
     - Full rollback via: python srt1_self_heal.py rollback <session_id>
 Author : William Darnell Jernigan IV (Architect)
-License: Proprietary - Seed-Class Intelligence Architecture (SCIA)
+License: Apache License 2.0
 """
 import os
 import sys

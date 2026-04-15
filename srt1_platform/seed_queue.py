@@ -26,7 +26,7 @@ walk away, and come back to see "🌸 BLOOMED — 3 files modified,
 all tests passing, coherence 94%."
 
 Author : William Darnell Jernigan IV (Architect)
-License: Proprietary - Seed-Class Intelligence Architecture (SCIA)
+License: Apache License 2.0
 """
 
 import os
