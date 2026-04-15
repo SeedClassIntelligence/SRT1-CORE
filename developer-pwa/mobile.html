@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Seed Reflection">
-  <link rel="manifest" href="/seed-reflection/manifest.json">
+  <link rel="manifest" href="/manifest.json">
   <title>Seed Reflection</title>
   <style>
     :root {
@@ -497,7 +497,7 @@ let allSeeds = [];
 
 // ── Service Worker ────────────────────────────────────────────────────────────
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/seed-reflection/sw.js', { scope: '/seed-reflection/' })
+  navigator.serviceWorker.register('/sw.js', { scope: '/' })
     .then(reg => {
       navigator.serviceWorker.addEventListener('message', e => {
         if (e.data && e.data.type === 'SYNC_COMPLETE') {

@@ -15,14 +15,14 @@
       "name": "Capture Idea",
       "short_name": "Capture",
       "description": "Quickly capture a new idea",
-      "url": "/seed-reflection/mobile.html#capture",
+      "url": "/mobile.html#capture",
       "icons": [{ "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 96'><rect width='96' height='96' rx='20' fill='%2310a37f'/><text y='68' x='48' text-anchor='middle' font-size='52'>🎙</text></svg>", "sizes": "96x96" }]
     },
     {
       "name": "Search Ideas",
       "short_name": "Search",
       "description": "Find a past idea quickly",
-      "url": "/seed-reflection/mobile.html#search"
+      "url": "/mobile.html#search"
     }
   ],
   "icons": [
