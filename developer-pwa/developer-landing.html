@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SRT-1 for Developers — AI That Understands Your Entire Codebase</title>
+  <meta name="description" content="SRT-1 indexes every file, tags every function with role and risk, builds a cryptographic trust chain, and produces a signed Code Manifest. Zero dependencies.">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
+    *{margin:0;padding:0;box-sizing:border-box}
+    :root{
+      --bg:#06080f;--bg-card:#0d1117;--bg-surface:#161b22;--bg-raised:#1c2128;
+      --border:#21262d;--border-light:#30363d;
+      --text:#f0f6fc;--text2:#c9d1d9;--text3:#8b949e;
+      --blue:#58a6ff;--cyan:#39d0d8;--teal:#2dd4bf;
+      --green:#3fb950;--amber:#d29922;--red:#f85149;--purple:#bc8cff;
+    }
+    body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);line-height:1.6;overflow-x:hidden}
+    a{color:var(--blue);text-decoration:none}
+    a:hover{text-decoration:underline}
+    code,pre{font-family:'JetBrains Mono',monospace}
+
+    /* ── NAV ── */
+    nav{position:sticky;top:0;z-index:100;background:rgba(6,8,15,.92);backdrop-filter:blur(20px);
+        border-bottom:1px solid var(--border);padding:0 5%;height:58px;
+        display:flex;align-items:center;justify-content:space-between;gap:20px}
+    .nav-logo{font-weight:900;font-size:17px;color:var(--text);letter-spacing:-.5px}
+    .nav-logo em{color:var(--cyan);font-style:normal}
+    .nav-back{font-size:13px;color:var(--text3);display:flex;align-items:center;gap:6px}
+    .nav-back:hover{color:var(--text);text-decoration:none}
+    .nav-links{display:flex;gap:24px;font-size:13px}
+    .nav-links a{color:var(--text3);font-weight:500}
+    .nav-links a:hover{color:var(--text);text-decoration:none}
+    .nav-right{display:flex;align-items:center;gap:10px;flex-shrink:0}
+    .btn-nav-ghost{border:1px solid var(--border-light);color:var(--text2);padding:6px 14px;border-radius:6px;font-weight:600;font-size:13px;display:inline-block}
+    .btn-nav-ghost:hover{border-color:var(--blue);color:var(--blue);text-decoration:none}
+    .btn-nav-cta{background:var(--blue);color:#000;padding:7px 16px;border-radius:6px;font-weight:700;font-size:13px;display:inline-block}
+    .btn-nav-cta:hover{background:#79b8ff;text-decoration:none}
+    @media(max-width:640px){.nav-links{display:none}}
+
+    /* ── BTN ── */
+    .btn{display:inline-flex;align-items:center;gap:7px;padding:12px 24px;border-radius:8px;
+         font-weight:700;font-size:14px;cursor:pointer;border:none;font-family:inherit;
+         text-decoration:none;transition:filter .15s,background .15s;white-space:nowrap}
+    .btn:hover{text-decoration:none;filter:brightness(1.1)}
+    .btn-blue{background:var(--blue);color:#000}
+    .btn-outline{border:1px solid var(--border-light);background:transparent;color:var(--text2)}
+    .btn-outline:hover{border-color:var(--blue);color:var(--blue);filter:none}
+    .btn-sm{padding:8px 18px;font-size:13px}
+
+    /* ── HERO ── */
+    .hero{padding:96px 5% 80px;text-align:center;
+          background:radial-gradient(ellipse at 50% -10%,rgba(88,166,255,.09) 0%,transparent 55%)}
+    .hero-badge{display:inline-flex;align-items:center;gap:7px;background:rgba(88,166,255,.1);
+                border:1px solid rgba(88,166,255,.3);color:var(--blue);padding:5px 14px;
+                border-radius:20px;font-size:12px;font-weight:700;letter-spacing:.3px;margin-bottom:28px}
+    .hero h1{font-size:clamp(36px,6vw,70px);font-weight:900;line-height:1.08;
+             letter-spacing:-2.5px;margin-bottom:24px;max-width:860px;margin-left:auto;margin-right:auto}
+    .hero h1 span{background:linear-gradient(135deg,var(--blue),var(--cyan));
+                  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    .hero-sub{font-size:clamp(15px,2vw,19px);color:var(--text3);max-width:580px;
+              margin:0 auto 44px;line-height:1.65}
+    .hero-install{background:var(--bg-card);border:1px solid var(--border-light);border-radius:10px;
+                  padding:14px 22px;display:inline-flex;align-items:center;gap:16px;margin-bottom:36px}
+    .hero-install code{color:var(--cyan);font-size:14px}
+    .copy-btn{background:var(--bg-surface);border:1px solid var(--border);color:var(--text3);
+              padding:5px 12px;border-radius:5px;font-size:11px;cursor:pointer;font-family:inherit}
+    .copy-btn:hover{border-color:var(--blue);color:var(--blue)}
+    .hero-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+
+    /* ── STATS BAR ── */
+    .stats{display:flex;justify-content:center;gap:0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);overflow:hidden}
+    .stat{flex:1;max-width:200px;text-align:center;padding:28px 16px;border-right:1px solid var(--border)}
+    .stat:last-child{border-right:none}
+    .stat-num{font-size:30px;font-weight:900;color:var(--cyan)}
+    .stat-label{font-size:12px;color:var(--text3);margin-top:4px}
+
+    /* ── SECTIONS ── */
+    .section{padding:80px 5%}
+    .section-inner{max-width:1100px;margin:0 auto}
+    .eyebrow{font-size:11px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--blue);display:block;margin-bottom:12px}
+    .section-h2{font-size:clamp(26px,4vw,44px);font-weight:900;letter-spacing:-1.5px;margin-bottom:16px}
+    .section-h2 span{color:var(--cyan)}
+    .section-p{font-size:16px;color:var(--text3);max-width:560px;line-height:1.7;margin-bottom:48px}
+
+    /* ── FEATURES GRID ── */
+    .features-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px}
+    .fcard{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:28px;transition:border-color .2s}
+    .fcard:hover{border-color:var(--border-light)}
+    .fcard-icon{font-size:26px;margin-bottom:14px}
+    .fcard h3{font-size:15px;font-weight:700;margin-bottom:8px}
+    .fcard p{font-size:13px;color:var(--text3);line-height:1.65}
+
+    /* ── PIPELINE ── */
+    .pipeline{padding:80px 5%;background:var(--bg-card);border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+    .pipeline-steps{display:flex;gap:0;margin-top:48px;overflow-x:auto;padding-bottom:16px}
+    .step{flex:1;min-width:120px;text-align:center;position:relative}
+    .step:not(:last-child)::after{content:'→';position:absolute;right:-12px;top:20px;color:var(--text3);font-size:16px}
+    .step-num{width:44px;height:44px;border-radius:50%;background:rgba(88,166,255,.1);
+              border:2px solid rgba(88,166,255,.3);display:flex;align-items:center;justify-content:center;
+              font-weight:900;font-size:13px;color:var(--blue);margin:0 auto 12px}
+    .step-name{font-size:12px;font-weight:700;color:var(--text);margin-bottom:4px}
+    .step-desc{font-size:11px;color:var(--text3);line-height:1.4}
+
+    /* ── COMMAND CENTER ── */
+    .cc-section{padding:96px 5%;border-top:1px solid var(--border)}
+    .cc-inner{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:center}
+    @media(max-width:768px){.cc-inner{grid-template-columns:1fr}}
+    .cc-copy h2{font-size:clamp(26px,4vw,42px);font-weight:900;letter-spacing:-.03em;line-height:1.15;margin-bottom:20px}
+    .cc-copy h2 span{color:var(--cyan)}
+    .cc-copy p{color:var(--text2);font-size:16px;line-height:1.7;margin-bottom:28px}
+    .cc-bullets{list-style:none;display:flex;flex-direction:column;gap:12px;margin-bottom:32px}
+    .cc-bullets li{display:flex;align-items:flex-start;gap:12px;font-size:14px;color:var(--text2)}
+    .cc-bullets li::before{content:'';display:block;width:6px;height:6px;border-radius:50%;background:var(--cyan);margin-top:8px;flex-shrink:0}
+    .cc-btns{display:flex;gap:12px;flex-wrap:wrap}
+    .cc-screen{background:var(--bg-card);border:1px solid var(--border-light);border-radius:12px;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,.6)}
+    .cc-bar{background:var(--bg-surface);border-bottom:1px solid var(--border);padding:10px 16px;display:flex;align-items:center;gap:8px}
+    .cc-dot{width:10px;height:10px;border-radius:50%}
+    .cc-body{padding:20px;display:flex;flex-direction:column;gap:10px}
+    .cc-stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+    .cc-stat{background:var(--bg-surface);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center}
+    .cc-stat-num{font-size:20px;font-weight:900;font-family:'JetBrains Mono',monospace;color:var(--cyan)}
+    .cc-stat-lbl{font-size:10px;color:var(--text3);margin-top:2px;letter-spacing:.06em;text-transform:uppercase}
+    .cc-panels{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .cc-panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:8px;padding:12px}
+    .cc-panel-title{font-size:11px;color:var(--text3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px}
+    .cc-gauge{display:flex;align-items:center;justify-content:center;gap:12px;padding:8px 0}
+    .cc-gauge-ring{width:48px;height:48px;border-radius:50%;border:4px solid var(--border);border-top-color:var(--cyan);border-right-color:var(--cyan);animation:spin 3s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .cc-gauge-val{font-size:20px;font-weight:900;color:var(--cyan);font-family:'JetBrains Mono',monospace}
+    .cc-risk-bar{display:flex;flex-direction:column;gap:5px}
+    .cc-risk-row{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2)}
+    .cc-risk-label{width:52px;text-align:right;color:var(--text3);flex-shrink:0}
+    .cc-risk-track{flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden}
+    .cc-risk-fill{height:100%;border-radius:2px}
+    .cc-seed-list{display:flex;flex-direction:column;gap:6px}
+    .cc-seed{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text2)}
+    .cc-seed-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+    @media(max-width:768px){.cc-inner>div:last-child{display:none}}
+
+    /* ── CODE ── */
+    .code-section{padding:80px 5%;background:var(--bg-card);border-top:1px solid var(--border)}
+    pre{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:24px;overflow-x:auto;font-size:13px;line-height:1.7}
+    .kw{color:var(--purple)}.fn{color:var(--blue)}.str{color:var(--green)}.cm{color:var(--text3)}.num{color:var(--amber)}
+
+    /* ── LANGUAGE SUPPORT ── */
+    .lang-grid{display:flex;flex-wrap:wrap;gap:10px;margin-top:32px}
+    .lang-pill{background:var(--bg-surface);border:1px solid var(--border);border-radius:20px;
+               padding:6px 16px;font-size:13px;font-weight:600;color:var(--text2)}
+
+    /* ── DEV PRICING ── */
+    .pricing{padding:80px 5%;text-align:center}
+    .pricing-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;margin-top:52px;max-width:1000px;margin-left:auto;margin-right:auto}
+    .pcard{background:var(--bg-card);border:1px solid var(--border);border-radius:16px;padding:36px 28px;text-align:left}
+    .pcard.featured{border-color:var(--blue);background:linear-gradient(180deg,rgba(88,166,255,.06) 0%,var(--bg-card) 100%)}
+    .pcard-tier{font-size:11px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--text3);margin-bottom:12px}
+    .pcard.featured .pcard-tier{color:var(--blue)}
+    .pcard-price{font-size:42px;font-weight:900;letter-spacing:-1px;margin-bottom:4px;line-height:1}
+    .pcard-price sub{font-size:16px;font-weight:400;color:var(--text3);vertical-align:middle;letter-spacing:0}
+    .pcard-desc{font-size:14px;color:var(--text3);margin-bottom:24px}
+    .pcard-features{list-style:none;margin-bottom:28px}
+    .pcard-features li{font-size:14px;color:var(--text2);padding:6px 0;border-bottom:1px solid var(--border);display:flex;gap:8px}
+    .pcard-features li::before{content:'✓';color:var(--green);flex-shrink:0}
+    .pcard-features li.dim{color:var(--text3)}
+    .pcard-features li.dim::before{content:'—';color:var(--border-light)}
+    .pcard-btn{display:block;text-align:center;padding:12px;border-radius:8px;font-weight:700;font-size:14px;border:1px solid var(--border-light);color:var(--text2);cursor:pointer;background:none;font-family:inherit;width:100%;transition:all .15s}
+    .pcard-btn:hover{border-color:var(--blue);color:var(--blue)}
+    .pcard-btn.primary{background:var(--blue);color:#000;border-color:var(--blue)}
+    .pcard-btn.primary:hover{background:#79b8ff}
+
+    /* ── CONSUMER BRIDGE ── */
+    .consumer-bridge{background:var(--bg-card);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:64px 5%;text-align:center}
+    .consumer-bridge-inner{max-width:760px;margin:0 auto}
+
+    /* ── FOOTER ── */
+    footer{padding:40px 5%;border-top:1px solid var(--border);display:flex;justify-content:space-between;
+           align-items:center;flex-wrap:wrap;gap:16px;font-size:13px;color:var(--text3)}
+    .footer-links{display:flex;gap:20px;flex-wrap:wrap}
+  </style>
+</head>
+<body>
+
+<style>
+/* ── Two-Row Nav ── */
+.site-header { position:sticky; top:0; z-index:100; background:rgba(6,8,15,.95); backdrop-filter:blur(20px); border-bottom:1px solid var(--border); }
+.nav-top { display:flex; align-items:center; justify-content:space-between; padding:0 5%; height:50px; border-bottom:1px solid rgba(33,38,45,.5); }
+.nav-logo { font-weight:900; font-size:17px; color:var(--text); letter-spacing:-.5px; text-decoration:none; white-space:nowrap; }
+.nav-logo em { color:var(--cyan,#39d0d8); font-style:normal; }
+.nav-top-right { display:flex; align-items:center; gap:12px; }
+.nav-top-right a { font-size:13px; font-weight:600; text-decoration:none; }
+.nav-top-right .signin { color:var(--text3,#8b949e); }
+.nav-top-right .signin:hover { color:var(--text,#f0f6fc); }
+.nav-top-right .signup { background:var(--green,#3fb950); color:#000; padding:6px 14px; border-radius:6px; font-weight:700; }
+.nav-top-right .signup:hover { filter:brightness(1.1); }
+.nav-bottom { display:flex; align-items:center; justify-content:center; gap:6px; padding:0 5%; height:38px; overflow-x:auto; white-space:nowrap; }
+.nav-bottom a { font-size:12px; font-weight:600; color:var(--text3,#8b949e); text-decoration:none; padding:4px 10px; border-radius:4px; transition:color .15s, background .15s; flex-shrink:0; }
+.nav-bottom a:hover { color:var(--text,#f0f6fc); background:rgba(255,255,255,.05); text-decoration:none; }
+.nav-bottom a.active { color:var(--cyan,#39d0d8); }
+.nav-bottom .sep { width:1px; height:16px; background:var(--border,#21262d); flex-shrink:0; margin:0 4px; }
+@media(max-width:640px) { .nav-bottom { justify-content:flex-start; } .nav-bottom a { font-size:11px; padding:4px 7px; } }
+</style>
+<header class="site-header">
+  <div class="nav-top">
+    <a href="developer-landing.html" class="nav-logo">SRT<em>-1</em> <span style="font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;margin-left:4px">CODE_INDEXER</span></a>
+    <div class="nav-top-right" id="nav-auth">
+      <a href="auth.html?mode=login" class="signin">Sign In</a>
+      <a href="auth.html?mode=signup&type=developer" class="signup">Sign Up</a>
+    </div>
+  </div>
+  <div class="nav-bottom">
+    <a href="developer-landing.html" class="active">Overview</a>
+    <a href="comparison.html">Compare</a>
+    <a href="documentation.html">Documentation</a>
+  </div>
+</header>
+
+<!-- ── HERO ── -->
+<section class="hero">
+  <div class="hero-badge">SCIA v4.0 — 7-Stage Intelligence Pipeline</div>
+  <h1>Your AI finally understands<br><span>your entire codebase.</span></h1>
+  <p class="hero-sub">AI memory isn't enough. SRT-1 gives you cryptographic provenance over your intellectual contributions. We index your codebase, tag risk, and build a cryptographically signed Trust Chain — proving your team's ownership over everything your AI generates.</p>
+  <div class="hero-install" id="install">
+    <code>pip install srt1-code-indexer</code>
+    <button class="copy-btn" onclick="navigator.clipboard.writeText(&#39;pip install srt1-code-indexer&#39;);this.textContent=&#39;Copied!&#39;;setTimeout(()=&gt;this.textContent=&#39;Copy&#39;,1500)">Copy</button>
+  </div>
+  <div class="hero-btns">
+    <a href="auth.html?mode=signup&type=developer" class="btn btn-blue">Start Free — No credit card</a>
+    <a href="documentation.html" class="btn btn-outline">Read the Docs →</a>
+  </div>
+</section>
+
+<!-- ── STATS ── -->
+<div class="stats">
+  <div class="stat"><div class="stat-num">7</div><div class="stat-label">Pipeline Stages</div></div>
+  <div class="stat"><div class="stat-num">10+</div><div class="stat-label">Languages</div></div>
+  <div class="stat"><div class="stat-num">8</div><div class="stat-label">Risk Tags</div></div>
+  <div class="stat"><div class="stat-num">0</div><div class="stat-label">Dependencies</div></div>
+</div>
+
+<!-- ── FEATURES ── -->
+<section class="section">
+  <div class="section-inner">
+    <div class="eyebrow">Features</div>
+    <h2 class="section-h2">Everything your AI needs to know.</h2>
+    <p class="section-p">One command. One signed manifest. Every AI tool aligned.</p>
+    <div class="features-grid">
+      <div class="fcard">
+        <div class="fcard-icon">🔍</div>
+        <h3>Deep Code Analysis</h3>
+        <p>Parses Python, JavaScript, TypeScript, Go, Rust, Java, C#, and C/C++. Extracts every class, function, and cross-file dependency chain.</p>
+      </div>
+      <div class="fcard">
+        <div class="fcard-icon">🏷️</div>
+        <h3>Role &amp; Risk Tagging</h3>
+        <p>Every symbol gets an architectural role (ORCHESTRATOR, AUTH_SECURITY, SERVICE_LAYER…) and risk tags (AUTH_SENSITIVE, WRITES_TO_DB, DYNAMIC_EXECUTION…).</p>
+      </div>
+      <div class="fcard">
+        <div class="fcard-icon">🔐</div>
+        <h3>Trust Chain</h3>
+        <p>SHA-256 chained hashes across all 7 pipeline stages. Verify the manifest was produced by a clean, uninterrupted run — cryptographically provable.</p>
+      </div>
+      <div class="fcard">
+        <div class="fcard-icon">✍️</div>
+        <h3>Provenance Stamps</h3>
+        <p>Every artifact carries a cryptographic SCIA provenance signature. Detect tampering before trusting any AI output.</p>
+      </div>
+      <div class="fcard">
+        <div class="fcard-icon">⚡</div>
+        <h3>Zero Dependencies</h3>
+        <p>Pure Python stdlib. No pip install chain to audit. Ships as a single command: <code style="color:var(--cyan);font-size:12px">srt1-index --repo_path .</code></p>
+      </div>
+      <div class="fcard">
+        <div class="fcard-icon">🤖</div>
+        <h3>AI Context Files</h3>
+        <p>Auto-generates CLAUDE.md, .cursorrules, AGENTS.md, and copilot-instructions.md so every AI tool reads the same ground truth.</p>
+      </div>
+      <div class="fcard">
+        <div class="fcard-icon">🌱</div>
+        <h3>Seed Queue</h3>
+        <p>Track every task as a seed through its full lifecycle — planted → germinating → growing → bloomed. Never lose a task mid-session.</p>
+      </div>
+      <div class="fcard">
+        <div class="fcard-icon">🔌</div>
+        <h3>MCP Server</h3>
+        <p>Native Model Context Protocol server for Claude. Every tool call is context-aware, grounded in your actual codebase manifest.</p>
+      </div>
+      <div class="fcard">
+        <div class="fcard-icon">🛡️</div>
+        <h3>Self-Healing Engine</h3>
+        <p>Detects duplicate functions, stale files, and missing docstrings. Auto-proposes governed remediations with full audit trail.</p>
+      </div>
+      <div class="fcard">
+        <div class="fcard-icon">📱</div>
+        <h3>Mobile App (PWA)</h3>
+        <p>Install SRT-1 as a native app on your phone or tablet. Monitor your codebase, check seed status, and review coherence — from anywhere. No app store required.</p>
+      </div>
+      <div class="fcard">
+        <div class="fcard-icon">🖥️</div>
+        <h3>Desktop + Browser</h3>
+        <p>Run the Command Center in your browser or install it as a desktop app. Persistent access to your codebase intelligence without keeping a terminal open.</p>
+      </div>
+    </div>
+
+    <!-- Language support -->
+    <div style="margin-top:64px">
+      <div class="eyebrow">Language Support</div>
+      <h3 style="font-size:20px;font-weight:700;margin-bottom:8px">Works with every language your team uses.</h3>
+      <p style="font-size:14px;color:var(--text3);margin-bottom:0">Full AST parsing for Python. Regex + structure extraction for everything else.</p>
+      <div class="lang-grid">
+        <div class="lang-pill">🐍 Python</div>
+        <div class="lang-pill">🟨 JavaScript</div>
+        <div class="lang-pill">🔷 TypeScript</div>
+        <div class="lang-pill">🐹 Go</div>
+        <div class="lang-pill">🦀 Rust</div>
+        <div class="lang-pill">☕ Java</div>
+        <div class="lang-pill">🔵 C#</div>
+        <div class="lang-pill">⚙️ C / C++</div>
+        <div class="lang-pill">📝 Markdown</div>
+        <div class="lang-pill">🔧 YAML</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── PIPELINE ── -->
+<section class="pipeline">
+  <div style="text-align:center;max-width:1100px;margin:0 auto">
+    <div class="eyebrow">Pipeline</div>
+    <h2 class="section-h2" style="text-align:center">7 stages. One signed manifest.</h2>
+  </div>
+  <div class="pipeline-steps" style="max-width:1100px;margin:48px auto 0">
+    <div class="step"><div class="step-num">1</div><div class="step-name">Scan</div><div class="step-desc">Walk directory tree, hash every file</div></div>
+    <div class="step"><div class="step-num">2</div><div class="step-name">Parse</div><div class="step-desc">AST + regex across all languages</div></div>
+    <div class="step"><div class="step-num">3</div><div class="step-name">Curate</div><div class="step-desc">Detect duplicates &amp; overlaps</div></div>
+    <div class="step"><div class="step-num">4</div><div class="step-name">Reflect</div><div class="step-desc">Tag role &amp; risk per symbol</div></div>
+    <div class="step"><div class="step-num">5</div><div class="step-name">Trust</div><div class="step-desc">Build SHA-256 chain</div></div>
+    <div class="step"><div class="step-num">6</div><div class="step-name">Manifest</div><div class="step-desc">Sign &amp; write JSON</div></div>
+    <div class="step"><div class="step-num">7</div><div class="step-name">Report</div><div class="step-desc">Print integrity report</div></div>
+  </div>
+</section>
+
+<!-- ── COMMAND CENTER ── -->
+<section class="cc-section">
+  <div class="cc-inner">
+    <div class="cc-copy">
+      <div class="eyebrow">Command Center</div>
+      <h2>Your entire codebase,<br><span>live in your browser.</span></h2>
+      <p>Run the middleware and open <code style="color:var(--cyan);font-size:13px">localhost:7483/dashboard</code>. The Command Center shows real-time data from your repo — file counts, symbol inventory, seed farm, coherence score — updating as you work.</p>
+      <ul class="cc-bullets">
+        <li>File counts, symbol inventory, cross-file call chains — live from your codebase</li>
+        <li>Seed Farm: every task planted, germinating, growing, and bloomed in one view</li>
+        <li>Coherence gauge: circular drift score that updates every 3 operations</li>
+        <li>Risk profile: auth-sensitive functions, file I/O, dynamic execution — by count</li>
+        <li>Warnings: every duplicate function and curation issue, named and linked</li>
+        <li>"Ask SRT-1" chat: type any question about your codebase, get a grounded answer</li>
+      </ul>
+      <div class="cc-btns">
+        <a href="dashboard.html" class="btn btn-blue btn-sm">Open Developer Dashboard</a>
+        <a href="documentation.html" class="btn btn-outline btn-sm">Run it locally →</a>
+      </div>
+    </div>
+    <div>
+      <div class="cc-screen">
+        <div class="cc-bar">
+          <div class="cc-dot" style="background:#ff5f57"></div>
+          <div class="cc-dot" style="background:#febc2e"></div>
+          <div class="cc-dot" style="background:#28c840"></div>
+          <span style="margin-left:8px;font-size:11px;color:var(--text3);font-family:&#39;JetBrains Mono&#39;,monospace">localhost:7483/dashboard — SRT-1</span>
+        </div>
+        <div class="cc-body">
+          <div class="cc-stat-row">
+            <div class="cc-stat"><div class="cc-stat-num">49</div><div class="cc-stat-lbl">Files</div></div>
+            <div class="cc-stat"><div class="cc-stat-num">463</div><div class="cc-stat-lbl">Symbols</div></div>
+            <div class="cc-stat"><div class="cc-stat-num">226</div><div class="cc-stat-lbl">Call Chains</div></div>
+          </div>
+          <div class="cc-panels">
+            <div class="cc-panel">
+              <div class="cc-panel-title">📊 Coherence</div>
+              <div class="cc-gauge">
+                <div class="cc-gauge-ring"></div>
+                <div><div class="cc-gauge-val">94%</div><div style="font-size:10px;color:var(--text3);text-transform:uppercase">On Track</div></div>
+              </div>
+            </div>
+            <div class="cc-panel">
+              <div class="cc-panel-title">⚠️ Risk Profile</div>
+              <div class="cc-risk-bar">
+                <div class="cc-risk-row"><span class="cc-risk-label">Auth</span><div class="cc-risk-track"><div class="cc-risk-fill" style="width:78%;background:var(--red)"></div></div><span>78</span></div>
+                <div class="cc-risk-row"><span class="cc-risk-label">File I/O</span><div class="cc-risk-track"><div class="cc-risk-fill" style="width:69%;background:var(--blue)"></div></div><span>69</span></div>
+                <div class="cc-risk-row"><span class="cc-risk-label">Logging</span><div class="cc-risk-track"><div class="cc-risk-fill" style="width:47%;background:var(--green)"></div></div><span>47</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="cc-panels">
+            <div class="cc-panel">
+              <div class="cc-panel-title">🌱 Seed Farm</div>
+              <div class="cc-seed-list">
+                <div class="cc-seed"><div class="cc-seed-dot" style="background:var(--green)"></div>Add SCIA v4.0 signatures</div>
+                <div class="cc-seed"><div class="cc-seed-dot" style="background:var(--cyan)"></div>Wire dashboard route</div>
+                <div class="cc-seed"><div class="cc-seed-dot" style="background:var(--amber)"></div>GitHub Pages deploy</div>
+                <div class="cc-seed"><div class="cc-seed-dot" style="background:var(--text3)"></div>Lemon Squeezy setup</div>
+              </div>
+            </div>
+            <div class="cc-panel">
+              <div class="cc-panel-title">💬 Ask SRT-1</div>
+              <div style="background:var(--bg);border:1px solid var(--border-light);border-radius:6px;padding:8px 12px;font-size:12px;color:var(--text3);font-family:&#39;JetBrains Mono&#39;,monospace">What functions touch auth?_</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── PWA: PLANT SEEDS FROM YOUR PHONE ── -->
+<style>
+  .pwa-phone{background:var(--bg-card);border:2px solid var(--border-light);border-radius:28px;
+             padding:12px 14px 18px;max-width:260px;margin:0 auto;box-shadow:0 20px 60px rgba(0,0,0,.5);position:relative;overflow:hidden}
+  .pwa-phone::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:80px;height:22px;
+                     background:var(--bg);border-radius:0 0 12px 12px;z-index:2}
+  .pwa-notch{height:28px}
+  .pwa-status{display:flex;justify-content:space-between;align-items:center;padding:0 4px 8px;font-size:10px;color:var(--text3);font-family:'JetBrains Mono',monospace}
+  .pwa-app-bar{background:linear-gradient(135deg,rgba(63,185,80,.15),rgba(57,208,216,.10));border-radius:10px;
+               padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+  .pwa-app-icon{width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,var(--green),var(--cyan));
+                display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+  .pwa-app-name{font-size:12px;font-weight:800;color:var(--text);letter-spacing:-.3px}
+  .pwa-app-sub{font-size:9px;color:var(--text3);font-weight:500}
+  .pwa-card{background:var(--bg-surface);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px}
+  .pwa-card-title{font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;margin-bottom:8px}
+  .pwa-seed-input{background:var(--bg);border:1px solid var(--border-light);border-radius:8px;padding:10px;
+                  font-size:11px;color:var(--text2);line-height:1.5;width:100%;margin-bottom:8px;font-family:'JetBrains Mono',monospace}
+  .pwa-plant-btn{background:linear-gradient(135deg,var(--green),var(--cyan));color:#000;border:none;border-radius:6px;
+                 padding:8px 0;font-size:11px;font-weight:800;width:100%;text-align:center;letter-spacing:.03em;cursor:default}
+  .pwa-seed-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);font-size:11px}
+  .pwa-seed-row:last-child{border-bottom:none}
+  .pwa-seed-emoji{font-size:14px;flex-shrink:0}
+  .pwa-seed-info{flex:1;min-width:0}
+  .pwa-seed-name{color:var(--text);font-weight:600;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pwa-seed-meta{color:var(--text3);font-size:9px}
+  .pwa-seed-growth{font-size:10px;font-weight:800;font-family:'JetBrains Mono',monospace;flex-shrink:0}
+  .pwa-review{background:var(--bg);border:1px solid rgba(210,153,34,.4);border-radius:8px;padding:8px 10px;
+              font-size:10px;color:var(--text2);line-height:1.5;margin-bottom:8px}
+  .pwa-review-label{font-size:9px;color:var(--amber);font-weight:700;letter-spacing:.05em;text-transform:uppercase;margin-bottom:4px}
+  .pwa-approval-btns{display:flex;gap:6px}
+  .pwa-btn-approve{flex:1;background:var(--green);color:#000;border:none;border-radius:5px;padding:6px 0;
+                   font-size:10px;font-weight:800;text-align:center;cursor:default}
+  .pwa-btn-reject{flex:1;background:transparent;border:1px solid var(--border-light);color:var(--text3);border-radius:5px;
+                  padding:6px 0;font-size:10px;font-weight:700;text-align:center;cursor:default}
+  .pwa-bottom-bar{display:flex;justify-content:space-around;padding:10px 0 2px;border-top:1px solid var(--border);margin-top:8px}
+  .pwa-tab{text-align:center;font-size:9px;color:var(--text3);font-weight:600}
+  .pwa-tab.active{color:var(--green)}
+  .pwa-tab-icon{font-size:16px;margin-bottom:2px}
+  .pwa-installed{display:inline-flex;align-items:center;gap:4px;background:rgba(63,185,80,.12);border:1px solid rgba(63,185,80,.25);
+                 color:var(--green);font-size:9px;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:auto}
+</style>
+<section class="section" style="border-top:1px solid var(--border)">
+  <div class="section-inner">
+    <div class="cc-inner">
+      <div class="cc-copy">
+        <div class="eyebrow">Mobile PWA — Seed Planting</div>
+        <h2>Plant a seed from your phone.<br><span>Your AI builds it.</span></h2>
+        <p>You're on the train with an idea. Open the PWA, type "add dark mode to the settings page," and plant the seed. SRT-1 generates a full-context blueprint from your codebase — then <strong style="color:var(--amber)">you review and approve it</strong> before anything is dispatched. Once approved, the Execution Bridge sends it to whatever code assistant is already running — Cursor, Claude, Copilot. You check back later: <strong style="color:var(--green)">🌸 BLOOMED — 3 files modified.</strong></p>
+        <p style="color:var(--text2);font-size:15px;line-height:1.7;margin-bottom:28px">Session continuity built in. Every session ends with a handoff summary — what you accomplished, what's pending, and the exact prompt to restart. Close a conversation, come back a week later, paste one line and your AI picks up instantly. No rethinking, no re-explaining.</p>
+        <ul class="cc-bullets">
+          <li><strong style="color:var(--green)">Plant seeds from anywhere</strong> — give your code assistant tasks from your phone</li>
+          <li>SRT-1 auto-generates a blueprint using your full codebase context</li>
+          <li><strong style="color:var(--amber)">Human-in-the-loop</strong> — review the blueprint on your phone, approve or reject before dispatch</li>
+          <li>Execution Bridge dispatches to your assistant via context injection</li>
+          <li>Track lifecycle: 🌱 Planted → 🌿 Germinating → 🌳 Growing → 🌸 Bloomed</li>
+          <li>Session handoff summaries + restart prompts — never re-explain your project</li>
+          <li>Install as a PWA — runs like a native app, no app store required</li>
+        </ul>
+        <div class="cc-btns">
+          <a href="auth.html?mode=signup&type=developer" class="btn btn-blue btn-sm">Start Free →</a>
+          <a href="#mobile" class="btn btn-outline btn-sm">PWA setup guide →</a>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:center;align-items:center">
+        <!-- PWA Phone Graphic — Seed Planting -->
+        <div class="pwa-phone">
+          <div class="pwa-notch"></div>
+          <div class="pwa-status">
+            <span>9:41</span>
+            <span style="display:flex;gap:4px;align-items:center">
+              <span style="font-size:12px">📶</span>
+              <span style="font-size:12px">🔋</span>
+            </span>
+          </div>
+          <div class="pwa-app-bar">
+            <div class="pwa-app-icon">🌱</div>
+            <div>
+              <div class="pwa-app-name">SRT-1</div>
+              <div class="pwa-app-sub">Seed Farm</div>
+            </div>
+            <div class="pwa-installed">✓ PWA</div>
+          </div>
+
+          <!-- Plant a seed -->
+          <div class="pwa-card">
+            <div class="pwa-card-title" style="color:var(--green)">🌱 Plant a Seed</div>
+            <div class="pwa-seed-input">Add dark mode toggle to the settings page with system preference detection</div>
+            <div class="pwa-plant-btn">PLANT SEED →</div>
+          </div>
+
+          <!-- Blueprint Review — Human in the Loop -->
+          <div class="pwa-card" style="border-color:rgba(210,153,34,.4)">
+            <div class="pwa-card-title" style="color:var(--amber)">🔍 Review Blueprint</div>
+            <div class="pwa-review">
+              <div class="pwa-review-label">Generated blueprint</div>
+              Add dark mode toggle to SettingsPage component. Use prefers-color-scheme media query. Store preference in localStorage. Update 2 files.
+            </div>
+            <div class="pwa-approval-btns">
+              <div class="pwa-btn-approve">✓ APPROVE</div>
+              <div class="pwa-btn-reject">✕ REJECT</div>
+            </div>
+          </div>
+
+          <!-- Active seeds -->
+          <div class="pwa-card">
+            <div class="pwa-card-title" style="color:var(--cyan)">Active Seeds</div>
+            <div class="pwa-seed-row">
+              <div class="pwa-seed-emoji">🌸</div>
+              <div class="pwa-seed-info">
+                <div class="pwa-seed-name">Add OAuth2 login</div>
+                <div class="pwa-seed-meta">3 files · 12m ago</div>
+              </div>
+              <div class="pwa-seed-growth" style="color:var(--green)">100%</div>
+            </div>
+            <div class="pwa-seed-row">
+              <div class="pwa-seed-emoji">🌳</div>
+              <div class="pwa-seed-info">
+                <div class="pwa-seed-name">Refactor API routes</div>
+                <div class="pwa-seed-meta">2 files · building</div>
+              </div>
+              <div class="pwa-seed-growth" style="color:var(--cyan)">72%</div>
+            </div>
+            <div class="pwa-seed-row">
+              <div class="pwa-seed-emoji">🌿</div>
+              <div class="pwa-seed-info">
+                <div class="pwa-seed-name">Add error boundaries</div>
+                <div class="pwa-seed-meta">blueprint ready</div>
+              </div>
+              <div class="pwa-seed-growth" style="color:var(--amber)">25%</div>
+            </div>
+          </div>
+
+          <div class="pwa-bottom-bar">
+            <div class="pwa-tab"><div class="pwa-tab-icon">🏠</div>Home</div>
+            <div class="pwa-tab active"><div class="pwa-tab-icon">🌱</div>Seeds</div>
+            <div class="pwa-tab"><div class="pwa-tab-icon">📊</div>Status</div>
+            <div class="pwa-tab"><div class="pwa-tab-icon">⚙️</div>Settings</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+
+<!-- ── CODE API ── -->
+<section class="code-section">
+  <div style="max-width:800px;margin:0 auto">
+    <div class="eyebrow">API</div>
+    <h2 style="font-size:clamp(24px,3.5vw,38px);font-weight:900;letter-spacing:-1px;margin-bottom:32px">Works in 3 lines.</h2>
+    <pre><span class="kw">from</span> srt1_code_indexer <span class="kw">import</span> SRT1CodeIndexer
+
+indexer = <span class="fn">SRT1CodeIndexer</span>(repo_path=<span class="str">"."</span>)
+manifest = indexer.<span class="fn">index_repository</span>()
+
+<span class="cm"># Every symbol, tagged and signed</span>
+<span class="kw">print</span>(manifest[<span class="str">"metadata"</span>][<span class="str">"total_symbols_indexed"</span>])  <span class="cm"># 661</span>
+<span class="kw">print</span>(manifest[<span class="str">"metadata"</span>][<span class="str">"pipeline_stages"</span>])         <span class="cm"># 7</span>
+<span class="kw">print</span>(manifest[<span class="str">"trust_chain"</span>][-<span class="num">1</span>][<span class="str">"stage"</span>])              <span class="cm"># "manifest"</span></pre>
+    <div style="margin-top:24px;display:flex;gap:12px">
+      <a href="documentation.html" class="btn btn-outline btn-sm">Full API Reference →</a>
+      <a href="https://github.com/SeedClassIntelligence/SRT1" class="btn btn-outline btn-sm">View on GitHub →</a>
+    </div>
+  </div>
+</section>
+
+<!-- ── CONSUMER BRIDGE ── -->
+<div class="consumer-bridge">
+  <div class="consumer-bridge-inner">
+    <div style="display:inline-block;background:var(--green-dim,rgba(63,185,80,.1));border:1px solid rgba(63,185,80,.25);color:var(--green);font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:5px 14px;border-radius:20px;margin-bottom:18px">Also for everyone</div>
+    <h2 style="font-size:clamp(22px,3vw,34px);font-weight:900;letter-spacing:-1px;margin-bottom:12px">Also use SRT-1 to recover your personal AI conversations.</h2>
+    <p style="font-size:15px;color:var(--text2);max-width:520px;margin:0 auto 24px;line-height:1.65">Upload a ChatGPT JSON export. Paste a Claude conversation. Get every abandoned idea back, prioritized and ready to pick up — no setup required.</p>
+    <a href="home.html" class="btn btn-outline" style="border-color:var(--green);color:var(--green)">Try Conversation Recovery →</a>
+  </div>
+</div>
+
+<!-- ── DEVELOPER PRICING ── -->
+<section class="pricing" id="pricing">
+  <div class="eyebrow">Developer Pricing</div>
+  <h2 style="font-size:clamp(28px,4vw,44px);font-weight:900;letter-spacing:-1.5px;margin-bottom:8px">Start free. Scale when you need to.</h2>
+  <p style="font-size:15px;color:var(--text3);max-width:500px;margin:0 auto 52px">The indexer is open source and free forever. Pay for the intelligence layers.</p>
+  <div class="pricing-grid">
+    <div class="pcard">
+      <div class="pcard-tier">Free</div>
+      <div class="pcard-price">$0</div>
+      <div class="pcard-desc">Open source. Apache 2.0.</div>
+      <ul class="pcard-features">
+        <li>7-stage code indexer</li>
+        <li>Signed Code Manifest</li>
+        <li>Trust chain verification</li>
+        <li>AI context file generation</li>
+        <li class="dim">Context Bundler</li>
+        <li class="dim">Self-Healing Engine</li>
+        <li class="dim">Live Middleware</li>
+      </ul>
+      <a href="auth.html?mode=signup&type=developer" class="pcard-btn">Create free account →</a>
+    </div>
+    <div class="pcard featured">
+      <div class="pcard-tier">Pro</div>
+      <div class="pcard-price">$39<sub>/mo per seat</sub></div>
+      <div class="pcard-desc">Intelligence layer for individual developers.</div>
+      <ul class="pcard-features">
+        <li>Everything in Free</li>
+        <li>Context Bundler (Phase 2)</li>
+        <li>Governed Execution Engine</li>
+        <li>Self-Healing Engine</li>
+        <li>500 seeds/month</li>
+        <li>Unlimited reflections</li>
+        <li class="dim">Team management</li>
+      </ul>
+      <button class="pcard-btn primary" onclick="handleCheckout(&#39;pro&#39;,&#39;monthly&#39;)">Get Pro →</button>
+    </div>
+    <div class="pcard">
+      <div class="pcard-tier">SRT-1 Governance</div>
+      <div class="pcard-price">$349<sub>/yr for teams</sub></div>
+      <div class="pcard-desc">Full governance platform for development teams.</div>
+      <ul class="pcard-features">
+        <li>Everything in Pro</li>
+        <li>Live Middleware API</li>
+        <li>Seed Queue &amp; Lifecycle</li>
+        <li>Execution Bridge</li>
+        <li>Mobile PWA</li>
+        <li>Remote Auth + Team management</li>
+        <li>Full Audit Trail &amp; MCP Server</li>
+      </ul>
+      <button class="pcard-btn" onclick="handleCheckout('governance')">Get Governance →</button>
+    </div>
+  </div>
+  <p style="margin-top:24px;font-size:13px;color:var(--text3)">Looking for consumer pricing? <a href="home.html#pricing">See plans for casual AI users →</a></p>
+</section>
+
+<footer>
+  <div>© 2026 SRT-1 — Seed-Class Intelligence Architecture</div>
+  <div class="footer-links">
+    <a href="home.html">Home</a>
+    <a href="documentation.html">Docs</a>
+    <a href="home.html">Seed Reflection</a>
+    <a href="auth.html">Sign Up</a>
+    <a href="https://github.com/SeedClassIntelligence/SRT1">GitHub</a>
+    <a href="https://pypi.org/project/srt1-core">PyPI</a>
+  </div>
+</footer>
+
+<script src="./SRT-1 for Developers — AI That Understands Your Entire Codebase_files/platform.js"></script>
+<script>
+(async function() {
+  const el = document.getElementById('nav-auth');
+  const user = await SRT1Platform.getUser().catch(() => null);
+  if (user) {
+    el.innerHTML = `<a href="dashboard.html" class="btn-nav-ghost">Dashboard</a>
+      <button class="btn-nav-ghost" onclick="SRT1Platform.logout().then(()=>location.reload())">Log out</button>`;
+  }
+})();
+
+// Checkout — direct Lemon Squeezy buy links (no backend required)
+const CHECKOUT_URLS = {
+  pro:        'https://srt-1.lemonsqueezy.com/checkout/buy/3c7b5b89-fe57-4f36-a664-59d7b69aa04f',
+  governance: 'https://srt-1.lemonsqueezy.com/checkout/buy/2c0e9081-c536-41c5-8a25-80b4e5e9f210',
+};
+function handleCheckout(plan) {
+  const url = CHECKOUT_URLS[plan];
+  if (url) { location.href = url; }
+}
+</script>
+
+
+</body></html>

@@ -1,0 +1,64 @@
+# ── SRT-1 IP Protection ──
+# The Seed Signature authority is PRIVATE. Never push to any public repo.
+# These rules protect against accidental commits of mock services.
+**/srt1_signature_client*.py
+private_core_v2/
+
+# ── Legacy / stale directories ──
+srt1_code_indexer_pkg/
+test_repo/
+
+# ── Runtime state (local only) ──
+.srt1/
+
+# ── Nuitka build artifacts ──
+*.pyd
+*.pyi
+*.build/
+
+# ── Python ──
+__pycache__/
+*.pyc
+*.egg-info/
+dist/
+build/
+*.whl
+*.tar.gz
+*.spec
+
+# ── Runtime outputs (never commit) ──
+*_execution_result.json
+*_context_bundle.json
+*_code_manifest.json
+*_prompt_*.txt
+bundle_prompt.txt
+
+# ── MCP configs (may contain local paths) ──
+mcp_configs/
+
+# ── Misc ──
+dummy_app.py
+test_venv/
+
+# ── Backend secrets & storage ──
+srt1_backend/.env
+srt1_backend/storage/
+
+# ── Database ──
+*.db
+
+# ── IDE ──
+.vscode/
+.idea/
+
+# ── OS ──
+Thumbs.db
+.DS_Store
+
+# ── PROPRIETARY IP (DO NOT TRACK) ──
+srt1_backend/
+SEED GRAPH/
+packages/
+srt1_dashboard.html
+srt1_mobile.html
+seed-reflection/
