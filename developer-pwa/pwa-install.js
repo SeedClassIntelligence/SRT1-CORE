@@ -11,14 +11,14 @@
   const DISMISS_KEY = 'pwa-banner-dismissed';
   const DISMISS_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days
 
-  const CONSUMER_PATHS = ['/seed-reflection'];
+  const CONSUMER_PATHS = [''];
   const CONSUMER_CONFIG = {
     name: 'Seed Reflection',
     tagline: 'Capture ideas in one tap — works offline',
     iconSvg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" width="40" height="40"><rect width="40" height="40" rx="9" fill="#06080f"/><circle cx="20" cy="20" r="11" fill="none" stroke="#10a37f" stroke-width="2.5"/><circle cx="20" cy="20" r="7" fill="none" stroke="#10a37f" stroke-width="2" opacity=".7"/><circle cx="20" cy="20" r="3.5" fill="#10a37f"/></svg>',
     accentColor: '#10a37f',
     manifest: '/manifest.json',
-    fallbackUrl: '/seed-reflection/mobile.html',
+    fallbackUrl: '/mobile.html',
   };
 
   const DEVELOPER_CONFIG = {

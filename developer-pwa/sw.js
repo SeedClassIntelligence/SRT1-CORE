@@ -3,11 +3,11 @@
 
 const CACHE_NAME = 'srt1-consumer-v1';
 const APP_SHELL = [
-  '/seed-reflection/mobile.html',
-  '/seed-reflection/manifest.json',
-  '/seed-reflection/dashboard.html',
-  '/seed-reflection/index.html',
-  '/seed-reflection/assets/style.css',
+  '/mobile.html',
+  '/manifest.json',
+  '/dashboard.html',
+  '/index.html',
+  '/assets/style.css',
   '/js/platform.js',
 ];
 
@@ -65,7 +65,7 @@ self.addEventListener('fetch', event => {
       }).catch(() => {
         // Offline fallback for HTML navigation
         if (event.request.mode === 'navigate') {
-          return caches.match('/seed-reflection/mobile.html');
+          return caches.match('/mobile.html');
         }
         return new Response('', { status: 503 });
       });
@@ -170,10 +170,10 @@ self.addEventListener('push', event => {
   const title = data.title || 'Seed Reflection';
   const options = {
     body: data.body || 'You have updates in your idea garden.',
-    icon: '/seed-reflection/manifest.json',
-    badge: '/seed-reflection/manifest.json',
+    icon: '/manifest.json',
+    badge: '/manifest.json',
     tag: data.tag || 'srt1',
-    data: { url: data.url || '/seed-reflection/mobile.html' },
+    data: { url: data.url || '/mobile.html' },
   };
   event.waitUntil(self.registration.showNotification(title, options));
 });
@@ -181,6 +181,6 @@ self.addEventListener('push', event => {
 self.addEventListener('notificationclick', event => {
   event.notification.close();
   event.waitUntil(
-    clients.openWindow(event.notification.data.url || '/seed-reflection/mobile.html')
+    clients.openWindow(event.notification.data.url || '/mobile.html')
   );
 });
