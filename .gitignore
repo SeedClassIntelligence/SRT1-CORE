@@ -58,7 +58,6 @@ Thumbs.db
 # ── PROPRIETARY IP (DO NOT TRACK) ──
 srt1_backend/
 SEED GRAPH/
-packages/
 srt1_dashboard.html
 srt1_mobile.html
 seed-reflection/
