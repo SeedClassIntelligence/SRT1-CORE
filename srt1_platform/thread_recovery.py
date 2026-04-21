@@ -1,3 +1,15 @@
+"""
+SRT-1 AUTO-GENERATED INTELLIGENCE
+===================================
+Architectural Roles: CLI_ENTRY_POINT, DATA_MODEL
+Key Symbols: SCIASeedMiner, main, __init__, mine, _parse_conversation ... and 12 more
+
+Extracted Purposes:
+  - SCIASeedMiner: Mines conversation threads for seeds, drift, and forgotten ideas.
+  - mine: Run deep reflection on an entire conversation.
+  - _parse_conversation: Parse conversation text into structured messages.
+  ...
+"""
 #!/usr/bin/env python3
 """
 SRT-1 Thread Recovery — The Seed Miner

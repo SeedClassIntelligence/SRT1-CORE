@@ -1,3 +1,14 @@
+"""
+SRT-1 AUTO-GENERATED INTELLIGENCE
+===================================
+Architectural Roles: TRACING_AUDIT
+Key Symbols: EmptinessFinding, CompletenessReport, SeedTreeValidator, is_complete, to_dict ... and 4 more
+
+Extracted Purposes:
+  - SeedTreeValidator: Seed-to-Tree Completeness Engine.
+  - _is_body_empty: Check if a node body is logically empty (no intelligence).
+  - verify_tree: Verify an entire tree (or subset of files) for emptiness and missing intelligence.
+"""
 import ast
 import os
 import glob

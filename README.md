@@ -23,7 +23,7 @@ Phase 3: Execution Layer → governed task routing → result
 ## Installation
 
 ```bash
-pip install SRT1-CORE
+pip install srt1-core
 ```
 
 ## Quick Start
@@ -64,13 +64,15 @@ curl -X POST http://localhost:7483/task -d '{"task": "Add refund emails"}'
 curl http://localhost:7483/context
 ```
 
-## Tiers
+## The Unified Ecosystem
 
-| Tier | Includes | CLI Tools |
+You no longer have to download multiple packages. `pip install srt1-core` gives you the complete Seed-Class Intelligence Ecosystem in a single installation:
+
+| Component | Description | CLI Tools |
 |------|----------|-----------|
-| **Core** | Code Indexer, SRT Engine | `srt1-index` |
-| **Pro** | + Context Bundler, Execution Engine, Self-Heal | `srt1-bundle`, `srt1-execute`, `srt1-heal` |
-| **Platform** | + Live Middleware, Seed Queue, Execution Bridge, Thread Recovery | `srt1-middleware` |
+| **Core Intelligence** | Code Indexer, SRT Engine, AST mapping | `srt1-index` |
+| **Pro Execution** | Context Bundler, Execution Engine, Self-Healing | `srt1-bundle`, `srt1-execute`, `srt1-heal` |
+| **Platform & PWA** | Live Middleware, Seed Queue, Execution Bridge, Thread Recovery, Mobile PWA | `srt1-middleware` |
 
 ## What the Code Manifest Contains
 
@@ -81,17 +83,20 @@ curl http://localhost:7483/context
 - **Execution trace chain** and coherence history
 - **Integrity hash** for tamper detection
 
-## Security
+## CTO-Grade Security & Governance (Enterprise Use)
 
-- **Local-first indexing and analysis**
-- **Read-only repository scanning**
-- **Path-safe output** with no absolute local paths
-- **Integrity verification** via SHA-256 manifest hashing
+While the open-source `srt1-core` package provides the complete platform capabilities offline, the **SRT-1 Governance License** activates remote execution and team fleet management features built for CTOs to securely govern AI development:
+
+- **Cryptographic Trust Signatures & Manifests**: Every file and symbol is hashed (SHA-256) into an immutable code manifest, creating an indisputable execution roadmap.
+- **Enterprise Enforcement Guardrails**: SRT-1 dynamically triggers `HARD_STOP` locks when it detects functional overlaps or duplicate files, forcing AI developers to strictly align with the existing architecture.
+- **Zero-IP-Leak Physical Isolation**: The core engine operates locally offline and is physically decoupled from any proprietary SaaS backend, securing your perimeter.
+- **Strict Network Loopback Telemetry**: Built-in `SCIARemoteAuth` cryptographic middleware instantly locks down external API fetches, while transparently permitting 127.0.0.1 bypasses to seamlessly drive isolated local Developer Dashboards.
 
 ## Architecture
 
+SRT-1 is deployed as a single unified wheel containing all subsystems:
+
 ```text
-srt.py                      → Seed Reflection Tool (anti-hallucination guardrail)
 srt1_code_indexer/          → Code reflection and indexing engine
 srt1_pro/                   → Bundling, execution, self-heal
 srt1_platform/              → Middleware, queueing, bridge, thread recovery

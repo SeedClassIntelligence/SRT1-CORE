@@ -1,3 +1,15 @@
+"""
+SRT-1 AUTO-GENERATED INTELLIGENCE
+===================================
+Architectural Roles: ORCHESTRATOR, DATABASE_SERVICE, CLI_ENTRY_POINT
+Key Symbols: _DependencyVisitor, _extract_dependencies, _first_docstring_line, SRT1CodeIndexer, main ... and 11 more
+
+Extracted Purposes:
+  - _DependencyVisitor: Walk a function body and collect names of functions it calls.
+  - _extract_dependencies: Return deduplicated list of function names called inside node.
+  - _first_docstring_line: Return first line of node docstring, or empty string.
+  ...
+"""
 #!/usr/bin/env python3
 """
 SRT-1 Code Indexer v2.0 — Cognitive Operating System for Software Repositories

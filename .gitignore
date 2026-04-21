@@ -61,3 +61,4 @@ SEED GRAPH/
 srt1_dashboard.html
 srt1_mobile.html
 seed-reflection/
+\n# -- ENTERPRISE PLATFORM (DO NOT TRACK IN OSS) --\nsrt1_platform/remote_auth.py\nsrt1_platform/proxy_engine.py\nsrt1_platform/delta_auditor.py\nsrt1_platform/srt1_sion_cli.py\nsrt1_code_indexer_engine.py

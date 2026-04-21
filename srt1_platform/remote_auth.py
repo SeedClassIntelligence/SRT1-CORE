@@ -1,3 +1,15 @@
+"""
+SRT-1 AUTO-GENERATED INTELLIGENCE
+===================================
+Architectural Roles: CLI_ENTRY_POINT, SERVICE_LAYER, DATA_MODEL
+Key Symbols: SCIARemoteAuth, main, __init__, generate_token, revoke_token ... and 11 more
+
+Extracted Purposes:
+  - SCIARemoteAuth: Token-based authentication for remote SRT-1 access.
+  - main: CLI for managing SRT-1 remote auth tokens.
+  - __init__: Args:
+  ...
+"""
 #!/usr/bin/env python3
 """
 SRT-1 Remote Authentication Module

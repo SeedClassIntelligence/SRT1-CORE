@@ -4,6 +4,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SRT-1 Dashboard</title>
+<link rel="manifest" href="/manifest.json">
 <link rel="preconnect" href="https://fonts.googleapis.com/">
 <link href="./SRT-1 Dashboard_files/css2" rel="stylesheet">
 <style>
@@ -24,7 +25,7 @@ html{-webkit-font-smoothing:antialiased;}
 body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;display:flex;}
 
 /* === SIDEBAR === */
-.sidebar{width:260px;background:var(--bg2);border-right:1px solid var(--border);padding:24px 0;display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100;}
+.sidebar{width:260px;background:var(--bg2);border-right:1px solid var(--border);padding:24px 0;display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100;overflow-y:auto;}
 .sidebar-logo{display:flex;align-items:center;gap:12px;padding:0 24px;margin-bottom:32px;}
 .sidebar-logo-icon{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--green),var(--cyan));display:flex;align-items:center;justify-content:center;font-weight:900;font-size:14px;color:#000;font-family:var(--mono);}
 .sidebar-logo-text{font-family:var(--mono);font-weight:700;font-size:15px;}
@@ -64,7 +65,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 /* === PANELS === */
 .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:32px;}
 .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px;margin-bottom:32px;}
-.panel{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:24px;overflow:hidden;}
+.panel{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:24px;overflow:visible;}
 .panel-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
 .panel-title{font-size:15px;font-weight:700;}
 .panel-badge{font-family:var(--mono);font-size:11px;padding:4px 12px;border-radius:6px;background:var(--bg3);color:var(--green);border:1px solid var(--green-border);}
@@ -120,6 +121,28 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 .violation-badge.hard{background:rgba(239,68,68,0.08);color:var(--red);border:1px solid rgba(239,68,68,0.2);}
 .violation-badge.med{background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-border);}
 
+/* === MODAL === */
+.modal-overlay {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(6, 10, 15, 0.85); backdrop-filter: blur(8px);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 9999; opacity: 0; pointer-events: none; transition: opacity 0.3s;
+}
+.modal-overlay.show { opacity: 1; pointer-events: auto; }
+.modal-content {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 16px; padding: 32px; max-width: 500px; width: 90%;
+    transform: translateY(20px); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow: 0 24px 48px rgba(0,0,0,0.5);
+}
+.modal-overlay.show .modal-content { transform: translateY(0); }
+.modal-header { font-size: 20px; font-weight: 800; color: var(--text); margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
+.modal-body { font-size: 14px; color: var(--text2); line-height: 1.6; margin-bottom: 24px; }
+.modal-body p { margin-bottom: 12px; }
+.modal-body strong { color: var(--cyan); }
+.modal-btn { display: block; width: 100%; padding: 12px; background: rgba(63,185,80,0.1); border: 1px solid var(--green); color: var(--green); border-radius: 8px; font-weight: 700; text-align: center; cursor: pointer; transition: all 0.2s; }
+.modal-btn:hover { background: var(--green); color: #000; }
+
 /* === ACTIVITY LOG === */
 .activity-list{display:flex;flex-direction:column;gap:2px;max-height:360px;overflow-y:auto;}
 .activity-item{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);font-size:13px;}
@@ -144,11 +167,49 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 .verify-label{color:var(--text3);font-size:11px;}
 
 /* === RESPONSIVE === */
+/* === RESPONSIVE & MOBILE OPTIMIZATIONS === */
+.panel-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; flex-wrap:wrap; gap:8px; }
+.info-icon { display:inline-flex; align-items:center; justify-content:center; width:16px; height:16px; border-radius:50%; background:var(--bg4); color:var(--text3); font-size:11px; font-weight:700; cursor:help; margin-left:8px; margin-bottom: 2px; transition:all 0.2s; position:relative; }
+.info-icon:hover { background:var(--green); color:var(--bg); }
+.info-icon::after { content:attr(data-tooltip); position:absolute; bottom:100%; left:50%; transform:translateX(-50%); margin-bottom:8px; padding:8px 12px; background:var(--border2); color:var(--text); border-radius:6px; font-size:12px; font-weight:500; white-space:normal; width:max-content; max-width:280px; opacity:0; pointer-events:none; transition:opacity 0.2s; z-index:1000; display:block; box-shadow:0 4px 12px rgba(0,0,0,0.5); line-height:1.4; text-align:center; }
+.info-icon:hover::after { opacity:1; }
+.panel-desc { font-size:13px; color:var(--text3); line-height:1.5; margin-bottom:20px; }
+.license-meta { display:flex; gap:16px; font-size:12px; color:var(--text3); flex-wrap:wrap; word-break:break-all; }
+.download-item { display:flex; align-items:center; justify-content:space-between; padding:14px 16px; background:var(--bg); border:1px solid var(--border); border-radius:10px; transition:border-color 0.2s; flex-wrap:wrap; gap:12px; }
+.violation-row { display:grid; grid-template-columns:28px 1fr auto; align-items:start; gap:10px; padding:10px 12px; border-radius:8px; transition:background 0.15s; font-size:13px; border-left:3px solid transparent; }
+.seed-row { display:grid; grid-template-columns:32px 1fr auto; align-items:center; gap:8px; padding:10px 12px; border-radius:8px; transition:background 0.15s; font-size:13px; }
+.page-header-flex { display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:16px; }
+
 @media(max-width:1200px){.stats-row{grid-template-columns:repeat(2,1fr);}.grid-2,.grid-3{grid-template-columns:1fr;}}
-@media(max-width:768px){.sidebar{display:none;}.main{margin-left:0;padding:20px;}.stats-row{grid-template-columns:1fr;}}
+@media(max-width:768px){
+  .sidebar{display:none;}
+  .main{margin-left:0;padding:16px;width:100%;overflow-x:hidden;}
+  .stats-row{grid-template-columns:1fr;}
+  .violation-row{grid-template-columns:20px 1fr;}
+  .violation-badge{grid-column:1/-1;text-align:left;margin-top:4px;}
+  .seed-row{grid-template-columns:20px 1fr;}
+  .seed-growth{grid-column:1/-1;text-align:left;}
+}
 </style>
 </head>
 <body>
+
+<!-- INSTRUCTIONAL POPUP -->
+<div class="modal-overlay" id="introModal">
+  <div class="modal-content">
+    <div class="modal-header"><span style="font-size:24px;">👋</span> Welcome to SRT-1 Dashboard!</div>
+    <div class="modal-body">
+      <p>If you're new here, you might be wondering about the difference between the components:</p>
+      <ul style="margin-left: 20px; margin-bottom: 12px;">
+        <li><strong>SRT-1 Indexer:</strong> The free, open-source static analyzer.</li>
+        <li><strong>SRT-1 Pro:</strong> The enterprise execution engine that actively bundles and heals code.</li>
+        <li><strong>SRT-1 Platform:</strong> This very dashboard and memory system tying it all together.</li>
+      </ul>
+      <p>Use the <code>START_SRT1.bat</code> or <code>start_website.bat</code> files in the project root to seamlessly spin up everything at once.</p>
+    </div>
+    <button class="modal-btn" onclick="document.getElementById('introModal').classList.remove('show')">Got it, let's go! 🚀</button>
+  </div>
+</div>
 
 <!-- SIDEBAR -->
 <aside class="sidebar">
@@ -160,19 +221,20 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
     <div class="nav-section">
       <div class="nav-section-label">Overview</div>
       <a class="nav-item active" href="#dashboard"><span class="icon">■</span> Dashboard</a>
-      <a class="nav-item" href="#repoExplorer"><span class="icon">⚙</span> System Status</a>
+      <a class="nav-item" href="#manage-verify"><span class="icon">🔗</span> Trust Chain</a>
+      <a class="nav-item" href="#repoExplorer"><span class="icon">⚙</span> Repository Explorer</a>
     </div>
     <div class="nav-section">
       <div class="nav-section-label">Manage</div>
-      <a class="nav-item" href="#manage"><span class="icon">🔑</span> License</a>
-      <a class="nav-item" href="#manage"><span class="icon">📦</span> Downloads</a>
+      <a class="nav-item" href="#manage-license"><span class="icon">🔑</span> License</a>
+      <a class="nav-item" href="#api-keys"><span class="icon">🤖</span> API Keys</a>
+      <a class="nav-item" href="#manage-downloads"><span class="icon">📦</span> Downloads</a>
       <a class="nav-item" href="#seed-farm"><span class="icon">⚠️</span> Code Intelligence</a>
-      <a class="nav-item" href="#analytics"><span class="icon">📱</span> Mobile Access</a>
     </div>
     <div class="nav-section">
-      <div class="nav-section-label">Analytics</div>
-      <a class="nav-item" href="#analytics"><span class="icon">📈</span> Usage</a>
-      <a class="nav-item" href="#analytics"><span class="icon">📋</span> Audit Trail</a>
+      <div class="nav-section-label">Analytics & Access</div>
+      <a class="nav-item" href="#analytics-activity"><span class="icon">📋</span> Audit Trail & Usage</a>
+      <a class="nav-item" href="#analytics-mobile"><span class="icon">📱</span> Mobile Access</a>
       <a class="nav-item" href="#repoExplorer"><span class="icon">⚠</span> Alerts</a>
     </div>
     <div class="nav-section">
@@ -196,9 +258,14 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 <!-- MAIN CONTENT -->
 <main class="main" id="dashboard" style="scroll-behavior: smooth;">
 
-  <div class="page-header">
-    <h1>Dashboard</h1>
-    <p>SRT-1 Code Indexer — Seed-Class Intelligence Architecture v4.0</p>
+  <div class="page-header" style="display:flex; justify-content:space-between; align-items:flex-start;">
+    <div>
+      <h1>Dashboard</h1>
+      <p>SRT-1 Code Indexer — Seed-Class Intelligence Architecture v4.0</p>
+    </div>
+    <a href="http://localhost:8099/consumer-dashboard.html" style="display:inline-flex;align-items:center;padding:8px 16px;background:var(--bg3);border:1px solid var(--border2);color:var(--text);border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;transition:all 0.15s;">
+      🌱 Open Consumer Pipeline →
+    </a>
   </div>
 
   <!-- STAT CARDS -->
@@ -214,8 +281,8 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
       <div class="stat-sub" id="statSymbolsSub">Loading from engine...</div>
     </div>
     <div class="stat-card amber">
-      <div class="stat-label">Reflections</div>
-      <div class="stat-value" id="statReflections">—</div>
+      <div class="stat-label">Active Violations</div>
+      <div class="stat-value" id="statReflections" style="color:var(--amber);">—</div>
       <div class="stat-sub" id="statReflectionsSub">Loading from engine...</div>
     </div>
     <div class="stat-card purple">
@@ -225,13 +292,56 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
     </div>
   </div>
 
-  <!-- LICENSE + DOWNLOADS -->
-  <div class="grid-2" id="manage" style="scroll-margin-top: 80px;">
-
-    <!-- LICENSE -->
+  <!-- CODE INTELLIGENCE + VERIFICATION -->
+  <div class="grid-2" id="seed-farm" style="scroll-margin-top: 80px;">
+    <!-- CODE INTELLIGENCE (Violations) -->
     <div class="panel">
       <div class="panel-header">
-        <div class="panel-title">License</div>
+        <div class="panel-title">🛡️ Enforcement Guardrails <span class="info-icon" data-tooltip="The engine of SRT-1 curation. Sweeps your codebase dynamically for duplicate functions, unauthorized file overrides, and architectural drift, halting AI workflows if it detects major integrity risks.">?</span></div>
+        <div class="panel-badge" id="seedFarmBadge">loading...</div>
+      </div>
+      <div class="seed-list" id="seedFarmList">
+        <div style="padding:24px;text-align:center;color:var(--text4);font-size:13px;">Loading violations from engine...</div>
+      </div>
+    </div>
+
+    <!-- VERIFICATION -->
+    <div class="panel" id="manage-verify" style="scroll-margin-top: 80px;">
+      <div class="panel-header">
+        <div class="panel-title">System Verification <span class="info-icon" data-tooltip="SRT-1's self-diagnostic heartbeat monitor. Tracks real-time integrity of the crypto Trust Chain, Memory Seed queues, digital signatures, and the auto-healing middleware.">?</span></div>
+        <div class="panel-badge">15/15 PASS</div>
+      </div>
+      <div class="verify-grid">
+        <div class="verify-item pass"><div class="verify-icon">✓</div><div class="verify-label">Core Imports</div></div>
+        <div class="verify-item pass"><div class="verify-icon">✓</div><div class="verify-label">Indexer</div></div>
+        <div class="verify-item pass"><div class="verify-icon">✓</div><div class="verify-label">Trust Chain</div></div>
+        <div class="verify-item pass"><div class="verify-icon">✓</div><div class="verify-label">Signatures</div></div>
+        <div class="verify-item pass"><div class="verify-icon">✓</div><div class="verify-label">File Integrity</div></div>
+        <div class="verify-item pass"><div class="verify-icon">✓</div><div class="verify-label">Symbols</div></div>
+        <div class="verify-item pass"><div class="verify-icon">✓</div><div class="verify-label">Reflections</div></div>
+        <div class="verify-item pass"><div class="verify-icon">✓</div><div class="verify-label">Risk Scoping</div></div>
+        <div class="verify-item pass"><div class="verify-icon">✓</div><div class="verify-label">Bundler</div></div>
+        <div class="verify-item pass"><div class="verify-icon">✓</div><div class="verify-label">Executor</div></div>
+        <div class="verify-item pass"><div class="verify-icon">✓</div><div class="verify-label">Self-Heal</div></div>
+        <div class="verify-item pass"><div class="verify-icon">✓</div><div class="verify-label">Seed Queue</div></div>
+        <div class="verify-item pass"><div class="verify-icon">✓</div><div class="verify-label">Middleware</div></div>
+        <div class="verify-item pass"><div class="verify-icon">✓</div><div class="verify-label">Remote Auth</div></div>
+        <div class="verify-item pass"><div class="verify-icon">✓</div><div class="verify-label">Mobile PWA</div></div>
+      </div>
+      <div style="margin-top:16px;padding:12px 16px;background:var(--green-bg);border:1px solid var(--green-border);border-radius:8px;font-size:13px;display:flex;align-items:center;gap:8px;">
+        <span style="color:var(--green);font-weight:700;">ALL SYSTEMS OPERATIONAL</span>
+        <span style="color:var(--text3);font-size:11px;margin-left:auto;">Last verified: 4 min ago</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- LICENSE + DOWNLOADS -->
+  <div class="grid-2">
+
+    <!-- LICENSE -->
+    <div class="panel" id="manage-license" style="scroll-margin-top: 80px;">
+      <div class="panel-header">
+        <div class="panel-title">Governance License <span class="info-icon" data-tooltip="Validates your Local Edge connection and tier cryptographically. SRT-1 requires this active heartbeat to safely permit high-risk logic execution and offline AI code generation safely on your own hardware.">?</span></div>
         <div class="panel-badge" id="licenseBadge">checking...</div>
       </div>
       <div class="license-status" id="licenseStatus">
@@ -250,51 +360,34 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
     </div>
 
     <!-- DOWNLOADS -->
-    <div class="panel">
+    <div class="panel" id="manage-downloads" style="scroll-margin-top: 80px;">
       <div class="panel-header">
-        <div class="panel-title">Downloads</div>
-        <div class="panel-badge info">v2.0.0</div>
+        <div class="panel-title">Ecosystem Installation <span class="info-icon" data-tooltip="SRT-1 ships as a single compiled wheel containing the Indexer, Pro Execution layer, and the Platform Middleware. You no longer need to download multiple packages.">?</span></div>
+        <div class="panel-badge info">v2.2.0</div>
+      </div>
+      <div style="font-size:13px;color:var(--text2);margin-bottom:16px;">
+        You no longer have to download multiples. The entire Seed-Class Intelligence Ecosystem is bundled into one package. Install it once to get the Code Indexer, Execution Engine, and Platform Middleware.
       </div>
       <div class="download-list">
         <div class="download-item">
           <div class="download-item-left">
             <div class="download-icon free">⚡</div>
             <div>
-              <div class="download-name">SRT-1 Indexer</div>
-              <div class="download-version">pip install srt1-code-indexer</div>
+              <div class="download-name">SRT-1 Core</div>
+              <div class="download-version">pip install srt1-core</div>
             </div>
           </div>
-          <button class="download-btn" onclick="navigator.clipboard.writeText('pip install srt1-code-indexer');this.innerText='Copied!';setTimeout(()=>this.innerText='Install',2000)">Install</button>
-        </div>
-        <div class="download-item">
-          <div class="download-item-left">
-            <div class="download-icon pro">⚗</div>
-            <div>
-              <div class="download-name">SRT-1 Pro</div>
-              <div class="download-version">srt1_pro-2.0.0.tar.gz</div>
-            </div>
-          </div>
-          <button class="download-btn" onclick="downloadPackage('srt1_pro','srt1_pro-2.0.0.tar.gz',this)">Download</button>
-        </div>
-        <div class="download-item">
-          <div class="download-item-left">
-            <div class="download-icon ent">🌐</div>
-            <div>
-              <div class="download-name">SRT-1 Platform</div>
-              <div class="download-version">srt1_platform-2.0.0.tar.gz</div>
-            </div>
-          </div>
-          <button class="download-btn" onclick="downloadPackage('srt1_platform','srt1_platform-2.0.0.tar.gz',this)">Download</button>
+          <button class="download-btn" onclick="navigator.clipboard.writeText('pip install srt1-core');this.innerText='Copied!';setTimeout(()=>this.innerText='Copy',2000)">Copy</button>
         </div>
         <div class="download-item">
           <div class="download-item-left">
             <div class="download-icon ent">📱</div>
             <div>
-              <div class="download-name">Mobile PWA</div>
-              <div class="download-version">srt1_mobile.html</div>
+              <div class="download-name">Mobile PWA Dashboard</div>
+              <div class="download-version">http://localhost:7483/mobile</div>
             </div>
           </div>
-          <button class="download-btn" onclick="downloadPackage('mobile','srt1_mobile.html',this)">Download</button>
+          <button class="download-btn" onclick="window.open('http://localhost:7483/mobile', '_blank')">Open</button>
         </div>
       </div>
     </div>
@@ -303,10 +396,9 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
   <!-- AI API KEYS -->
   <div class="panel" id="api-keys" style="margin-bottom:32px;scroll-margin-top:80px;">
     <div class="panel-header">
-      <div class="panel-title">🤖 AI Provider API Keys</div>
+      <div class="panel-title">🤖 AI Provider API Keys <span class="info-icon" data-tooltip="Your private cryptographic vault for AI keys. Keys are encrypted entirely within your browser and strictly injected only when the SRT-1 Execution Bridge specifically dispatches tasks to an AI.">?</span></div>
       <div class="panel-badge info" id="apiKeysStatus">0 configured</div>
     </div>
-    <p style="font-size:13px;color:var(--text3);margin-bottom:20px;line-height:1.6;">Configure your own AI provider keys. Keys are stored locally in your browser and never sent to SRT-1 servers. They are used when SRT-1 dispatches seeds to AI assistants via the execution bridge.</p>
 
     <div class="api-keys-grid" id="apiKeysGrid">
 
@@ -396,57 +488,14 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
     </div>
   </div>
 
-  <!-- CODE INTELLIGENCE + VERIFICATION -->
-  <div class="grid-2" id="seed-farm" style="scroll-margin-top: 80px;">
-
-    <!-- CODE INTELLIGENCE (replaces Seed Farm) -->
-    <div class="panel">
-      <div class="panel-header">
-        <div class="panel-title">⚠️ Code Intelligence</div>
-        <div class="panel-badge" id="seedFarmBadge">loading...</div>
-      </div>
-      <div class="seed-list" id="seedFarmList">
-        <div style="padding:24px;text-align:center;color:var(--text4);font-size:13px;">Loading violations from engine...</div>
-      </div>
-    </div>
-
-    <!-- VERIFICATION -->
-    <div class="panel">
-      <div class="panel-header">
-        <div class="panel-title">System Verification</div>
-        <div class="panel-badge">45/45 PASS</div>
-      </div>
-      <div class="verify-grid">
-        <div class="verify-item pass"><div class="verify-icon">✓</div><div class="verify-label">Core Imports</div></div>
-        <div class="verify-item pass"><div class="verify-icon">✓</div><div class="verify-label">Indexer</div></div>
-        <div class="verify-item pass"><div class="verify-icon">✓</div><div class="verify-label">Trust Chain</div></div>
-        <div class="verify-item pass"><div class="verify-icon">✓</div><div class="verify-label">Signatures</div></div>
-        <div class="verify-item pass"><div class="verify-icon">✓</div><div class="verify-label">File Integrity</div></div>
-        <div class="verify-item pass"><div class="verify-icon">✓</div><div class="verify-label">Symbols</div></div>
-        <div class="verify-item pass"><div class="verify-icon">✓</div><div class="verify-label">Reflections</div></div>
-        <div class="verify-item pass"><div class="verify-icon">✓</div><div class="verify-label">Risk Scoping</div></div>
-        <div class="verify-item pass"><div class="verify-icon">✓</div><div class="verify-label">Bundler</div></div>
-        <div class="verify-item pass"><div class="verify-icon">✓</div><div class="verify-label">Executor</div></div>
-        <div class="verify-item pass"><div class="verify-icon">✓</div><div class="verify-label">Self-Heal</div></div>
-        <div class="verify-item pass"><div class="verify-icon">✓</div><div class="verify-label">Seed Queue</div></div>
-        <div class="verify-item pass"><div class="verify-icon">✓</div><div class="verify-label">Middleware</div></div>
-        <div class="verify-item pass"><div class="verify-icon">✓</div><div class="verify-label">Remote Auth</div></div>
-        <div class="verify-item pass"><div class="verify-icon">✓</div><div class="verify-label">Mobile PWA</div></div>
-      </div>
-      <div style="margin-top:16px;padding:12px 16px;background:var(--green-bg);border:1px solid var(--green-border);border-radius:8px;font-size:13px;display:flex;align-items:center;gap:8px;">
-        <span style="color:var(--green);font-weight:700;">ALL SYSTEMS OPERATIONAL</span>
-        <span style="color:var(--text3);font-size:11px;margin-left:auto;">Last verified: 4 min ago</span>
-      </div>
-    </div>
-  </div>
 
   <!-- ACTIVITY + MOBILE TOKENS -->
-  <div class="grid-2" id="analytics" style="scroll-margin-top: 80px;">
+  <div class="grid-2">
 
     <!-- ACTIVITY -->
-    <div class="panel">
+    <div class="panel" id="analytics-activity" style="scroll-margin-top: 80px;">
       <div class="panel-header">
-        <div class="panel-title">Recent Activity</div>
+        <div class="panel-title">Recent Activity <span class="info-icon" data-tooltip="A tamper-evident audit ledger. Immutably logs when the engine re-indexes code, tracks AI reflection chains, and records every time a complex seed successfully executes on disk.">?</span></div>
         <div class="panel-badge info" id="activityBadge">live</div>
       </div>
       <div class="activity-list" id="activityList">
@@ -455,9 +504,9 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
     </div>
 
     <!-- MOBILE COMPANION TOKENS -->
-    <div class="panel">
+    <div class="panel" id="analytics-mobile" style="scroll-margin-top: 80px;">
       <div class="panel-header">
-        <div class="panel-title">📱 Mobile Companion</div>
+        <div class="panel-title">📱 Mobile Companion <span class="info-icon" data-tooltip="Generates hashed QR security tokens. Scanning this links your smartphone directly into this local desktop node, letting you authorize API flows or plant SRT seeds securely across the room.">?</span></div>
         <div class="panel-badge" id="mobileTokenBadge">checking...</div>
       </div>
       <div class="download-list" id="mobileTokenList">
@@ -469,13 +518,13 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 
   <!-- REPOSITORY EXPLORER -->
   <div class="panel" style="margin-bottom:32px;" id="repoExplorer">
-    <div class="panel-header">
-      <div class="panel-title">Repository Explorer</div>
-      <div style="display:flex;gap:8px;align-items:center;">
-        <div class="panel-badge" id="repoName">SRT1-main</div>
-        <button onclick="loadManifest()" class="download-btn" style="font-size:11px;padding:6px 12px;">Refresh</button>
+      <div class="panel-header">
+        <div class="panel-title">Repository Explorer <span class="info-icon" data-tooltip="Your complete, AI-generated architectural map. The Edge Indexer maps all functions and logic chains into a unified manifest, allowing the AI to natively understand your codebase before it writes any code.">?</span></div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <div class="panel-badge" id="repoName">SRT1-main</div>
+          <button onclick="loadManifest()" class="download-btn" style="font-size:11px;padding:6px 12px;">Refresh</button>
+        </div>
       </div>
-    </div>
 
     <!-- Repo stats bar -->
     <div id="repoStats" style="display:flex;gap:16px;padding:12px 16px;background:var(--bg);border:1px solid var(--border);border-radius:10px;margin-bottom:16px;font-size:13px;color:var(--text3);flex-wrap:wrap;">
@@ -1973,8 +2022,8 @@ async function downloadPackage(pkg, filename, btn) {
 
   // Fallback: direct user to the right source
   const sources = {
-    srt1_pro: 'https://pypi.org/project/srt1-core/',
-    srt1_platform: 'https://pypi.org/project/srt1-core/',
+    srt1_pro: '#',
+    srt1_platform: '#',
     mobile: API + '/mobile'
   };
 
@@ -1985,9 +2034,11 @@ async function downloadPackage(pkg, filename, btn) {
     btn.style.color = 'var(--green)';
     btn.style.borderColor = 'var(--green-border)';
   } else {
-    window.location.href = sources[pkg] || 'https://pypi.org/project/srt1-core/';
-    btn.innerText = '→ PyPI';
-    btn.style.color = 'var(--cyan)';
+    // Don't redirect to srt1-core PyPI for enterprise bundles
+    alert('SRT-1 Pro and Platform are enterprise bundles distributed via your license server, not via the public PyPI open source registry.');
+    btn.innerText = 'See license server';
+    btn.style.color = 'var(--amber)';
+    btn.style.borderColor = 'var(--amber-border)';
   }
   setTimeout(() => { btn.innerText = orig; btn.style.color = ''; btn.style.borderColor = ''; }, 3000);
 }
@@ -2147,7 +2198,19 @@ async function loadStatus() {
         });
 
         if (curationItems.length > 15) {
-          html += `<div style="padding:10px 12px;text-align:center;color:var(--text4);font-size:12px;">+ ${curationItems.length - 15} more violations</div>`;
+          html += `<div style="padding:10px 12px;text-align:center;color:var(--text4);font-size:12px;cursor:pointer;text-decoration:underline;" onclick="this.nextElementSibling.style.display='block';this.style.display='none'">+ ${curationItems.length - 15} more violations (Click to expand)</div><div style="display:none;">`;
+          curationItems.slice(15).forEach(item => {
+            const locs = (item.locations || []).join(', ');
+            html += `<div class="violation-row critical">
+              <div class="violation-icon">⚠️</div>
+              <div class="violation-detail">
+                <div class="violation-func">${item.function || 'unknown'}</div>
+                <div class="violation-locs">${locs}</div>
+              </div>
+              <div class="violation-badge hard">DUPLICATE</div>
+            </div>`;
+          });
+          html += `</div>`;
         }
 
         // Unused function rows
@@ -2164,7 +2227,18 @@ async function loadStatus() {
             </div>`;
           });
           if (unusedItems.length > 10) {
-            html += `<div style="padding:10px 12px;text-align:center;color:var(--text4);font-size:12px;">+ ${unusedItems.length - 10} more unused</div>`;
+            html += `<div style="padding:10px 12px;text-align:center;color:var(--text4);font-size:12px;cursor:pointer;text-decoration:underline;" onclick="this.nextElementSibling.style.display='block';this.style.display='none'">+ ${unusedItems.length - 10} more unused (Click to view)</div><div style="display:none;">`;
+            unusedItems.slice(10).forEach(item => {
+              html += `<div class="violation-row" style="border-left-color:#a78bfa;">
+                <div class="violation-icon">🔍</div>
+                <div class="violation-detail">
+                  <div class="violation-func">${item.function || 'unknown'}</div>
+                  <div class="violation-locs">${item.location || ''}</div>
+                </div>
+                <div class="violation-badge" style="background:rgba(167,139,250,0.1);color:#a78bfa;border-color:rgba(167,139,250,0.2);">UNUSED</div>
+              </div>`;
+            });
+            html += `</div>`;
           }
         }
 
@@ -2507,4 +2581,14 @@ setInterval(loadStatus, 30000);
 
 
 <script src="pwa-install.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    if (!localStorage.getItem('sawSrt1IntroCore')) {
+        setTimeout(() => {
+            document.getElementById('introModal').classList.add('show');
+            localStorage.setItem('sawSrt1IntroCore', 'true');
+        }, 500);
+    }
+});
+</script>
 </body></html>

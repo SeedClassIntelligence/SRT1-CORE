@@ -1,3 +1,15 @@
+"""
+SRT-1 AUTO-GENERATED INTELLIGENCE
+===================================
+Architectural Roles: CLI_ENTRY_POINT, SERVICE_LAYER, DATA_MODEL
+Key Symbols: SCIALiveEngine, SRT1RequestHandler, main, __init__, _index_codebase ... and 19 more
+
+Extracted Purposes:
+  - SCIALiveEngine: The real-time brain. Knows the codebase, tracks the task, fires
+  - SRT1RequestHandler: HTTP handler for the live middleware API.
+  - _index_codebase: Run the full SRT-1 Code Indexer and load results.
+  ...
+"""
 #!/usr/bin/env python3
 """
 SRT-1 Live Middleware — Real-Time Anti-Hallucination Engine for AI Code Assistants

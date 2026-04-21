@@ -1,3 +1,15 @@
+"""
+SRT-1 AUTO-GENERATED INTELLIGENCE
+===================================
+Architectural Roles: DATABASE_SERVICE, TRACING_AUDIT
+Key Symbols: MemoryEntry, AdvancedMemorySystem, __init__, _default_config, start_cleanup_task ... and 14 more
+
+Extracted Purposes:
+  - MemoryEntry: Base memory entry structure
+  - AdvancedMemorySystem: Advanced memory system with multiple storage types
+  - start_cleanup_task: Start background cleanup task. Call from within a running event loop.
+  ...
+"""
 #!/usr/bin/env python3
 """
 Advanced Memory System for SCIA

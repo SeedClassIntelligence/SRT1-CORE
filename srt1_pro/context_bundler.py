@@ -1,3 +1,15 @@
+"""
+SRT-1 AUTO-GENERATED INTELLIGENCE
+===================================
+Architectural Roles: CLI_ENTRY_POINT, TRACING_AUDIT
+Key Symbols: SCIAContextBundler, main, __init__, _load_manifest, _build_indices ... and 12 more
+
+Extracted Purposes:
+  - SCIAContextBundler: Phase 2 of the SCIA pipeline.
+  - _load_manifest: Load the Phase 1 Code Manifest and verify its integrity.
+  - _build_indices: Build searchable indices from the manifest for fast lookups.
+  ...
+"""
 #!/usr/bin/env python3
 """
 SRT-1 Context Bundler (Phase 2) - Intelligent Context Assembly Engine
@@ -569,8 +581,8 @@ class SCIAContextBundler:
             "bundle_metadata": {
                 "bundle_version": "1.0.0",
                 "created_at": datetime.now().isoformat(),
-                "manifest_source": self.manifest_path,
-                "repo_path": self.repo_path,
+                "manifest_source": "<scrubbed_manifest_path>",
+                "repo_path": "<scrubbed_repo_root>",
                 "task": task,
             },
             "task_analysis": task_analysis,

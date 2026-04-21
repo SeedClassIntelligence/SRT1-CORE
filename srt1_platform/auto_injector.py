@@ -1,3 +1,15 @@
+"""
+SRT-1 AUTO-GENERATED INTELLIGENCE
+===================================
+Architectural Roles: CLI_ENTRY_POINT, DATA_MODEL
+Key Symbols: SCIADocumentGenerator, main, __init__, run, _index ... and 8 more
+
+Extracted Purposes:
+  - SCIADocumentGenerator: Generates AI-readable context files from SRT-1's codebase knowledge.
+  - run: Full pipeline: index → analyze flow → generate all context files.
+  - _index: Run the SRT-1 Code Indexer.
+  ...
+"""
 #!/usr/bin/env python3
 """
 SRT-1 Auto-Injector — The Last Mile
