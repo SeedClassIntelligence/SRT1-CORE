@@ -1,3 +1,15 @@
+"""
+SRT-1 AUTO-GENERATED INTELLIGENCE
+===================================
+Architectural Roles: ORCHESTRATOR, TEST
+Key Symbols: CoherenceStatus, TraceLevel, EnforcementLevel, ExecutionTrace, Seed ... and 32 more
+
+Extracted Purposes:
+  - EnforcementLevel: SRT-1 Enforcement Mode severity levels.
+  - ExecutionTrace: SRT-1 execution tracing — full production audit and traceability.
+  - Seed: A Seed is the anchored representation of the user's original intent.
+  ...
+"""
 #!/usr/bin/env python3
 """
 Seed Reflection Tool v2.0 (SRT-1)

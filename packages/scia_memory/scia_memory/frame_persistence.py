@@ -1,3 +1,15 @@
+"""
+SRT-1 AUTO-GENERATED INTELLIGENCE
+===================================
+Architectural Roles: TEST, TRACING_AUDIT
+Key Symbols: FrameMetadata, FrameSerializer, SCIAFramePersistence, get_frame_persistence, save_cognitive_frame ... and 26 more
+
+Extracted Purposes:
+  - FrameMetadata: Metadata for frame persistence
+  - FrameSerializer: Handles serialization and deserialization of frame objects
+  - SCIAFramePersistence: SCIA Frame Persistence Manager
+  ...
+"""
 # 🧠 SRT-1 Tag: SCIA_FRAME_PERSISTENCE :: MEMORY_ORCHESTRATOR :: FRAME_STORAGE
 # Purpose: Persistence and retrieval capabilities for SeedFlow frames via SCIA Memory Orchestrator
 # Module: Frame Persistence Infrastructure - Task 6 Implementation

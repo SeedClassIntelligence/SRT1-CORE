@@ -1,3 +1,15 @@
+"""
+SRT-1 AUTO-GENERATED INTELLIGENCE
+===================================
+Architectural Roles: ORCHESTRATOR, CLI_ENTRY_POINT
+Key Symbols: AssistantAdapter, EchoAdapter, FileOutputAdapter, PlanValidator, SCIAExecutionEngine ... and 20 more
+
+Extracted Purposes:
+  - AssistantAdapter: Abstract base class for AI code assistant adapters.
+  - EchoAdapter: Test adapter that echoes the prompt back. Used for validation testing.
+  - FileOutputAdapter: Adapter that writes the super-prompt to a file for manual use with any AI.
+  ...
+"""
 #!/usr/bin/env python3
 """
 SRT-1 Execution Engine (Phase 3) - AI-Governed Code Execution

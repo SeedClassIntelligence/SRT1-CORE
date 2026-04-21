@@ -1,3 +1,15 @@
+"""
+SRT-1 AUTO-GENERATED INTELLIGENCE
+===================================
+Architectural Roles: TRACING_AUDIT
+Key Symbols: AnalyticsEngine, __init__, _ensure_dir, _load, _save ... and 6 more
+
+Extracted Purposes:
+  - AnalyticsEngine: SRT-1 Pro Analytics Engine
+  - _load: Load persisted metrics.
+  - _save: Persist metrics to disk.
+  ...
+"""
 import json
 import logging
 import os

@@ -1,3 +1,15 @@
+"""
+SRT-1 AUTO-GENERATED INTELLIGENCE
+===================================
+Architectural Roles: CLI_ENTRY_POINT, DATA_MODEL
+Key Symbols: SeedStage, Seed, SCIASeedQueue, main, emoji ... and 31 more
+
+Extracted Purposes:
+  - SeedStage: The lifecycle stages of a seed.
+  - Seed: Represents a single seed in the queue.
+  - SCIASeedQueue: The seed queue: manages the full lifecycle of all seeds.
+  ...
+"""
 #!/usr/bin/env python3
 """
 SRT-1 Seed Queue — Lifecycle Management

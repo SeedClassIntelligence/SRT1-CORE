@@ -1,3 +1,15 @@
+"""
+SRT-1 AUTO-GENERATED INTELLIGENCE
+===================================
+Architectural Roles: TRACING_AUDIT
+Key Symbols: ReflexPattern, ReflexMemory, __init__, _initialize_default_patterns, add_pattern ... and 14 more
+
+Extracted Purposes:
+  - ReflexPattern: Pattern for reflex memory matching
+  - ReflexMemory: Fast reflex memory for immediate responses
+  - _initialize_default_patterns: Initialize with common reflex patterns
+  ...
+"""
 #!/usr/bin/env python3
 """
 Reflex Memory System

@@ -1,3 +1,15 @@
+"""
+SRT-1 AUTO-GENERATED INTELLIGENCE
+===================================
+Architectural Roles: DATABASE_SERVICE, TRACING_AUDIT
+Key Symbols: MemoryNode, RegenerativeMemory, __init__, start_regeneration_cycle, store_memory ... and 9 more
+
+Extracted Purposes:
+  - MemoryNode: Node in regenerative memory network
+  - RegenerativeMemory: Self-improving regenerative memory system
+  - start_regeneration_cycle: Start background regeneration cycle. Call from within a running event loop.
+  ...
+"""
 #!/usr/bin/env python3
 """
 Regenerative Memory System

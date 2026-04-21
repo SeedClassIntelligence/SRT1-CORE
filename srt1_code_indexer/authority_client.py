@@ -112,11 +112,7 @@ class ProvenanceRecord:
             metadata=data.get("metadata", {}),
             chain_position=data.get("chain_position", 0),
             authority_issued=data.get("authority_issued", True),
-        )
 
-    def __repr__(self) -> str:
-        status = "AUTHORITY" if self.authority_issued else "LOCAL"
-        return f"<ProvenanceRecord {self.signature_id} [{status}] {self.operation_type}>"
 
 
 # ─────────────────────────────────────────────────────────────────────────────

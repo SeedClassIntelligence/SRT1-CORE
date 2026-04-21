@@ -1,3 +1,15 @@
+"""
+SRT-1 AUTO-GENERATED INTELLIGENCE
+===================================
+Architectural Roles: DATABASE_SERVICE, CLI_ENTRY_POINT, DATA_MODEL
+Key Symbols: TraceStatus, ValidationStatus, GraphStatus, ComplianceLevel, TraceRecord ... and 68 more
+
+Extracted Purposes:
+  - TraceRecord: Single execution trace record per the SCIA spec.
+  - TraceRelationship: Links between component traces with flow analysis.
+  - ExecutionGraphNode: A single node in the execution graph (one validation/execution step).
+  ...
+"""
 #!/usr/bin/env python3
 """
 SRT-1 Universal Audit & Tracing System

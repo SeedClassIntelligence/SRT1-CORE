@@ -1,3 +1,15 @@
+"""
+SRT-1 AUTO-GENERATED INTELLIGENCE
+===================================
+Architectural Roles: CLI_ENTRY_POINT, DATA_MODEL
+Key Symbols: SCIAMCPEngine, MCPServer, main, __init__, _index ... and 15 more
+
+Extracted Purposes:
+  - SCIAMCPEngine: The SRT-1 engine adapted for MCP.
+  - MCPServer: MCP Server implementing the Model Context Protocol.
+  - _build_synopsis: Build plain-English synopsis.
+  ...
+"""
 #!/usr/bin/env python3
 """
 SRT-1 MCP Server — The Continuous Injection Layer

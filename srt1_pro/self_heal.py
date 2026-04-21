@@ -1,3 +1,15 @@
+"""
+SRT-1 AUTO-GENERATED INTELLIGENCE
+===================================
+Architectural Roles: CLI_ENTRY_POINT, TRACING_AUDIT
+Key Symbols: HealAction, SCIARemediationEngine, main, __init__, to_dict ... and 16 more
+
+Extracted Purposes:
+  - HealAction: A single remediation action with full audit metadata.
+  - SCIARemediationEngine: Governed self-healing engine for the SRT-1 codebase.
+  - _load_manifest: Load the Code Manifest.
+  ...
+"""
 #!/usr/bin/env python3
 """
 SRT-1 Self-Healing Engine - Governed Codebase Remediation

@@ -201,7 +201,7 @@
 </style>
 <header class="site-header">
   <div class="nav-top">
-    <a href="index.html" class="nav-logo">SRT<em>-1</em> <span style="font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;margin-left:4px">CODE_INDEXER</span></a>
+    <a href="index.html" class="nav-logo">SRT<em>-1</em> <span style="font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;margin-left:4px">CORE</span></a>
     <div class="nav-top-right" id="nav-auth">
       <a href="auth.html?mode=login" class="signin">Sign In</a>
       <a href="auth.html?mode=signup&type=developer" class="signup">Sign Up</a>
@@ -220,8 +220,8 @@
   <h1>Your AI finally understands<br><span>your entire codebase.</span></h1>
   <p class="hero-sub">AI memory isn't enough. SRT-1 gives you cryptographic provenance over your intellectual contributions. We index your codebase, tag risk, and build a cryptographically signed Trust Chain — proving your team's ownership over everything your AI generates.</p>
   <div class="hero-install" id="install">
-    <code>pip install srt1-code-indexer</code>
-    <button class="copy-btn" onclick="navigator.clipboard.writeText(&#39;pip install srt1-code-indexer&#39;);this.textContent=&#39;Copied!&#39;;setTimeout(()=&gt;this.textContent=&#39;Copy&#39;,1500)">Copy</button>
+    <code>pip install srt1-core</code>
+    <button class="copy-btn" onclick="navigator.clipboard.writeText('pip install srt1-core');this.textContent='Copied!';setTimeout(()=>this.textContent='Copy',1500)">Copy</button>
   </div>
   <div class="hero-btns">
     <a href="auth.html?mode=signup&type=developer" class="btn btn-blue">Start Free — No credit card</a>
@@ -585,7 +585,7 @@ manifest = indexer.<span class="fn">index_repository</span>()
     <div style="display:inline-block;background:var(--green-dim,rgba(63,185,80,.1));border:1px solid rgba(63,185,80,.25);color:var(--green);font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:5px 14px;border-radius:20px;margin-bottom:18px">Also for everyone</div>
     <h2 style="font-size:clamp(22px,3vw,34px);font-weight:900;letter-spacing:-1px;margin-bottom:12px">Also use SRT-1 to recover your personal AI conversations.</h2>
     <p style="font-size:15px;color:var(--text2);max-width:520px;margin:0 auto 24px;line-height:1.65">Upload a ChatGPT JSON export. Paste a Claude conversation. Get every abandoned idea back, prioritized and ready to pick up — no setup required.</p>
-    <a href="home.html" class="btn btn-outline" style="border-color:var(--green);color:var(--green)">Try Conversation Recovery →</a>
+    <a href="https://seeds.srt1.io" class="btn btn-outline" style="border-color:var(--green);color:var(--green)">Try Conversation Recovery →</a>
   </div>
 </div>
 
@@ -593,20 +593,20 @@ manifest = indexer.<span class="fn">index_repository</span>()
 <section class="pricing" id="pricing">
   <div class="eyebrow">Developer Pricing</div>
   <h2 style="font-size:clamp(28px,4vw,44px);font-weight:900;letter-spacing:-1.5px;margin-bottom:8px">Start free. Scale when you need to.</h2>
-  <p style="font-size:15px;color:var(--text3);max-width:500px;margin:0 auto 52px">The indexer is open source and free forever. Pay for the intelligence layers.</p>
+  <p style="font-size:15px;color:var(--text3);max-width:500px;margin:0 auto 52px">The offline ecosystem is open source and free. Pay for remote governance.</p>
   <div class="pricing-grid">
     <div class="pcard">
-      <div class="pcard-tier">Free</div>
+      <div class="pcard-tier">Free Open Source</div>
       <div class="pcard-price">$0</div>
-      <div class="pcard-desc">Open source. Apache 2.0.</div>
+      <div class="pcard-desc">The complete offline ecosystem.</div>
       <ul class="pcard-features">
         <li>7-stage code indexer</li>
         <li>Signed Code Manifest</li>
-        <li>Trust chain verification</li>
-        <li>AI context file generation</li>
-        <li class="dim">Context Bundler</li>
-        <li class="dim">Self-Healing Engine</li>
-        <li class="dim">Live Middleware</li>
+        <li>Context Bundler & Self-Heal</li>
+        <li>Live Local Middleware</li>
+        <li>Mobile PWA Dashboard</li>
+        <li class="dim">Remote API Auth</li>
+        <li class="dim">Team Management</li>
       </ul>
       <a href="auth.html?mode=signup&type=developer" class="pcard-btn">Create free account →</a>
     </div>
@@ -641,15 +641,15 @@ manifest = indexer.<span class="fn">index_repository</span>()
       <button class="pcard-btn" onclick="handleCheckout('governance')">Get Governance →</button>
     </div>
   </div>
-  <p style="margin-top:24px;font-size:13px;color:var(--text3)">Looking for consumer pricing? <a href="home.html#pricing">See plans for casual AI users →</a></p>
+  <p style="margin-top:24px;font-size:13px;color:var(--text3)">Looking for consumer pricing? <a href="https://seeds.srt1.io#pricing">See plans for casual AI users →</a></p>
 </section>
 
 <footer>
   <div>© 2026 SRT-1 — Seed-Class Intelligence Architecture</div>
   <div class="footer-links">
-    <a href="home.html">Home</a>
+    <a href="index.html">Home</a>
     <a href="documentation.html">Docs</a>
-    <a href="home.html">Seed Reflection</a>
+    <a href="https://seeds.srt1.io">Seed Reflection</a>
     <a href="auth.html">Sign Up</a>
     <a href="https://github.com/SeedClassIntelligence/SRT1">GitHub</a>
     <a href="https://pypi.org/project/srt1-core">PyPI</a>

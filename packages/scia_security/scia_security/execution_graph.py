@@ -1,3 +1,15 @@
+"""
+SRT-1 AUTO-GENERATED INTELLIGENCE
+===================================
+Architectural Roles: TRACING_AUDIT
+Key Symbols: ExecutionNode, ExecutionGraph, __post_init__, __init__, _get_conn ... and 11 more
+
+Extracted Purposes:
+  - ExecutionNode: Node in execution graph
+  - ExecutionGraph: Execution tracking with SQLite persistence.
+  - _load_from_db: Reload full execution graph from SQLite on startup.
+  ...
+"""
 #!/usr/bin/env python3
 """
 Execution Graph — Enterprise Grade
@@ -66,26 +78,26 @@ class ExecutionGraph:
         # Access audit logging
         self._audit = audit_log
 
-        self._init_db()
+        self._init_graph_db()
         self._load_from_db()
 
     # ── SQLite Persistence ────────────────────────────────────────────
 
-    def _get_conn(self) -> sqlite3.Connection:
+    def _get_graph_conn(self) -> sqlite3.Connection:
         if self.db_path == ":memory:":
             if self._persistent_conn is None:
                 self._persistent_conn = sqlite3.connect(":memory:")
             return self._persistent_conn
         return sqlite3.connect(self.db_path)
 
-    def _close_conn(self, conn: sqlite3.Connection):
+    def _close_graph_conn(self, conn: sqlite3.Connection):
         if conn is not self._persistent_conn:
             conn.close()
 
-    def _init_db(self):
+    def _init_graph_db(self):
         if self.db_path != ":memory:":
             os.makedirs(os.path.dirname(self.db_path) or ".", exist_ok=True)
-        conn = self._get_conn()
+        conn = self._get_graph_conn()
         conn.execute("""
             CREATE TABLE IF NOT EXISTS execution_nodes (
                 id          TEXT PRIMARY KEY,
@@ -108,11 +120,11 @@ class ExecutionGraph:
             ON execution_nodes(parent_id)
         """)
         conn.commit()
-        self._close_conn(conn)
+        self._close_graph_conn(conn)
 
     def _load_from_db(self):
         """Reload full execution graph from SQLite on startup."""
-        conn = self._get_conn()
+        conn = self._get_graph_conn()
         cursor = conn.execute(
             "SELECT id, name, start_time, end_time, status, result, "
             "error, children, parent_id FROM execution_nodes ORDER BY rowid"
@@ -132,7 +144,7 @@ class ExecutionGraph:
             self.nodes[node.id] = node
             if node.parent_id is None:
                 self.root_nodes.append(node.id)
-        self._close_conn(conn)
+        self._close_graph_conn(conn)
 
     def _persist_node(self, node: ExecutionNode):
         """Write a single node to SQLite. Result and error encrypted at rest."""
@@ -144,7 +156,7 @@ class ExecutionGraph:
             self._encryptor.encrypt(node.error)
             if node.error else None
         )
-        conn = self._get_conn()
+        conn = self._get_graph_conn()
         conn.execute(
             """INSERT OR REPLACE INTO execution_nodes
                (id, name, start_time, end_time, status, result,
@@ -163,7 +175,7 @@ class ExecutionGraph:
             ),
         )
         conn.commit()
-        self._close_conn(conn)
+        self._close_graph_conn(conn)
 
     # ── Core Operations ───────────────────────────────────────────────
 

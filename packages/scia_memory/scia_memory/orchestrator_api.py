@@ -1,3 +1,15 @@
+"""
+SRT-1 AUTO-GENERATED INTELLIGENCE
+===================================
+Architectural Roles: API_CONTROLLER
+Key Symbols: FrameRequest, FrameResponse, FrameSearchRequest, FrameSearchResponse, LineageResponse ... and 21 more
+
+Extracted Purposes:
+  - FrameRequest: Request model for saving frames
+  - FrameResponse: Response model for frame operations
+  - FrameSearchRequest: Request model for searching frames
+  ...
+"""
 # 🧠 SRT-1 Tag: SCIA_MEMORY_ORCHESTRATOR_API :: REST_ENDPOINTS :: FRAME_MANAGEMENT
 # Purpose: REST API server for SCIA Memory Orchestrator frame persistence
 # Module: Memory Orchestrator API - Task 6 Implementation

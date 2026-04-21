@@ -1,3 +1,15 @@
+"""
+SRT-1 AUTO-GENERATED INTELLIGENCE
+===================================
+Architectural Roles: TRACING_AUDIT
+Key Symbols: SeedTemplate, SeedTemplateRegistry, get_registry, to_dict, to_summary ... and 12 more
+
+Extracted Purposes:
+  - SeedTemplate: A pre-built intent pattern for a common development task.
+  - SeedTemplateRegistry: Singleton registry holding all seed templates (built-in + user-defined).
+  - get_registry: Get the global template registry singleton.
+  ...
+"""
 #!/usr/bin/env python3
 """
 SRT-1 Seed Templates — Pre-Built Intent Patterns

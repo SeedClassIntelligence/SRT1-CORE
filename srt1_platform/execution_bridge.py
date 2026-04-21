@@ -1,3 +1,15 @@
+"""
+SRT-1 AUTO-GENERATED INTELLIGENCE
+===================================
+Architectural Roles: DATA_MODEL
+Key Symbols: DispatchMethod, SCIADispatchBridge, __init__, configure, set_callbacks ... and 21 more
+
+Extracted Purposes:
+  - DispatchMethod: Constants for how seeds get dispatched to assistants.
+  - SCIADispatchBridge: The Execution Bridge: dispatches seeds and monitors completion.
+  - __init__: Args:
+  ...
+"""
 #!/usr/bin/env python3
 """
 SRT-1 Execution Bridge — Seed Dispatch & Completion Monitoring
