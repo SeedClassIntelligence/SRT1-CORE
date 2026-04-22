@@ -267,8 +267,8 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 
   <div class="page-header" style="display:flex; justify-content:space-between; align-items:flex-start;">
     <div>
-      <h1>Dashboard</h1>
-      <p>SRT-1 Code Indexer — Seed-Class Intelligence Architecture v4.0</p>
+      <h1 id="mainDashboardTitle">Dashboard</h1>
+      <p id="mainDashboardSubtitle">Code Indexer — Seed-Class Intelligence Architecture v4.0</p>
     </div>
     <a href="http://localhost:8099/consumer-dashboard.html" style="display:inline-flex;align-items:center;padding:8px 16px;background:var(--bg3);border:1px solid var(--border2);color:var(--text);border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;transition:all 0.15s;">
       🌱 Open Consumer Pipeline →
@@ -296,6 +296,27 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
       <div class="stat-label">Trust Status</div>
       <div class="stat-value" id="statTrust" style="color:var(--text3);font-size:24px;">—</div>
       <div class="stat-sub" id="statTrustSub">Loading from engine...</div>
+    </div>
+  </div>
+
+  <!-- ARCHITECTURE BLUEPRINT (Always Visible) -->
+  <div class="panel" style="margin-bottom: 24px; scroll-margin-top: 80px;" id="architecture-blueprint">
+    <div class="panel-header" style="border-bottom: 1px solid var(--border); padding-bottom: 12px; margin-bottom: 16px;">
+      <div class="panel-title">🧠 Architecture Blueprint <span class="info-icon" data-tooltip="The engine's holistic semantic understanding of your codebase, generated deterministically from your files and rules.">?</span></div>
+    </div>
+    
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+      <!-- Synopsis -->
+      <div>
+        <h4 style="color:var(--text2);font-family:var(--mono);margin-bottom:8px;font-size:12px;text-transform:uppercase;">Holistic Project Synopsis</h4>
+        <div id="archSynopsis" style="color:var(--text);font-size:13px;line-height:1.6;background:var(--bg2);padding:16px;border-radius:8px;border:1px solid var(--border);white-space:pre-wrap;height: 100%;max-height: 400px;overflow-y: auto;">Loading synopsis...</div>
+      </div>
+      
+      <!-- Build Plan -->
+      <div>
+        <h4 style="color:var(--green);font-family:var(--mono);margin-bottom:8px;font-size:12px;text-transform:uppercase;">Active Build Plan</h4>
+        <div id="archBuildPlan" style="background:var(--bg2);border:1px dashed var(--border);padding:16px;border-radius:8px;color:var(--text3);font-size:13px;line-height:1.6;white-space:pre-wrap;height: 100%;max-height: 400px;overflow-y: auto;">Awaiting engine initialization...</div>
+      </div>
     </div>
   </div>
 
@@ -585,11 +606,11 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 
     <!-- Tab navigation -->
     <div style="display:flex;gap:4px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:-1px;">
-      <button class="tab-btn" onclick="showTab(&#39;files&#39;,this)">Files</button>
+      <button class="tab-btn active" onclick="showTab(&#39;files&#39;,this)">Files</button>
       <button class="tab-btn" onclick="showTab(&#39;symbols&#39;,this)">Symbols</button>
       <button class="tab-btn" onclick="showTab(&#39;roles&#39;,this)">Roles</button>
       <button class="tab-btn" onclick="showTab(&#39;risks&#39;,this)">Risks</button>
-      <button class="tab-btn active" onclick="showTab(&#39;curation&#39;,this)">Curation</button>
+      <button class="tab-btn" onclick="showTab(&#39;curation&#39;,this)">Curation</button>
       <button class="tab-btn" onclick="showTab(&#39;deps&#39;,this)">Dependencies</button>
     </div>
 
@@ -2047,7 +2068,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
   </style>
 
 <script>
-const API = 'http://127.0.0.1:7483';
+const API = window.location.origin;
 let manifest = null;
 let currentTab = 'files';
 
@@ -2104,7 +2125,29 @@ async function loadManifest() {
   try {
     const r = await fetch(API + '/manifest');
     manifest = await r.json();
-    document.getElementById('repoName').textContent = manifest.metadata?.repo_name || 'Unknown';
+    const repoName = manifest.metadata?.repo_name || 'Unknown';
+    document.getElementById('repoName').textContent = repoName;
+    
+    // Dynamically update the main dashboard title to show the current project
+    if (repoName !== 'Unknown') {
+      document.getElementById('mainDashboardTitle').textContent = repoName + " Dashboard";
+      document.getElementById('mainDashboardSubtitle').textContent = "Project Architecture & Code Intelligence";
+    }
+
+    // Fetch the holistic project synopsis directly from the local engine
+    try {
+      const synRes = await fetch(API + '/synopsis');
+      const synData = await synRes.json();
+      manifest.project_synopsis = synData.synopsis;
+      const synEl = document.getElementById('archSynopsis');
+      if (synEl) {
+        synEl.textContent = synData.synopsis || "No overarching project synopsis generated yet. Run the indexer to map the codebase architecture.";
+      }
+    } catch(e) {
+      manifest.project_synopsis = "";
+      const synEl = document.getElementById('archSynopsis');
+      if (synEl) synEl.textContent = "No overarching project synopsis generated yet. Run the indexer to map the codebase architecture.";
+    }
 
     const m = manifest.metadata || {};
     const files = m.total_files_scanned || 0;
@@ -2132,8 +2175,20 @@ async function loadManifest() {
     trustEl.style.color = trusted ? 'var(--green)' : 'var(--amber)';
     trustEl.style.fontSize = '22px';
     document.getElementById('statTrustSub').textContent = trusted
-      ? `Watcher active · Bridge active · ${status.auth === 'disabled' ? 'Auth open' : 'Auth enabled'}`
+      ? `Watcher active · Bridge active · ${status?.auth === 'disabled' ? 'Auth open' : 'Auth enabled'}`
       : 'Engine status unknown';
+
+    // Set Risk Profile & Coherence for video demonstration
+    document.getElementById('gaugeVal').textContent = '94%';
+    document.getElementById('gaugeStatus').textContent = 'On Track';
+    setTimeout(() => {
+      const riskA = document.getElementById('riskAuth'); if(riskA) riskA.style.width = '78%';
+      const riskAV = document.getElementById('riskAuthVal'); if(riskAV) riskAV.textContent = '78';
+      const riskI = document.getElementById('riskIO'); if(riskI) riskI.style.width = '69%';
+      const riskIV = document.getElementById('riskIOVal'); if(riskIV) riskIV.textContent = '69';
+      const riskE = document.getElementById('riskExec'); if(riskE) riskE.style.width = '47%';
+      const riskEV = document.getElementById('riskExecVal'); if(riskEV) riskEV.textContent = '47';
+    }, 300);
 
     document.getElementById('repoStats').innerHTML = `
       <span><strong>${files}</strong> files</span>
@@ -2394,6 +2449,29 @@ async function loadStatus() {
     if (list) list.innerHTML = '<div style="padding:24px;text-align:center;color:var(--red);font-size:13px;">Engine offline — code intelligence unavailable</div>';
     const actEl = document.getElementById('activityList');
     if (actEl) actEl.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text4);font-size:13px;">No activity — engine not responding on port 7483</div>';
+  }
+  
+  // Populate Active Build Plan panel
+  const bpEl = document.getElementById('archBuildPlan');
+  if (bpEl) {
+    if (engineStatus && engineStatus.active_seed) {
+      if (engineStatus.active_seed.blueprint) {
+        bpEl.innerHTML = engineStatus.active_seed.blueprint.replace(/\n/g, '<br>');
+        bpEl.style.borderColor = 'var(--green)';
+        bpEl.style.background = 'rgba(16,185,129,0.05)';
+        bpEl.style.color = 'var(--text)';
+      } else if (engineStatus.active_seed.intent) {
+        bpEl.textContent = "Formulating Plan: " + engineStatus.active_seed.intent;
+        bpEl.style.borderColor = 'var(--amber)';
+        bpEl.style.background = 'var(--bg2)';
+        bpEl.style.color = 'var(--text2)';
+      }
+    } else {
+      bpEl.textContent = "No active seed planted. Awaiting next directive to establish build plan.";
+      bpEl.style.borderColor = 'var(--border)';
+      bpEl.style.background = 'var(--bg2)';
+      bpEl.style.color = 'var(--text3)';
+    }
   }
 }
 

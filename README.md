@@ -14,6 +14,12 @@ SRT-1 solves the problem of AI code assistants hallucinating architecture or bre
 
 The `srt1-core` package provides the **Memory Minimum Architecture**—a completely decoupled, local-first engine that runs entirely on your machine via SQLite, without pinging a cloud API.
 
+### The "Drop-In" Sandbox (Zero Global State)
+Unlike massive IDE extensions or global CLI tools that muddy your entire system, SRT-1 is hermetically sealed. You simply drop the `SRT1-CORE-OSS` folder into any codebase, and tell your existing AI assistant (Cursor, Copilot, etc.) to run it. 
+- **Auto-Isolated Ports:** The engine dynamically finds available network ports, meaning you can drop SRT-1 into 5 different projects simultaneously without a single collision.
+- **Local Context Only:** The engine builds its `.srt1` memory cache purely inside the project boundary. Zero cross-contamination across your machine.
+- **The AI Handcuffs:** You aren't replacing your AI; you are dropping a constraint engine into your folder. Tell Cursor to use SRT-1, and the AI is instantly handcuffed to your deterministic, architectural rules.
+
 ### The Cryptographic Trust Layer
 Every action in the SRT-1 pipeline is cryptographically tied to the codebase using **Seed Signature**. From the moment the AST generates the code manifest, to the exact moment you approve a task dispatch, the engine signs and verifies the payload. This ensures an indisputable, immutable execution roadmap.
 
