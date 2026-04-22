@@ -38,7 +38,9 @@ class AuditEntry:
     metadata: Dict[str, Any] = field(default_factory=dict)
 
 
-class AccessAuditLog:
+from .db_utils import SQLiteDatabaseManager
+
+class AccessAuditLog(SQLiteDatabaseManager):
     """Append-only audit log persisted to SQLite.
 
     Once an entry is written, it cannot be modified or deleted.
@@ -46,27 +48,12 @@ class AccessAuditLog:
     """
 
     def __init__(self, db_path: str = None):
-        self.db_path = db_path or os.environ.get(
-            "SCIA_AUDIT_DB", "./data/access_audit.db"
-        )
-        self._persistent_conn: Optional[sqlite3.Connection] = None
+        super().__init__(db_path or os.environ.get("SCIA_AUDIT_DB", "./data/access_audit.db"))
         self._init_audit_db()
 
-    def _get_audit_conn(self) -> sqlite3.Connection:
-        if self.db_path == ":memory:":
-            if self._persistent_conn is None:
-                self._persistent_conn = sqlite3.connect(":memory:")
-            return self._persistent_conn
-        return sqlite3.connect(self.db_path)
-
-    def _close_audit_conn(self, conn: sqlite3.Connection):
-        if conn is not self._persistent_conn:
-            conn.close()
-
     def _init_audit_db(self):
-        if self.db_path != ":memory:":
-            os.makedirs(os.path.dirname(self.db_path) or ".", exist_ok=True)
-        conn = self._get_audit_conn()
+        self._ensure_dir()
+        conn = self._get_conn()
         conn.execute("""
             CREATE TABLE IF NOT EXISTS audit_log (
                 entry_id      TEXT PRIMARY KEY,
@@ -92,7 +79,7 @@ class AccessAuditLog:
             "CREATE INDEX IF NOT EXISTS idx_audit_time ON audit_log(timestamp)"
         )
         conn.commit()
-        self._close_audit_conn(conn)
+        self._close_conn(conn)
 
     def log(self, actor_id: str, action: str, resource_type: str,
             resource_id: str, outcome: str = "success",
@@ -102,7 +89,7 @@ class AccessAuditLog:
         entry_id = f"audit_{secrets.token_hex(8)}"
         ts = datetime.now().isoformat()
 
-        conn = self._get_audit_conn()
+        conn = self._get_conn()
         conn.execute(
             """INSERT INTO audit_log
                (entry_id, timestamp, actor_id, action, resource_type,
@@ -115,7 +102,7 @@ class AccessAuditLog:
             ),
         )
         conn.commit()
-        self._close_audit_conn(conn)
+        self._close_conn(conn)
         return entry_id
 
     def query_by_actor(self, actor_id: str, limit: int = 100) -> List[Dict[str, Any]]:
@@ -151,15 +138,15 @@ class AccessAuditLog:
 
     def count(self) -> int:
         """Total number of audit entries."""
-        conn = self._get_audit_conn()
+        conn = self._get_conn()
         row = conn.execute("SELECT COUNT(*) FROM audit_log").fetchone()
-        self._close_audit_conn(conn)
+        self._close_conn(conn)
         return row[0]
 
     def _query(self, sql: str, params: tuple) -> List[Dict[str, Any]]:
-        conn = self._get_audit_conn()
+        conn = self._get_conn()
         rows = conn.execute(sql, params).fetchall()
-        self._close_audit_conn(conn)
+        self._close_conn(conn)
         cols = ["entry_id", "timestamp", "actor_id", "action",
                 "resource_type", "resource_id", "outcome", "metadata"]
         results = []

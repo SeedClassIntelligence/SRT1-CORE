@@ -190,7 +190,18 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
   .seed-row{grid-template-columns:20px 1fr;}
   .seed-growth{grid-column:1/-1;text-align:left;}
 }
-</style>
+
+    /* ── DASHBOARD MOCKUP ELEMENTS ── */
+    .cc-panels{display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:16px;margin-bottom:16px}
+    .cc-panel{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:16px;box-shadow:inset 0 1px 0 rgba(255,255,255,0.02)}
+    .cc-panel-title{font-size:11px;color:var(--text3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:12px;font-weight:700}
+    .cc-gauge{display:flex;align-items:center;gap:16px;padding:8px 0}
+    .cc-gauge-ring{width:56px;height:56px;border-radius:50%;border:4px solid var(--border);border-top-color:var(--cyan);border-right-color:var(--cyan);animation:spin 3s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .cc-gauge-val{font-size:24px;font-weight:900;color:var(--cyan);font-family:'JetBrains Mono',monospace;line-height:1}
+    .cc-gauge-status{font-size:10px;color:var(--text3);text-transform:uppercase;margin-top:4px;letter-spacing:0.05em;font-weight:700}
+
+  </style>
 </head>
 <body>
 
@@ -199,13 +210,11 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
   <div class="modal-content">
     <div class="modal-header"><span style="font-size:24px;">👋</span> Welcome to SRT-1 Dashboard!</div>
     <div class="modal-body">
-      <p>If you're new here, you might be wondering about the difference between the components:</p>
-      <ul style="margin-left: 20px; margin-bottom: 12px;">
-        <li><strong>SRT-1 Indexer:</strong> The free, open-source static analyzer.</li>
-        <li><strong>SRT-1 Pro:</strong> The enterprise execution engine that actively bundles and heals code.</li>
-        <li><strong>SRT-1 Platform:</strong> This very dashboard and memory system tying it all together.</li>
-      </ul>
-      <p>Use the <code>START_SRT1.bat</code> or <code>start_website.bat</code> files in the project root to seamlessly spin up everything at once.</p>
+      <p>Welcome to the unified <strong>Seed-Class Intelligence Architecture (SRT-1)</strong>.</p>
+      <p style="margin-top: 12px;">We have merged all individual components (the Indexer, Pro Execution Engine, and Platform Middleware) into a single, seamless ecosystem: <strong>SRT-1 Core</strong>.</p>
+      <p style="margin-top: 12px; padding: 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px;">
+        Run <code>pip install srt1-core</code> to instantly install the complete toolset in one command.
+      </p>
     </div>
     <button class="modal-btn" onclick="document.getElementById('introModal').classList.remove('show')">Got it, let's go! 🚀</button>
   </div>
@@ -239,9 +248,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
     </div>
     <div class="nav-section">
       <div class="nav-section-label">Account</div>
-      <a class="nav-item" href="#dashboard"><span class="icon">👤</span> Team</a>
-      <a class="nav-item" href="#dashboard"><span class="icon">⚙</span> Settings</a>
-      <a class="nav-item" href="https://docs.srt1.dev/"><span class="icon">📖</span> Docs</a>
+      <a class="nav-item" href="documentation.html"><span class="icon">📖</span> Docs</a>
     </div>
   </nav>
   <div class="sidebar-footer">
@@ -249,7 +256,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
       <div class="sidebar-avatar">W</div>
       <div class="sidebar-user-info">
         <div class="name">William Jernigan</div>
-        <div class="tier">ENTERPRISE</div>
+        <div class="tier" style="color: var(--cyan); border-color: rgba(62,207,142,0.3); background: rgba(62,207,142,0.1);">SEED SIGNATURE VERIFIED</div>
       </div>
     </div>
   </div>
@@ -298,7 +305,13 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
     <div class="panel">
       <div class="panel-header">
         <div class="panel-title">🛡️ Enforcement Guardrails <span class="info-icon" data-tooltip="The engine of SRT-1 curation. Sweeps your codebase dynamically for duplicate functions, unauthorized file overrides, and architectural drift, halting AI workflows if it detects major integrity risks.">?</span></div>
-        <div class="panel-badge" id="seedFarmBadge">loading...</div>
+        <div style="display:flex; gap: 12px; align-items:center;">
+          <label style="font-size: 11px; display:flex; align-items:center; gap: 6px; cursor: pointer; color: var(--text3);">
+             Auto-Nudge (30m)
+             <input type="checkbox" id="nudgeToggle" checked onchange="toggleNudge(this.checked)">
+          </label>
+          <div class="panel-badge" id="seedFarmBadge">loading...</div>
+        </div>
       </div>
       <div class="seed-list" id="seedFarmList">
         <div style="padding:24px;text-align:center;color:var(--text4);font-size:13px;">Loading violations from engine...</div>
@@ -366,7 +379,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
         <div class="panel-badge info">v2.2.0</div>
       </div>
       <div style="font-size:13px;color:var(--text2);margin-bottom:16px;">
-        You no longer have to download multiples. The entire Seed-Class Intelligence Ecosystem is bundled into one package. Install it once to get the Code Indexer, Execution Engine, and Platform Middleware.
+        The SRT-1 Core OSS engine is free and open source. By adopting the new <strong>Seed Signature</strong> industry standard, all AI-generated logic, code execution, and architectural changes are cryptographically signed—ensuring that every modification is transparently attributed back to you as the original seed.
       </div>
       <div class="download-list">
         <div class="download-item">
@@ -381,7 +394,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
         </div>
         <div class="download-item">
           <div class="download-item-left">
-            <div class="download-icon ent">📱</div>
+            <div class="download-icon info">📱</div>
             <div>
               <div class="download-name">Mobile PWA Dashboard</div>
               <div class="download-version">http://localhost:7483/mobile</div>
@@ -389,6 +402,16 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
           </div>
           <button class="download-btn" onclick="window.open('http://localhost:7483/mobile', '_blank')">Open</button>
         </div>
+      </div>
+      <div style="margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--border);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px;">
+          <div style="font-size: 14px; font-weight: 600;">📱 Mobile Companion Auth</div>
+          <div class="panel-badge" id="mobileTokenBadge" style="font-size:10px;">checking...</div>
+        </div>
+        <div class="download-list" id="mobileTokenList">
+          <div style="padding:12px;text-align:center;color:var(--text4);font-size:12px;">Checking auth system...</div>
+        </div>
+        <button id="generateTokenBtn" style="margin-top: 12px; width: 100%; padding: 10px; background: var(--bg3); border: 1px solid var(--border2); border-radius: 8px; color: var(--text); font-size: 13px; font-weight: 600; cursor: pointer;">+ Generate New Token</button>
       </div>
     </div>
   </div>
@@ -488,31 +511,30 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
     </div>
   </div>
 
-
-  <!-- ACTIVITY + MOBILE TOKENS -->
-  <div class="grid-2">
-
-    <!-- ACTIVITY -->
-    <div class="panel" id="analytics-activity" style="scroll-margin-top: 80px;">
-      <div class="panel-header">
-        <div class="panel-title">Recent Activity <span class="info-icon" data-tooltip="A tamper-evident audit ledger. Immutably logs when the engine re-indexes code, tracks AI reflection chains, and records every time a complex seed successfully executes on disk.">?</span></div>
-        <div class="panel-badge info" id="activityBadge">live</div>
+  <!-- ASK SRT-1 CHAT -->
+  <div class="panel" id="ask-srt1" style="margin-bottom:32px;">
+    <div class="panel-header">
+      <div class="panel-title">Ask SRT-1 <span class="info-icon" data-tooltip="Plant tasks directly into the engine. SRT-1 will automatically bundle context, resolve dependencies, and dispatch it to the active AI for execution.">?</span></div>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:12px;">
+      <div id="chatHistory" style="max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; font-size: 13px; color: var(--text2);">
+         <div style="padding: 12px; background: rgba(0,0,0,0.2); border-radius: 8px; text-align: center; color: var(--text4);">No tasks planted in this session.</div>
       </div>
-      <div class="activity-list" id="activityList">
-        <div style="padding:24px;text-align:center;color:var(--text4);font-size:13px;">Loading activity from engine...</div>
+      <div style="display:flex; gap:8px;">
+        <input type="text" id="taskInput" placeholder="Describe a task or architectural change..." style="flex:1; padding: 12px 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: var(--sans); outline: none; transition: border-color 0.2s;" onkeydown="if(event.key === 'Enter') submitTask()">
+        <button onclick="submitTask()" style="padding: 12px 24px; background: linear-gradient(135deg, var(--green), var(--cyan)); color: #000; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; transition: opacity 0.2s;">Plant Seed</button>
       </div>
     </div>
+  </div>
 
-    <!-- MOBILE COMPANION TOKENS -->
-    <div class="panel" id="analytics-mobile" style="scroll-margin-top: 80px;">
-      <div class="panel-header">
-        <div class="panel-title">📱 Mobile Companion <span class="info-icon" data-tooltip="Generates hashed QR security tokens. Scanning this links your smartphone directly into this local desktop node, letting you authorize API flows or plant SRT seeds securely across the room.">?</span></div>
-        <div class="panel-badge" id="mobileTokenBadge">checking...</div>
-      </div>
-      <div class="download-list" id="mobileTokenList">
-        <div style="padding:24px;text-align:center;color:var(--text4);font-size:13px;">Checking auth system...</div>
-      </div>
-      <button id="generateTokenBtn" style="margin-top: 16px; width: 100%; padding: 12px; background: var(--bg3); border: 1px solid var(--border2); border-radius: 10px; color: var(--text); font-family: var(--sans); font-size: 14px; font-weight: 600; cursor: pointer; transition: 0.2s;" onmouseover="this.style.background=&#39;var(--bg4)&#39;" onmouseout="this.style.background=&#39;var(--bg3)&#39;">+ Generate New Token</button>
+  <!-- ACTIVITY -->
+  <div class="panel" id="analytics-activity" style="margin-bottom:32px;scroll-margin-top: 80px;">
+    <div class="panel-header">
+      <div class="panel-title">Recent Activity <span class="info-icon" data-tooltip="A tamper-evident audit ledger. Immutably logs when the engine re-indexes code, tracks AI reflection chains, and records every time a complex seed successfully executes on disk.">?</span></div>
+      <div class="panel-badge info" id="activityBadge">live</div>
+    </div>
+    <div class="activity-list" id="activityList">
+      <div style="padding:24px;text-align:center;color:var(--text4);font-size:13px;">Loading activity from engine...</div>
     </div>
   </div>
 
@@ -532,9 +554,33 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
       <span><strong>1488</strong> symbols</span>
       <span><strong>1488</strong> reflections</span>
       <span><strong>0</strong> trust links</span>
+      
       <span><strong>19</strong> duplicates</span>
       <span><strong>327</strong> overlaps</span>
       <span style="color:var(--purple);font-family:var(--mono);font-size:11px;">SCIA-cd35582cca7930292c56</span>
+    </div>
+
+    
+    <!-- Promised Mockup Panels -->
+    <div class="cc-panels">
+      <div class="cc-panel">
+        <div class="cc-panel-title">📊 Coherence Score</div>
+        <div class="cc-gauge">
+          <div class="cc-gauge-ring" id="gaugeRing"></div>
+          <div>
+            <div class="cc-gauge-val" id="gaugeVal">100%</div>
+            <div class="cc-gauge-status" id="gaugeStatus">On Track</div>
+          </div>
+        </div>
+      </div>
+      <div class="cc-panel">
+        <div class="cc-panel-title">⚠️ Risk Profile</div>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px;">
+          <div style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text2)"><span style="width:50px;text-align:right;color:var(--text3)">Auth</span><div style="flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden"><div id="riskAuth" style="height:100%;width:0%;background:var(--red)"></div></div><span id="riskAuthVal">0</span></div>
+          <div style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text2)"><span style="width:50px;text-align:right;color:var(--text3)">File I/O</span><div style="flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden"><div id="riskIO" style="height:100%;width:0%;background:var(--blue)"></div></div><span id="riskIOVal">0</span></div>
+          <div style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text2)"><span style="width:50px;text-align:right;color:var(--text3)">Exec</span><div style="flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden"><div id="riskExec" style="height:100%;width:0%;background:var(--amber)"></div></div><span id="riskExecVal">0</span></div>
+        </div>
+      </div>
     </div>
 
     <!-- Tab navigation -->
@@ -1987,7 +2033,18 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 .risk-pill.high{background:rgba(239,68,68,0.08);color:var(--red);}
 .risk-pill.med{background:var(--amber-bg);color:var(--amber);}
 .risk-pill.info{background:var(--bg3);color:var(--text3);}
-</style>
+
+    /* ── DASHBOARD MOCKUP ELEMENTS ── */
+    .cc-panels{display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:16px;margin-bottom:16px}
+    .cc-panel{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:16px;box-shadow:inset 0 1px 0 rgba(255,255,255,0.02)}
+    .cc-panel-title{font-size:11px;color:var(--text3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:12px;font-weight:700}
+    .cc-gauge{display:flex;align-items:center;gap:16px;padding:8px 0}
+    .cc-gauge-ring{width:56px;height:56px;border-radius:50%;border:4px solid var(--border);border-top-color:var(--cyan);border-right-color:var(--cyan);animation:spin 3s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .cc-gauge-val{font-size:24px;font-weight:900;color:var(--cyan);font-family:'JetBrains Mono',monospace;line-height:1}
+    .cc-gauge-status{font-size:10px;color:var(--text3);text-transform:uppercase;margin-top:4px;letter-spacing:0.05em;font-weight:700}
+
+  </style>
 
 <script>
 const API = 'http://127.0.0.1:7483';
@@ -2034,8 +2091,8 @@ async function downloadPackage(pkg, filename, btn) {
     btn.style.color = 'var(--green)';
     btn.style.borderColor = 'var(--green-border)';
   } else {
-    // Don't redirect to srt1-core PyPI for enterprise bundles
-    alert('SRT-1 Pro and Platform are enterprise bundles distributed via your license server, not via the public PyPI open source registry.');
+    // Don't redirect to srt1-core PyPI for authorized bundles
+    alert('SRT-1 Pro and Platform are authorized bundles distributed via your license server, not via the public PyPI open source registry.');
     btn.innerText = 'See license server';
     btn.style.color = 'var(--amber)';
     btn.style.borderColor = 'var(--amber-border)';
@@ -2256,10 +2313,15 @@ async function loadStatus() {
         actEl.innerHTML = events.slice().reverse().map(ev => {
           const dotClass = CATEGORY_DOT[ev.category] || 'cyan';
           const timeStr = formatTime(ev.iso);
+          let sigHtml = '';
+          if (ev._provenance) {
+            const sigId = ev._provenance.signature ? ev._provenance.signature.substring(0,16) : 'Verified';
+            sigHtml = `<div style="font-family:var(--mono);font-size:10px;color:var(--purple);margin-top:4px;display:flex;align-items:center;gap:4px;"><span style="font-size:12px;">🔏</span> Signed by SeedSignature: ${sigId}...</div>`;
+          }
           return `<div class="activity-item">
             <div class="activity-time">${timeStr}</div>
             <div class="activity-dot ${dotClass}"></div>
-            <div class="activity-text">${ev.message}</div>
+            <div class="activity-text">${ev.message}${sigHtml}</div>
           </div>`;
         }).join('');
       }
@@ -2548,6 +2610,22 @@ function renderTab() {
     if (!dups.length && !overlaps.length) html += '<div style="padding:24px;text-align:center;color:var(--text3);">No curation issues found.</div>';
   }
 
+  else if (currentTab === 'chains') {
+    html = '<div class="ex-row ex-dep ex-header"><span>Function Chain</span><span>Execution Path</span></div>';
+    Object.entries(manifest.call_graph || {}).forEach(([node, edges]) => {
+      if (edges.length === 0) return;
+      if (q && !node.toLowerCase().includes(q)) return;
+      
+      const chainHtml = edges.map((e, i) => `<div style="padding:4px 0; border-left: 2px solid var(--bg4); margin-left: ${i*8}px; padding-left: 8px; color: var(--text2); font-size: 11px;">↳ ${e}</div>`).join('');
+      
+      html += `<div class="ex-row" style="display:flex; flex-direction:column; align-items:flex-start; padding: 12px 16px; border-bottom: 1px solid var(--border);">
+        <div style="font-family:var(--mono);font-size:12px;font-weight:600; color:var(--cyan); margin-bottom: 8px;">${node}</div>
+        <div style="width:100%; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 6px;">${chainHtml}</div>
+      </div>`;
+    });
+    if (Object.keys(manifest.call_graph || {}).length === 0) html += '<div style="padding:24px;text-align:center;color:var(--text3);">No call chains generated.</div>';
+  }
+
   else if (currentTab === 'deps') {
     html = '<div class="ex-row ex-dep ex-header"><span>Symbol</span><span>File</span><span>Depends On</span></div>';
     Object.entries(manifest.symbol_table || {}).forEach(([fp, syms]) => {
@@ -2565,6 +2643,59 @@ function renderTab() {
   }
 
   el.innerHTML = html;
+}
+
+async function toggleNudge(enabled) {
+  try {
+    const res = await fetch(`${SRT1Platform?.API_BASE || '/api/v1'}/enforcement/nudge/toggle`, {
+      method: "POST",
+      body: JSON.stringify({ enabled })
+    });
+    if (!res.ok) console.error("Failed to toggle nudge");
+  } catch (e) {
+    console.error("Error toggling nudge", e);
+  }
+}
+
+let chatHistoryCleared = false;
+async function submitTask() {
+  const input = document.getElementById('taskInput');
+  const text = input.value.trim();
+  if(!text) return;
+  
+  const history = document.getElementById('chatHistory');
+  if(!chatHistoryCleared) {
+    history.innerHTML = '';
+    chatHistoryCleared = true;
+  }
+  
+  // Add user message
+  history.innerHTML += `<div style="padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; border: 1px solid var(--border);">
+    <strong style="color:var(--text);">You:</strong> ${text}
+  </div>`;
+  input.value = '';
+  
+  try {
+    const res = await fetch(`${SRT1Platform?.API_BASE || '/api/v1'}/task`, {
+      method: "POST",
+      body: JSON.stringify({ task: text, source: "dashboard" })
+    });
+    const data = await res.json();
+    
+    if(res.ok) {
+      history.innerHTML += `<div style="padding: 10px; background: rgba(62,207,142,0.1); border-radius: 8px; border: 1px solid rgba(62,207,142,0.3);">
+        <strong style="color:var(--green);">SRT-1:</strong> Seed planted successfully. Context bundle is being generated. <span style="font-family:var(--mono); font-size:10px; color:var(--text4);">[${data.queue_seed_id}]</span>
+      </div>`;
+      setTimeout(loadManifest, 1500); // refresh UI
+    } else {
+      history.innerHTML += `<div style="padding: 10px; background: rgba(248,81,73,0.1); border-radius: 8px; border: 1px solid rgba(248,81,73,0.3);">
+        <strong style="color:var(--red);">Error:</strong> ${data.error || 'Failed to plant seed.'}
+      </div>`;
+    }
+  } catch (e) {
+    console.error(e);
+  }
+  history.scrollTop = history.scrollHeight;
 }
 
 // Auto-load on page open

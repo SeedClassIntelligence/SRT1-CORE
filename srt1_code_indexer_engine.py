@@ -185,6 +185,11 @@ class SRT1Engine:
         self.operations: List[Dict] = []
         self.injections: List[Dict] = []
         self.session_start = datetime.now()
+        
+        # Enforcement Auto-Nudge
+        import time
+        self.enforcement_nudge_enabled = True
+        self.last_nudge_time = time.time()
 
         # Trust chain — bootstrapped after indexing
         self._trust_chain: List[Dict] = []
@@ -523,6 +528,9 @@ class SRT1Engine:
                             resolved.append(f"{t['file']}:{dep}:{t['line']}")
                 if resolved:
                     self.call_graph[key] = resolved
+        
+        # Expose to manifest for the frontend
+        self.manifest["call_graph"] = self.call_graph
 
     # -----------------------------------------------------------------
     # INTELLIGENT SYNOPSIS GENERATION
@@ -1288,6 +1296,13 @@ class SRT1Engine:
     def _watch_loop(self) -> None:
         while self._watcher_running:
             time.sleep(15)
+            if getattr(self, "enforcement_nudge_enabled", False) and (time.time() - getattr(self, "last_nudge_time", time.time())) >= 1800:
+                try:
+                    self._generate_context_files()
+                    self._log_event("nudge", "Auto-Nudge (30m) triggered. Context files regenerated.", {"type": "enforcement_nudge"})
+                    self.last_nudge_time = time.time()
+                except Exception:
+                    pass
             try:
                 changed = False
                 for entry in self.manifest.get("file_manifest", []):
@@ -2049,7 +2064,12 @@ class SRT1Engine:
 
                 body = self._body()
 
-                if path == "/api/v1/auth/signup":
+                if path == "/api/v1/enforcement/nudge/toggle":
+                    enabled = body.get("enabled", True)
+                    engine.enforcement_nudge_enabled = bool(enabled)
+                    return self._json({"status": "success", "nudge_enabled": engine.enforcement_nudge_enabled})
+
+                elif path == "/api/v1/auth/signup":
                     email = body.get("email")
                     name = body.get("name", "User")
                     password = body.get("password")
