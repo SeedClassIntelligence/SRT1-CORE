@@ -700,11 +700,46 @@ class SRT1RequestHandler(BaseHTTPRequestHandler):
             self._send_json({"status": "healthy", "middleware": "SRT-1 v2.0"})
 
         else:
+            # Attempt to serve static files from developer-pwa
+            pwa_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "developer-pwa")
+            if not os.path.exists(pwa_dir):
+                pwa_dir = os.path.join(os.getcwd(), "developer-pwa")
+                
+            clean_path = path.lstrip('/')
+            if not clean_path:
+                clean_path = "index.html"
+                
+            file_path = os.path.join(pwa_dir, clean_path)
+            
+            if os.path.exists(file_path) and os.path.isfile(file_path):
+                try:
+                    with open(file_path, "rb") as f:
+                        content = f.read()
+                    
+                    self.send_response(200)
+                    if file_path.endswith(".html"):
+                        self.send_header("Content-Type", "text/html")
+                    elif file_path.endswith(".css"):
+                        self.send_header("Content-Type", "text/css")
+                    elif file_path.endswith(".js"):
+                        self.send_header("Content-Type", "application/javascript")
+                    elif file_path.endswith(".json"):
+                        self.send_header("Content-Type", "application/json")
+                    elif file_path.endswith(".png"):
+                        self.send_header("Content-Type", "image/png")
+                    self.send_header("Content-Length", str(len(content)))
+                    self.end_headers()
+                    self.wfile.write(content)
+                    return
+                except Exception as e:
+                    self._send_json({"error": f"Failed to serve file: {e}"}, 500)
+                    return
+
             self._send_json(
                 {
                     "error": "Unknown endpoint",
                     "available": {
-                        "GET": ["/status", "/context", "/context/relevant?files=a.py,b.py", "/manifest", "/health"],
+                        "GET": ["/status", "/context", "/context/relevant?files=a.py,b.py", "/manifest", "/health", "/dashboard.html"],
                         "POST": ["/task", "/operation", "/reset"],
                     },
                 },

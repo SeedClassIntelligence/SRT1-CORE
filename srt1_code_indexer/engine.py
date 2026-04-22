@@ -182,6 +182,7 @@ class SRT1Engine:
         # Session state
         self.current_task = task
         self.task_seed_id: Optional[str] = None
+        self.build_plan: Optional[Dict[str, Any]] = None
         self.operations: List[Dict] = []
         self.injections: List[Dict] = []
         self.session_start = datetime.now()
@@ -356,14 +357,25 @@ class SRT1Engine:
         self._generate_context_files()
         self._log_event("context", "Generated AGENTS.md, CLAUDE.md, .cursorrules, copilot-instructions.md", {"files_written": 5})
 
-        # Step 5: Plant task seed (if provided)
+        # Step 5: Generate build plan + plant task seed
+        print(f"  [5/6] Generating build plan...")
+        self.build_plan = self._generate_build_plan()
+        print(f"         Project: {self.build_plan['project_name']}")
+        print(f"         Type:    {self.build_plan['project_type']}")
+        print(f"         Health:  {self.build_plan['health']['status']}")
+        self._log_event("plan", f"Build plan generated for {self.build_plan['project_name']}", self.build_plan)
+
         if self.task:
-            print(f"  [5/6] Planting task seed...")
             self._plant_seed(self.task)
             print(f"         Seed: \"{self.task}\"")
             self._log_event("seed", f"Task seed planted: {self.task}")
         else:
-            print(f"  [5/6] No task set. Use POST /task to set one.")
+            # Auto-derive task from the project's own intent
+            auto_task = self.build_plan.get("intent", "")[:180]
+            if auto_task:
+                self.current_task = auto_task
+                print(f"         Auto-detected intent from project files.")
+                self._log_event("seed", f"Auto-genesis task derived: {auto_task[:80]}...")
 
         # Step 6: Start server + watcher
         print(f"  [6/6] Starting live server...")
@@ -380,14 +392,24 @@ class SRT1Engine:
             print("         ✓ Execution Bridge monitoring active")
             self._log_event("bridge", "Execution bridge monitoring active")
 
+        import socket
+        def get_free_port(start_port: int) -> int:
+            for p in range(start_port, start_port + 100):
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                    if s.connect_ex(('127.0.0.1', p)) != 0:
+                        return p
+            return start_port
+        
+        self.port = get_free_port(self.port)
+
         # Print ready message
         self._print_ready()
         self._log_event("engine", f"Server ready on port {self.port}", {"port": self.port})
 
-        # Open dashboard
+        # Open dashboard via the local server instead of file://
         dashboard_path = self._get_dashboard_path()
         if dashboard_path:
-            webbrowser.open(f"file:///{dashboard_path}")
+            webbrowser.open(f"http://127.0.0.1:{self.port}/dashboard")
 
         # Start HTTP server (blocks)
         self._serve()
@@ -538,10 +560,61 @@ class SRT1Engine:
 
     def _generate_synopsis(self) -> str:
         """
-        Generate a plain-English synopsis of the entire project.
-        This is not a file dump — it's a genuine understanding of
-        WHAT this codebase IS, what it does, and how it works.
+        Generate a deterministic, semantic synopsis of the entire project
+        by extracting rules and definitions from Markdown files (AGENTS.md, README.md)
+        and combining them with the parsed AST data.
         """
+        lines = []
+        lines.append(f"## 🧠 Project Synopsis\n")
+        
+        # 1. Extract intent and definitions from markdown rulebooks
+        extracted_rules = []
+        project_intent = ""
+        
+        md_files_to_check = ["AGENTS.md", "README.md"]
+        for md_file in md_files_to_check:
+            md_path = os.path.join(self.repo_path, md_file)
+            if os.path.exists(md_path):
+                try:
+                    with open(md_path, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                        
+                    # Extract the first major paragraph as the project intent
+                    if not project_intent:
+                        for paragraph in content.split('\n\n'):
+                            paragraph = paragraph.strip()
+                            if paragraph and not paragraph.startswith('#') and not paragraph.startswith('>') and not paragraph.startswith('['):
+                                if len(paragraph) > 50: # Substantial paragraph
+                                    project_intent = paragraph
+                                    break
+                                    
+                    # Extract definitions (H2 and H3 headers and their immediate text)
+                    import re
+                    headers = re.findall(r'^(#{2,3})\s+(.+?)\n([^#]+)', content, re.MULTILINE)
+                    for _, title, body in headers:
+                        body_clean = body.strip().split('\n\n')[0] # Get just the first paragraph of the section
+                        if body_clean and len(body_clean) > 20 and "I have analyzed" not in body_clean:
+                            extracted_rules.append((title.strip(), body_clean.strip()))
+                except Exception:
+                    pass
+
+        if project_intent:
+            lines.append(f"**Architectural Intent:**")
+            lines.append(f"{project_intent}\n")
+            
+        if extracted_rules:
+            lines.append(f"**Extracted Core Concepts:**")
+            # Only show top 3 to keep it concise but meaningful
+            for title, desc in extracted_rules[:3]:
+                # clean up bolding/newlines in description for tight display
+                desc_clean = desc.replace('\\n', ' ').strip()
+                if len(desc_clean) > 150:
+                    desc_clean = desc_clean[:147] + "..."
+                lines.append(f"- **{title}**: {desc_clean}")
+            lines.append("")
+
+        lines.append(f"**Codebase Statistics:**")
+        
         total_files = len(self.manifest.get("file_manifest", []))
         total_symbols = sum(len(s) for s in self.symbol_table.values())
         total_chains = len(self.call_graph)
@@ -596,14 +669,6 @@ class SRT1Engine:
             if ext:
                 file_exts[ext] = file_exts.get(ext, 0) + 1
 
-        # Build synopsis
-        lines = []
-        lines.append(f"## 🧠 Project Synopsis")
-        lines.append("")
-        lines.append(f'**I have analyzed your entire codebase.** Here is what I know:')
-        lines.append("")
-
-        # What the project IS
         lines.append(f"**{repo_name}** contains {total_files} source files with "
                      f"{len(classes)} classes and {len(functions)} functions. "
                      f"I mapped {total_chains} cross-file call chains.")
@@ -674,6 +739,135 @@ class SRT1Engine:
             lines.append("")
 
         return "\n".join(lines)
+
+    # -----------------------------------------------------------------
+    # AUTO-GENESIS BUILD PLAN (Deterministic — No LLM)
+    # -----------------------------------------------------------------
+
+    def _generate_build_plan(self) -> Dict[str, Any]:
+        """
+        Derive a build plan from the files SRT-1 already read.
+        Nothing fabricated. Pure extraction from the indexed codebase.
+        """
+        repo_name = os.path.basename(self.repo_path)
+
+        # 1. Extract project intent from markdown (same source as synopsis)
+        project_intent = ""
+        project_name = repo_name
+        md_files = ["README.md", "AGENTS.md", "CLAUDE.md", "task.md",
+                     "architecture.md", "project_plan.txt", "TODO.md"]
+        for md_file in md_files:
+            md_path = os.path.join(self.repo_path, md_file)
+            if os.path.exists(md_path):
+                try:
+                    with open(md_path, 'r', encoding='utf-8') as f:
+                        content = f.read(3000)
+                    # Extract first H1 as the project name
+                    for line in content.split('\n'):
+                        line_s = line.strip()
+                        if line_s.startswith('# ') and project_name == repo_name:
+                            candidate = line_s[2:].strip()
+                            if candidate and len(candidate) < 80:
+                                project_name = candidate
+                                break
+                    # Extract first substantial paragraph as the intent
+                    if not project_intent:
+                        for paragraph in content.split('\n\n'):
+                            paragraph = paragraph.strip()
+                            if (paragraph and not paragraph.startswith('#')
+                                    and not paragraph.startswith('>')
+                                    and not paragraph.startswith('[')
+                                    and not paragraph.startswith('```')
+                                    and "AUTO-GENERATED" not in paragraph):
+                                if len(paragraph) > 40:
+                                    project_intent = paragraph[:300]
+                                    break
+                except Exception:
+                    pass
+
+        # 2. Inventory what already exists
+        total_files = len(self.manifest.get("file_manifest", []))
+        total_symbols = sum(len(s) for s in self.symbol_table.values())
+        total_chains = len(self.call_graph)
+
+        classes = []
+        functions = []
+        for fpath, symbols in self.symbol_table.items():
+            for sym in symbols:
+                if sym["type"] == "class" and sym["name"] != "__init__":
+                    purpose = sym.get("reflection", {}).get("purpose", "")
+                    classes.append({"name": sym["name"], "file": fpath, "purpose": purpose})
+                elif sym["type"] == "function" and sym["name"] not in ("__init__", "__post_init__"):
+                    purpose = sym.get("reflection", {}).get("purpose", "")
+                    functions.append({"name": sym["name"], "file": fpath, "purpose": purpose})
+
+        # 3. Identify gaps and warnings from curation
+        overlaps = self.curation_report.get("functional_overlaps", [])
+        unused = self.curation_report.get("unused_functions", [])
+        warnings = self._collect_warnings()
+
+        # 4. Detect file types to understand what the project IS
+        file_types = {}
+        for entry in self.manifest.get("file_manifest", []):
+            ext = os.path.splitext(entry.get("file_path", ""))[1].lower()
+            if ext:
+                file_types[ext] = file_types.get(ext, 0) + 1
+
+        project_type = "Software Project"
+        if file_types.get(".html", 0) > 2 or file_types.get(".tsx", 0) > 2:
+            project_type = "Web Application"
+        elif file_types.get(".py", 0) > 5:
+            project_type = "Python Application"
+        elif file_types.get(".ts", 0) > 5 or file_types.get(".js", 0) > 5:
+            project_type = "JavaScript/TypeScript Application"
+
+        # 5. Build the plan — raw data, no fabrication
+        plan = {
+            "project_name": project_name,
+            "project_type": project_type,
+            "intent": project_intent if project_intent else f"{project_name} — {project_type}",
+            "inventory": {
+                "files": total_files,
+                "classes": len(classes),
+                "functions": len(functions),
+                "call_chains": total_chains,
+            },
+            "components": [
+                {"name": c["name"], "file": os.path.basename(c["file"]),
+                 "purpose": c["purpose"][:120] if c["purpose"] and c["purpose"] != "No docstring provided." else ""}
+                for c in classes[:12]
+            ],
+            "health": {
+                "duplicates": len(overlaps),
+                "unused_functions": len(unused),
+                "warnings": len(warnings),
+                "status": "clean" if (len(overlaps) == 0 and len(warnings) == 0) else "needs_attention"
+            },
+            "action_items": [],
+            "generated_at": datetime.now().isoformat(),
+        }
+
+        # Auto-derive action items from what is actually there
+        if overlaps:
+            for ov in overlaps[:3]:
+                func = ov["instances"][0]["function"]
+                plan["action_items"].append(
+                    f"Resolve duplicate function '{func}()' — exists in {len(ov['instances'])} locations"
+                )
+        if unused:
+            plan["action_items"].append(
+                f"Review {len(unused)} potentially unused function(s) for cleanup"
+            )
+        if not project_intent:
+            plan["action_items"].append(
+                "Add a README.md with project description so SRT-1 can extract architectural intent"
+            )
+        if not plan["action_items"]:
+            plan["action_items"].append(
+                f"Codebase is clean. {total_files} files, {len(classes)} classes, {len(functions)} functions mapped."
+            )
+
+        return plan
 
     # -----------------------------------------------------------------
     # CONTEXT FILE GENERATION (Auto-Injection)
@@ -1589,6 +1783,7 @@ class SRT1Engine:
                                 for uf in engine.curation_report.get("unused_functions", [])[:20]
                             ],
                         },
+                        "build_plan": engine.build_plan,
                         "events_recent": engine._event_log[-20:],
                     }
                     # Sign the status attestation via SeedSignature
@@ -2474,7 +2669,18 @@ class SRT1Engine:
         class ThreadedServer(ThreadingMixIn, HTTPServer):
             daemon_threads = True
 
-        server = ThreadedServer(("127.0.0.1", self.port), Handler)
+        import socket
+        while True:
+            try:
+                server = ThreadedServer(("127.0.0.1", self.port), Handler)
+                break
+            except OSError as e:
+                # 98 is EADDRINUSE on Linux/Mac, 10048 is WSAEADDRINUSE on Windows
+                if e.errno == 98 or e.errno == 10048:
+                    print(f"  Port {self.port} in use. Falling back to {self.port + 1}...")
+                    self.port += 1
+                else:
+                    raise
 
         try:
             server.serve_forever()

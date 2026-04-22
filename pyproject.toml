@@ -34,12 +34,12 @@ classifiers = [
 Homepage = "https://seedreflection.com"
 
 [project.scripts]
-srt1-index = "srt1_code_indexer.indexer:main"
-srt1-code-indexer = "srt1_code_indexer.indexer:main"
+srt1-index = "srt1_code_indexer.engine:main"
+srt1-code-indexer = "srt1_code_indexer.engine:main"
 srt1-bundle = "srt1_pro.context_bundler:main"
 srt1-execute = "srt1_pro.execution_engine:main"
 srt1-heal = "srt1_pro.self_heal:main"
-srt1-middleware = "srt1_platform.middleware:main"
+srt1-middleware = "srt1_code_indexer.engine:main"
 
 [project.optional-dependencies]
 pro = []
