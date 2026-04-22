@@ -112,7 +112,7 @@ class ProvenanceRecord:
             metadata=data.get("metadata", {}),
             chain_position=data.get("chain_position", 0),
             authority_issued=data.get("authority_issued", True),
-
+        )
 
 
 # ─────────────────────────────────────────────────────────────────────────────

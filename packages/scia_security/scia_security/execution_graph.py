@@ -51,7 +51,9 @@ class ExecutionNode:
             self.children = []
 
 
-class ExecutionGraph:
+from .db_utils import SQLiteDatabaseManager
+
+class ExecutionGraph(SQLiteDatabaseManager):
     """Execution tracking with SQLite persistence.
 
     Every start_execution() and end_execution() writes to disk.
@@ -66,10 +68,7 @@ class ExecutionGraph:
         self._actor_id = actor_id
         self._lock = threading.Lock()
 
-        self.db_path = db_path or os.environ.get(
-            "EXECUTION_GRAPH_DB", "./data/execution_graph.db"
-        )
-        self._persistent_conn: Optional[sqlite3.Connection] = None
+        super().__init__(db_path or os.environ.get("EXECUTION_GRAPH_DB", "./data/execution_graph.db"))
 
         # Encryption at rest
         from security.encryption import DataEncryptor
@@ -83,21 +82,9 @@ class ExecutionGraph:
 
     # ── SQLite Persistence ────────────────────────────────────────────
 
-    def _get_graph_conn(self) -> sqlite3.Connection:
-        if self.db_path == ":memory:":
-            if self._persistent_conn is None:
-                self._persistent_conn = sqlite3.connect(":memory:")
-            return self._persistent_conn
-        return sqlite3.connect(self.db_path)
-
-    def _close_graph_conn(self, conn: sqlite3.Connection):
-        if conn is not self._persistent_conn:
-            conn.close()
-
     def _init_graph_db(self):
-        if self.db_path != ":memory:":
-            os.makedirs(os.path.dirname(self.db_path) or ".", exist_ok=True)
-        conn = self._get_graph_conn()
+        self._ensure_dir()
+        conn = self._get_conn()
         conn.execute("""
             CREATE TABLE IF NOT EXISTS execution_nodes (
                 id          TEXT PRIMARY KEY,
@@ -120,11 +107,11 @@ class ExecutionGraph:
             ON execution_nodes(parent_id)
         """)
         conn.commit()
-        self._close_graph_conn(conn)
+        self._close_conn(conn)
 
     def _load_from_db(self):
         """Reload full execution graph from SQLite on startup."""
-        conn = self._get_graph_conn()
+        conn = self._get_conn()
         cursor = conn.execute(
             "SELECT id, name, start_time, end_time, status, result, "
             "error, children, parent_id FROM execution_nodes ORDER BY rowid"
@@ -144,7 +131,7 @@ class ExecutionGraph:
             self.nodes[node.id] = node
             if node.parent_id is None:
                 self.root_nodes.append(node.id)
-        self._close_graph_conn(conn)
+        self._close_conn(conn)
 
     def _persist_node(self, node: ExecutionNode):
         """Write a single node to SQLite. Result and error encrypted at rest."""
@@ -156,7 +143,7 @@ class ExecutionGraph:
             self._encryptor.encrypt(node.error)
             if node.error else None
         )
-        conn = self._get_graph_conn()
+        conn = self._get_conn()
         conn.execute(
             """INSERT OR REPLACE INTO execution_nodes
                (id, name, start_time, end_time, status, result,
@@ -175,7 +162,7 @@ class ExecutionGraph:
             ),
         )
         conn.commit()
-        self._close_graph_conn(conn)
+        self._close_conn(conn)
 
     # ── Core Operations ───────────────────────────────────────────────
 
