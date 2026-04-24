@@ -393,6 +393,14 @@ class SRT1Engine:
             self._log_event("bridge", "Execution bridge monitoring active")
 
         import socket
+        import hashlib
+        
+        def derive_project_port(repo_path: str, base_port: int = 7483) -> int:
+            """Derive a deterministic port from the repo path so each project has its own port."""
+            path_hash = hashlib.sha256(os.path.abspath(repo_path).encode()).hexdigest()
+            offset = int(path_hash[:8], 16) % 1000
+            return base_port + offset
+
         def get_free_port(start_port: int) -> int:
             for p in range(start_port, start_port + 100):
                 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -400,7 +408,12 @@ class SRT1Engine:
                         return p
             return start_port
         
-        self.port = get_free_port(self.port)
+        # Only derive a new port if the default 7483 is used (allows explicit override)
+        if self.port == 7483:
+            derived = derive_project_port(self.repo_path, self.port)
+            self.port = get_free_port(derived)
+        else:
+            self.port = get_free_port(self.port)
 
         # Print ready message
         self._print_ready()
@@ -1585,7 +1598,7 @@ class SRT1Engine:
                 ui_routes = [
                     "/dashboard", "/consumer", "/admin", "/mobile", 
                     "/auth.html", "/index.html", "/comparison.html", "/documentation.html",
-                    "/assets/", "/js/", "/sw.js", "/manifest.json"
+                    "/assets/", "/js/", "/sw.js", "/manifest.json", "/download"
                 ]
                 if endpoint == "/" or any(endpoint.startswith(p) for p in ui_routes):
                     return True
@@ -1966,6 +1979,18 @@ class SRT1Engine:
                     else:
                         self._json({"error": "Developer dashboard not found"}, 404)
 
+                elif path == "/download/srt1-core.zip":
+                    zip_path = os.path.join(engine.repo_path, "srt1-core.zip")
+                    if os.path.exists(zip_path):
+                        self.send_response(200)
+                        self.send_header("Content-Type", "application/zip")
+                        self.send_header("Content-Disposition", 'attachment; filename="srt1-core.zip"')
+                        self.end_headers()
+                        with open(zip_path, "rb") as f:
+                            self.wfile.write(f.read())
+                    else:
+                        self._json({"error": "Archive not found"}, 404)
+
                 elif path == "/consumer":
                     # Consumer dashboard — seed-reflection/consumer-dashboard.html
                     consumer_path = os.path.join(
@@ -2062,12 +2087,21 @@ class SRT1Engine:
 
                 elif path == "/mobile":
                     # Route to the platform module's PWA
-                    mp = os.path.join(os.path.dirname(os.path.abspath(__file__)), "srt1_platform", "mobile", "index.html")
+                    mp = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "developer-pwa", "mobile.html")
                     if not os.path.exists(mp):
-                        mp = os.path.join(engine.repo_path, "srt1_platform", "mobile", "index.html")
+                        # Fallback: pip-installed package location
+                        mp = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "srt1_platform", "pwa", "mobile.html")
+                    if not os.path.exists(mp):
+                        mp = os.path.join(engine.repo_path, "developer-pwa", "mobile.html")
+                        if not os.path.exists(mp):
+                            mp = os.path.join(engine.repo_path, "SRT1-CORE-OSS", "developer-pwa", "mobile.html")
                     if os.path.exists(mp):
                         self.send_response(200)
                         self.send_header("Content-Type", "text/html")
+                        # Force no-cache — prevent stale Service Worker from serving old version
+                        self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
+                        self.send_header("Pragma", "no-cache")
+                        self.send_header("Expires", "0")
                         self.end_headers()
                         with open(mp, "rb") as f:
                             self.wfile.write(f.read())
@@ -2370,12 +2404,15 @@ class SRT1Engine:
                             }
                     # Sign the task dispatch via SeedSignature
                     if engine.signing_client:
-                        sig = engine.signing_client.sign(
-                            {"task": task, "seed_id": engine.task_seed_id, "source": source},
-                            phase="seed_dispatch"
-                        )
-                        if "error" not in sig:
-                            response["_provenance"] = sig
+                        try:
+                            sig = engine.signing_client.sign(
+                                {"task": task, "seed_id": engine.task_seed_id, "source": source},
+                                operation_type="seed_dispatch"
+                            )
+                            if sig:
+                                response["_provenance"] = sig.to_dict() if hasattr(sig, "to_dict") else str(sig)
+                        except Exception as e:
+                            logger.error(f"Seed Signature failed: {e}")
                     self._json(response)
 
                 elif path == "/operation":
@@ -2691,10 +2728,15 @@ class SRT1Engine:
 
     def _get_dashboard_path(self) -> Optional[str]:
         """Find the developer dashboard HTML file."""
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        core_dir = os.path.dirname(script_dir)
         candidates = [
-            os.path.join(os.path.dirname(os.path.abspath(__file__)), "developer-pwa", "dashboard.html"),
+            os.path.join(core_dir, "developer-pwa", "dashboard.html"),
+            # pip-installed package location
+            os.path.join(core_dir, "srt1_platform", "pwa", "dashboard.html"),
             os.path.join(self.repo_path, "developer-pwa", "dashboard.html"),
-            os.path.join(os.path.dirname(os.path.abspath(__file__)), "seed-reflection", "dashboard.html"),
+            os.path.join(self.repo_path, "SRT1-CORE-OSS", "developer-pwa", "dashboard.html"),
+            os.path.join(script_dir, "seed-reflection", "dashboard.html"),
             os.path.join(self.repo_path, "seed-reflection", "dashboard.html"),
         ]
         for c in candidates:
