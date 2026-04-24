@@ -470,8 +470,19 @@ class SRT1CodeIndexer:
         The core intelligence step. Iterates through the symbol table
         and generates SRT-1 reflections for every class and function.
         Uses heuristics to determine architectural role and risk profile.
+
+        SCALABILITY: Reflection gates (coherence checkpoints) are suppressed
+        during bulk indexing. There is no conversation to drift from yet —
+        firing coherence checks every 3 symbols is wasted computation.
+        Gates are restored after indexing for live conversation monitoring.
         """
         start_time = time.time()
+
+        # Suppress reflection gates during bulk indexing pass.
+        # Without this, an 800-symbol repo fires ~270 useless coherence
+        # checkpoints before the server even starts.
+        original_interval = self.srt_tool._reflection_interval
+        self.srt_tool._reflection_interval = 999999
 
         # Pre-load source for risk analysis scoped to each symbol
         source_lines_cache: Dict[str, List[str]] = {}
@@ -522,6 +533,9 @@ class SRT1CodeIndexer:
 
                 # Augment the symbol table entry
                 symbol['reflection'] = reflection_content
+
+        # Restore reflection interval for live conversation monitoring
+        self.srt_tool._reflection_interval = original_interval
 
         total = len(self.srt_tool.get_reflections())
         duration_ms = int((time.time() - start_time) * 1000)
