@@ -990,7 +990,7 @@ class SRT1Engine:
     # -----------------------------------------------------------------
 
     def _plant_seed(self, task: str, source: str = "api",
-                    priority: int = 5, auto_dispatch: bool = True,
+                    priority: int = 5, auto_dispatch: bool = False,
                     template_id: Optional[str] = None) -> Optional[str]:
         """Plant a seed and optionally dispatch it through the execution bridge.
 
@@ -1870,8 +1870,10 @@ class SRT1Engine:
                             "api_latency_ms": 42,
                             "watcher": "active",
                             "bridge": "active" if engine.bridge else "not_available",
+                            "mcp_server": "available" if hasattr(engine, '_mcp_available') and engine._mcp_available else "not_connected",
                             "auth": "enabled" if engine.auth and getattr(engine.auth, '_tokens', None) else "disabled",
                             "seed_queue": "active" if engine.seed_queue else "not_available",
+                            "auto_dispatch": "off",
                         },
                         "local_metrics": {
                             "total_seeds": seed_stats.get("total_seeds", 0),
