@@ -481,8 +481,8 @@ class SRT1CodeIndexer:
         # Suppress reflection gates during bulk indexing pass.
         # Without this, an 800-symbol repo fires ~270 useless coherence
         # checkpoints before the server even starts.
-        original_interval = self.srt_tool._reflection_interval
-        self.srt_tool._reflection_interval = 999999
+        original_interval = self.srt_tool.reflection_interval
+        self.srt_tool.reflection_interval = 999999
 
         # Pre-load source for risk analysis scoped to each symbol
         source_lines_cache: Dict[str, List[str]] = {}
@@ -535,7 +535,7 @@ class SRT1CodeIndexer:
                 symbol['reflection'] = reflection_content
 
         # Restore reflection interval for live conversation monitoring
-        self.srt_tool._reflection_interval = original_interval
+        self.srt_tool.reflection_interval = original_interval
 
         total = len(self.srt_tool.get_reflections())
         duration_ms = int((time.time() - start_time) * 1000)
