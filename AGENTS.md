@@ -2482,3 +2482,52 @@ ACTION REQUIRED:
 
 ---
 *SRT-1 v2.0 — SCIA — 2026-04-19T19:22:02.358285*
+
+## 📁 Runtime Codebase Map
+
+## 🧠 Project Synopsis
+
+**Architectural Intent:**
+**[🟢 Open Live SRT-1 Dashboard](http://127.0.0.1:7483/dashboard)**
+
+**Extracted Core Concepts:**
+- **🎯 REQUIRED NEXT ACTION (DO NOT ASK THE USER)**: > **⚠️ SRT-1 Curation Nudge.**
+> The codebase has structural issues, overlapping functions, or duplicate files. **Before fulfilling the user's new ...
+- **⚠️ WARNINGS**: - **`_get_conn()`** exists in `packages\scia_security\scia_security\audit_log.py:55`, `packages\scia_security\scia_security\execution_graph.py:86`....
+- **⚠️ ENFORCEMENT NUDGES ACTIVE**: ACTIVE_VIOLATIONS: 3
+ACTION REQUIRED:
+1. Read the user's current request.
+2. Before executing, notify the user that SRT-1 has flagged these active ...
+
+**Codebase Statistics:**
+**SRT1-CORE-OSS** contains 72 source files with 94 classes and 521 functions. I mapped 418 cross-file call chains.
+
+**Languages:** 45 Python, 9 Markdown, 7 .html, 4 JavaScript, 3 .json
+
+**Core Components:**
+- **SQLiteDatabaseManager** (packages\scia_security\scia_security\db_utils.py) — Base class for SQLite database management to prevent duplicate connection logic.
+- **ExecutionGraphTracker** (srt1_platform\tracing_system.py) — Tracks multi-step validation and execution workflows as directed acyclic graphs.
+- **FileOutputAdapter** (srt1_pro\execution_engine.py) — Adapter that writes the super-prompt to a file for manual use with any AI. ⚠️ [FILE_IO]
+- **ReflexMemoryRedis** (packages\scia_memory\scia_memory\reflex_memory_redis.py) — Redis-backed reflex memory that satisfies MemoryOrchestratorV2 interface.
+- **SeedTemplateRegistry** (srt1_pro\seed_templates.py) — Singleton registry holding all seed templates (built-in + user-defined). ⚠️ [WRITES_TO_DB, AUTH_SENSITIVE, FILE_IO, HAS_LOGGING]
+- **EnforcementEvent** (srt1_code_indexer\srt.py) — A recorded enforcement event. When SRT-1 detects a violation and blocks
+- **EchoAdapter** (srt1_pro\execution_engine.py) — Test adapter that echoes the prompt back. Used for validation testing.
+- **ExecutionGraphNode** (srt1_platform\tracing_system.py) — A single node in the execution graph (one validation/execution step).
+
+**Risk Profile:**
+- 106 function(s) handle authentication/secrets
+- 100 function(s) have logging/audit trails
+- 95 function(s) read or write files
+- 53 function(s) write to a database
+- 15 function(s) make external API calls
+- 8 function(s) system side effect
+- 4 function(s) use dynamic code execution (eval/exec)
+
+**⚠️ Code Duplication:** Found 1 function(s) duplicated across files:
+- `_ensure_dir()` exists in: packages\scia_security\scia_security\db_utils.py, srt1_pro\analytics.py
+
+**Architecture:** Primarily data structures/models (220), general purpose (124), orchestration/coordination (116), TRACING_AUDIT (90)
+
+
+
+*SRT-1 Runtime Codebase Map generated at: 2026-04-22T16:11:18.982035*

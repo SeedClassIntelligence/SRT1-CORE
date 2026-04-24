@@ -2,7 +2,7 @@
 SRT-1 AUTO-GENERATED INTELLIGENCE
 ===================================
 Architectural Roles: TRACING_AUDIT
-Key Symbols: AnalyticsEngine, __init__, _ensure_dir, _load, _save ... and 6 more
+Key Symbols: AnalyticsEngine, __init__, _load, _save ... and 5 more
 
 Extracted Purposes:
   - AnalyticsEngine: SRT-1 Pro Analytics Engine
@@ -29,12 +29,9 @@ class AnalyticsEngine:
         self.repo_path = repo_path
         self._analytics_dir = os.path.join(self.repo_path, ".srt1", "analytics")
         self._db_path = os.path.join(self._analytics_dir, "metrics.json")
-        self._ensure_dir()
-        self._metrics = self._load()
-
-    def _ensure_dir(self):
         if not os.path.exists(self._analytics_dir):
             os.makedirs(self._analytics_dir, exist_ok=True)
+        self._metrics = self._load()
             
     def _load(self) -> Dict[str, Any]:
         """Load persisted metrics."""

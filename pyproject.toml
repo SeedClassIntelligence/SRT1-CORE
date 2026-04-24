@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "SRT1-CORE"
-version = "2.2.0"
+version = "2.2.1"
 description = "SRT-1 — Cognitive Operating System for Software Repositories. Anti-hallucination guardrails for AI code assistants."
 readme = "README.md"
 license = {text = "Apache 2.0"}
@@ -49,4 +49,7 @@ all = []
 [tool.setuptools.packages.find]
 include = ["srt1_code_indexer*", "srt1_pro*", "srt1_platform*"]
 exclude = ["srt1_code_indexer_pkg*"]
+
+[tool.setuptools.package-data]
+srt1_platform = ["pwa/*.html", "pwa/*.js", "pwa/*.css", "pwa/*.json", "pwa/*.png", "pwa/*.svg", "mobile/*.html"]
 

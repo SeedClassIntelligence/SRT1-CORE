@@ -7,7 +7,7 @@ echo ========================================================
 echo.
 
 echo Starting Real-Time Development Indexer (Port 7483)...
-start cmd /k "TITLE SRT-1 Developer Indexer (7483) && python srt1_code_indexer_engine.py --repo_path ./"
+start cmd /k "TITLE SRT-1 Developer Indexer && python srt1_code_indexer\engine.py --repo_path ./"
 
 echo Starting Consumer Auth/DB API Backend (Port 8000)...
 start cmd /k "TITLE SRT-1 Cloud API Backend (8000) && python -m srt1_backend.server"
