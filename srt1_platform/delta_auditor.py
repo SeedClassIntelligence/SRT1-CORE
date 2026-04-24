@@ -52,38 +52,73 @@ class SCIADeltaAuditor:
                 report["drift_score"] += 2
 
         # 2. Protected Symbols
-        # Scrape reflections for SECURITY or AUTH_SENSITIVE
+        # Reflections in the manifest are a list of dicts from srt_tool.get_reflections()
+        # Each entry has: {'type': ..., 'content': ..., 'metadata': {'file': ..., 'symbol': ..., ...}}
+        # We need to extract symbols with AUTH_SENSITIVE or SECURITY risk profiles.
         t1_symbols = {}
-        for fp, sym_list in state_t1.get("reflections", {}).items():
-            for symbol, details in sym_list.items():
-                if any(r in details.get("risk_profile", []) for r in ["SECURITY", "AUTH_SENSITIVE"]):
-                    t1_symbols[fp + ":" + symbol] = details
+        t1_reflections = state_t1.get("reflections", [])
+        if isinstance(t1_reflections, list):
+            for ref in t1_reflections:
+                meta = ref.get("metadata", {})
+                content_str = ref.get("content", "{}")
+                try:
+                    content = json.loads(content_str) if isinstance(content_str, str) else content_str
+                except (json.JSONDecodeError, TypeError):
+                    content = {}
+                risk = content.get("risk_profile", [])
+                fp = meta.get("file", "")
+                symbol = meta.get("symbol", "")
+                if fp and symbol and any(r in risk for r in ["SECURITY", "AUTH_SENSITIVE"]):
+                    t1_symbols[fp + ":" + symbol] = {
+                        "line": meta.get("line"),
+                        "risk_profile": risk,
+                    }
+        elif isinstance(t1_reflections, dict):
+            # Legacy dict-of-dicts format (backwards compat)
+            for fp, sym_list in t1_reflections.items():
+                if isinstance(sym_list, dict):
+                    for symbol, details in sym_list.items():
+                        if any(r in details.get("risk_profile", []) for r in ["SECURITY", "AUTH_SENSITIVE"]):
+                            t1_symbols[fp + ":" + symbol] = details
 
         has_critical = False
         has_high = False
 
+        # Build a lookup of T2 symbols for comparison
+        t2_symbol_lookup = {}
+        t2_reflections = state_t2.get("reflections", [])
+        if isinstance(t2_reflections, list):
+            for ref in t2_reflections:
+                meta = ref.get("metadata", {})
+                fp = meta.get("file", "")
+                symbol = meta.get("symbol", "")
+                if fp and symbol:
+                    t2_symbol_lookup[fp + ":" + symbol] = {"line": meta.get("line")}
+        elif isinstance(t2_reflections, dict):
+            for fp, sym_list in t2_reflections.items():
+                if isinstance(sym_list, dict):
+                    for symbol, details in sym_list.items():
+                        t2_symbol_lookup[fp + ":" + symbol] = details
+
         for sym_id, details in t1_symbols.items():
             fp, symbol = sym_id.split(":", 1)
-            t2_fp = state_t2.get("reflections", {}).get(fp, {})
             
-            # If the protected symbol was removed or its location changed
-            if symbol not in t2_fp:
+            if sym_id not in t2_symbol_lookup:
                 report["protected_symbols"].append({
                     "symbol": symbol,
                     "file": fp,
                     "violation": "REMOVED_OR_RENAMED",
-                    "who_changed": "unknown",  # v2 proxy injection site
+                    "who_changed": "unknown",
                     "severity": "CRITICAL"
                 })
                 has_critical = True
                 report["drift_score"] += 40
-            elif t2_fp[symbol].get("line") != details.get("line") and fp in report["file_state_velocity"]["modified"]:
-                # The file was modified and the function shifted, or its content changed (we use file mod proxy)
+            elif t2_symbol_lookup[sym_id].get("line") != details.get("line") and fp in report["file_state_velocity"]["modified"]:
                 report["protected_symbols"].append({
                     "symbol": symbol,
                     "file": fp,
                     "violation": "MODIFIED_UNAUTHORIZED",
-                    "who_changed": "unknown",  # v2 proxy injection site
+                    "who_changed": "unknown",
                     "severity": "HIGH"
                 })
                 has_high = True
