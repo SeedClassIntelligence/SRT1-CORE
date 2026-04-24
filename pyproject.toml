@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "SRT1-CORE"
-version = "2.2.1"
+version = "2.2.2"
 description = "SRT-1 — Cognitive Operating System for Software Repositories. Anti-hallucination guardrails for AI code assistants."
 readme = "README.md"
 license = {text = "Apache 2.0"}
@@ -40,6 +40,7 @@ srt1-bundle = "srt1_pro.context_bundler:main"
 srt1-execute = "srt1_pro.execution_engine:main"
 srt1-heal = "srt1_pro.self_heal:main"
 srt1-middleware = "srt1_code_indexer.engine:main"
+srt1-mcp = "srt1_platform.mcp_server:main"
 
 [project.optional-dependencies]
 pro = []
