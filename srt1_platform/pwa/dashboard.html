@@ -2209,7 +2209,7 @@ async function loadManifest() {
     // Fetch live engine status for the trust card
     let status = null;
     try { status = await (await fetch(API + '/status')).json(); } catch(e) {}
-    const trusted = status && status.watcher === 'active' && status.bridge === 'active';
+    const trusted = status && (status.watcher === 'active' || status.watcher === 'running') && (status.bridge === 'active' || status.bridge === 'running');
     const trustEl = document.getElementById('statTrust');
     trustEl.textContent = trusted ? 'VERIFIED' : 'UNVERIFIED';
     trustEl.style.color = trusted ? 'var(--green)' : 'var(--amber)';
@@ -2285,7 +2285,7 @@ async function loadStatus() {
     engineStatus = await r.json();
 
     // --- Update Trust Status with real engine health signals ---
-    const trusted = (engineStatus.watcher === 'active' && engineStatus.bridge === 'active');
+    const trusted = ((engineStatus.watcher === 'active' || engineStatus.watcher === 'running') && (engineStatus.bridge === 'active' || engineStatus.bridge === 'running'));
     const trustEl = document.getElementById('statTrust');
     if (trustEl) {
       trustEl.textContent = trusted ? 'VERIFIED' : 'DEGRADED';
