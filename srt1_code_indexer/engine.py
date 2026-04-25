@@ -386,6 +386,11 @@ class SRT1Engine:
         watcher.start()
         self._log_event("watcher", "File watcher started — polling every 15s")
 
+        # Start enterprise telemetry sync (non-blocking)
+        sync_thread = threading.Thread(target=self._telemetry_loop, daemon=True)
+        sync_thread.start()
+        self._log_event("trust", "Telemetry sync thread initialized (dormant if no license)")
+
         # Start execution bridge monitoring
         if self.bridge:
             self.bridge.start_monitoring()
@@ -1487,6 +1492,62 @@ class SRT1Engine:
                 if "AUTH_SENSITIVE" in risk or "WRITES_TO_DB" in risk:
                     warnings.append(f"CAUTION: {sym['name']} in {fp} is {', '.join(risk)}.")
         return warnings
+
+    # -----------------------------------------------------------------
+    # ENTERPRISE TELEMETRY SYNC
+    # -----------------------------------------------------------------
+
+    def _telemetry_loop(self) -> None:
+        """Background thread that pings enterprise server if license key is present."""
+        import urllib.request
+        import urllib.error
+        import json
+
+        # Check for license key in environment
+        license_key = os.getenv("SRT1_LICENSE_KEY", "")
+        sync_url = os.getenv("SRT1_SYNC_URL", "https://api.srt1.network/v1/telemetry/sync")
+        
+        # If no key, thread silently exits (free open source mode)
+        if not license_key:
+            return
+
+        self._log_event("trust", f"Enterprise license detected. Syncing telemetry to {sync_url} every 60s")
+
+        while self._watcher_running:
+            time.sleep(60) # Ping every 1 minute
+            try:
+                # Gather high-level metrics
+                files = len(self.manifest.get("file_manifest", []))
+                syms = sum(len(s) for s in self.symbol_table.values())
+                
+                enforcement = self.srt_tool.get_compliance_stats()
+                violations = enforcement.get("enforcements_issued", 0)
+                overlaps = len(self.manifest.get("curation_report", {}).get("functional_overlaps", []))
+                
+                payload = {
+                    "license_key": license_key,
+                    "repo_name": os.path.basename(self.repo_path),
+                    "engine_port": getattr(self, "port", None),
+                    "metrics": {
+                        "total_files": files,
+                        "total_symbols": syms,
+                        "active_violations": violations,
+                        "functional_overlaps": overlaps
+                    },
+                    "active_seed": self.current_task if hasattr(self, "current_task") else None,
+                    "timestamp": time.time()
+                }
+
+                data = json.dumps(payload).encode('utf-8')
+                req = urllib.request.Request(sync_url, data=data, headers={'Content-Type': 'application/json'}, method='POST')
+                
+                # Strict timeout so it NEVER blocks or crashes the local engine
+                with urllib.request.urlopen(req, timeout=3) as response:
+                    pass # We just care that it sent
+
+            except Exception:
+                # Completely silent fail on any network issue
+                pass
 
     # -----------------------------------------------------------------
     # FILE WATCHER
