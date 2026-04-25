@@ -2901,11 +2901,11 @@ class SRT1Engine:
 
 def main():
     import sys
+    import os
+    import json
     
     # ── INIT COMMAND INTERCEPT ──
     if len(sys.argv) > 1 and sys.argv[1] == "init":
-        import os
-        import json
         from datetime import datetime
         print("  ╔══════════════════════════════════════════════════════╗")
         print("  ║           SRT-1 Code Indexer Initialization         ║")
