@@ -1667,38 +1667,56 @@ class SRT1Engine:
                 
                 elif path == "/admin/stats":
                     # Master Telemetry Endpoint for Admin Dashboard
-                    m = engine.manifest or {}
-                    files_count = len(m.get("file_manifest", []))
-                    symbols_count = sum(len(s) for s in engine.symbol_table.values())
-                    overlaps = engine.curation_report.get("functional_overlaps", [])
-                    injections = getattr(engine.srt_tool, "reflection_count", 0)  # rough mock 
-                    
-                    uptime_secs = (datetime.now() - engine.session_start).total_seconds()
-                    
+                    seed_stats = {}
+                    if engine.seed_queue:
+                        seed_stats = engine.seed_queue.get_stats()
+                    files_indexed = len(engine.manifest.get("file_manifest", []))
+                    total_symbols = sum(len(s) for s in engine.symbol_table.values())
+                    uptime = (datetime.now() - engine.session_start).total_seconds()
+                    dup_count = len(engine.curation_report.get("functional_overlaps", []))
+                    ov_count = len(engine.curation_report.get("functional_overlaps", []))
+
+                    # Coherence snapshot
+                    coherence = {"score": 1.0, "status": "ALIGNED"}
+                    if engine.current_task and engine.srt_tool._seeds:
+                        cp = engine.srt_tool.force_reflection()
+                        coherence = {"score": cp.coherence_score, "status": cp.coherence_status.value}
+
                     return self._json({
                         "repo": os.path.basename(engine.repo_path),
                         "system_health": {
-                            "uptime_seconds": uptime_secs,
-                            "watcher": "running" if getattr(engine, "_watcher_running", False) else "stopped",
-                            "bridge": "running"
+                            "status": "Operational",
+                            "uptime_seconds": uptime,
+                            "watcher": "running",
+                            "bridge": "running" if engine.bridge else "not_available",
+                            "mcp_server": "available" if hasattr(engine, '_mcp_available') and engine._mcp_available else "not_connected",
+                            "auto_dispatch": "disabled (human-in-the-loop)",
+                            "auth": "enabled" if engine.auth and getattr(engine.auth, '_tokens', None) else "disabled",
+                            "seed_queue": "active" if engine.seed_queue else "not_available",
                         },
                         "local_metrics": {
-                            "files_indexed": files_count,
-                            "total_symbols": symbols_count,
-                            "total_seeds": 0,
-                            "active_seeds": 0,
-                            "bloomed": 0,
-                            "wilted": 0,
-                            "operations_logged": len(getattr(engine.srt_tool, "operations", [])),
-                            "injections_fired": injections,
-                            "functional_overlaps": len(overlaps),
-                            "duplicates": len(overlaps)
+                            "files_indexed": files_indexed,
+                            "total_symbols": total_symbols,
+                            "total_seeds": seed_stats.get("total_seeds", 0),
+                            "active_seeds": seed_stats.get("active", 0),
+                            "bloomed": seed_stats.get("bloomed", 0),
+                            "wilted": seed_stats.get("wilted", 0),
+                            "success_rate": seed_stats.get("success_rate", 0),
+                            "operations_logged": len(engine.operations),
+                            "injections_fired": len(engine.injections),
+                            "duplicates": dup_count,
+                            "functional_overlaps": ov_count,
                         },
-                        "coherence": {
-                            "score": 1.0 if not overlaps else 0.85,
-                            "status": "Verified" if not overlaps else "Drift Warning"
+                        "coherence": coherence,
+                        "seed_lifecycle": {
+                            "planted": seed_stats.get("planted", 0),
+                            "germinating": seed_stats.get("germinating", 0),
+                            "growing": seed_stats.get("growing", 0),
+                            "bloomed": seed_stats.get("bloomed", 0),
+                            "wilted": seed_stats.get("wilted", 0),
                         },
-                        "task": getattr(engine, "task", "None set")
+                        "task": engine.current_task,
+                        "enforcement": engine.srt_tool.get_compliance_stats(),
                     })
 
                 elif path == "/health":
@@ -1847,59 +1865,7 @@ class SRT1Engine:
                 elif path == "/manifest":
                     self._json(engine.manifest)
 
-                elif path == "/admin/stats":
-                    seed_stats = {}
-                    if engine.seed_queue:
-                        seed_stats = engine.seed_queue.get_stats()
-                    files_indexed = len(engine.manifest.get("file_manifest", []))
-                    total_symbols = sum(len(s) for s in engine.symbol_table.values())
-                    uptime = (datetime.now() - engine.session_start).total_seconds()
-                    dup_count = len(engine.curation_report.get("duplicates", {}).get("identical_files", []))
-                    ov_count = len(engine.curation_report.get("functional_overlaps", []))
-
-                    # Coherence snapshot
-                    coherence = {"score": 1.0, "status": "ALIGNED"}
-                    if engine.current_task and engine.srt_tool._seeds:
-                        cp = engine.srt_tool.force_reflection()
-                        coherence = {"score": cp.coherence_score, "status": cp.coherence_status.value}
-
-                    self._json({
-                        "system_health": {
-                            "status": "Operational",
-                            "uptime_seconds": uptime,
-                            "api_latency_ms": 42,
-                            "watcher": "active",
-                            "bridge": "active" if engine.bridge else "not_available",
-                            "mcp_server": "available" if hasattr(engine, '_mcp_available') and engine._mcp_available else "not_connected",
-                            "auth": "enabled" if engine.auth and getattr(engine.auth, '_tokens', None) else "disabled",
-                            "seed_queue": "active" if engine.seed_queue else "not_available",
-                            "auto_dispatch": "off",
-                        },
-                        "local_metrics": {
-                            "total_seeds": seed_stats.get("total_seeds", 0),
-                            "active_seeds": seed_stats.get("active", 0),
-                            "bloomed": seed_stats.get("bloomed", 0),
-                            "wilted": seed_stats.get("wilted", 0),
-                            "success_rate": seed_stats.get("success_rate", 0),
-                            "files_indexed": files_indexed,
-                            "total_symbols": total_symbols,
-                            "operations_logged": len(engine.operations),
-                            "injections_fired": len(engine.injections),
-                            "duplicates": dup_count,
-                            "functional_overlaps": ov_count,
-                        },
-                        "coherence": coherence,
-                        "seed_lifecycle": {
-                            "planted": seed_stats.get("planted", 0),
-                            "germinating": seed_stats.get("germinating", 0),
-                            "growing": seed_stats.get("growing", 0),
-                            "bloomed": seed_stats.get("bloomed", 0),
-                            "wilted": seed_stats.get("wilted", 0),
-                        },
-                        "repo": os.path.basename(engine.repo_path),
-                        "task": engine.current_task,
-                        "enforcement": engine.srt_tool.get_compliance_stats(),
-                    })
+                # NOTE: /admin/stats handler consolidated above (line ~1668). Dead duplicate removed.
 
                 elif path == "/activity":
                     # Merge operations and injections into a unified activity feed
