@@ -2195,6 +2195,7 @@ async function loadManifest() {
     const chain = manifest.trust_chain?.chain_length || 0;
     const dups = manifest.curation_report?.duplicate_files?.length || 0;
     const overlaps = manifest.curation_report?.functional_overlaps?.length || 0;
+    const violations = manifest.enforcement?.active_violations || 0;
     const sig = manifest.integrity?.manifest_hash?.substring(0, 16) || 'N/A';
 
     // --- Wire stat cards to live data ---
@@ -2202,8 +2203,8 @@ async function loadManifest() {
     document.getElementById('statFilesSub').textContent = `${dups} duplicate${dups!==1?'s':''} detected`;
     document.getElementById('statSymbols').textContent = syms.toLocaleString();
     document.getElementById('statSymbolsSub').textContent = `Across ${files} source files`;
-    document.getElementById('statReflections').textContent = refs.toLocaleString();
-    document.getElementById('statReflectionsSub').textContent = `${overlaps} overlap${overlaps!==1?'s':''} flagged`;
+    document.getElementById('statReflections').textContent = violations.toLocaleString();
+    document.getElementById('statReflectionsSub').textContent = `${overlaps} overlap${overlaps!==1?'s':''} · ${refs} reflections`;
 
     // Fetch live engine status for the trust card
     let status = null;
