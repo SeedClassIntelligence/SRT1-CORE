@@ -2230,14 +2230,11 @@ class SRT1Engine:
 
                 elif path == "/mobile":
                     # Route to the platform module's PWA
-                    mp = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "developer-pwa", "mobile.html")
+                    mp = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "srt1_platform", "pwa", "mobile.html")
                     if not os.path.exists(mp):
-                        # Fallback: pip-installed package location
-                        mp = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "srt1_platform", "pwa", "mobile.html")
+                        mp = os.path.join(engine.repo_path, "srt1_platform", "pwa", "mobile.html")
                     if not os.path.exists(mp):
-                        mp = os.path.join(engine.repo_path, "developer-pwa", "mobile.html")
-                        if not os.path.exists(mp):
-                            mp = os.path.join(engine.repo_path, "SRT1-CORE", "developer-pwa", "mobile.html")
+                        mp = os.path.join(engine.repo_path, "SRT1-CORE", "srt1_platform", "pwa", "mobile.html")
                     if os.path.exists(mp):
                         self.send_response(200)
                         self.send_header("Content-Type", "text/html")
@@ -2350,7 +2347,7 @@ class SRT1Engine:
                     from urllib.parse import unquote
                     serve_path = path
                     if serve_path == "/":
-                        serve_path = "/index.html"
+                        serve_path = "/dashboard.html"
                     
                     serve_path = posixpath.normpath(unquote(serve_path))
                     if serve_path.startswith('/'):
@@ -2365,21 +2362,20 @@ class SRT1Engine:
                         if os.path.exists(consumer_path) and os.path.isfile(consumer_path):
                             actual_path = consumer_path
                     
-                    # Developer PWA is the primary source for the engine homepage
+                    # Dashboard PWA is the primary source for the engine homepage
                     if not actual_path:
-                        dev_path = os.path.join(engine.repo_path, "developer-pwa", serve_path)
+                        pkg_pwa = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "srt1_platform", "pwa", serve_path)
+                        if os.path.exists(pkg_pwa) and os.path.isfile(pkg_pwa):
+                            actual_path = pkg_pwa
+                            
+                    if not actual_path:
+                        dev_path = os.path.join(engine.repo_path, "srt1_platform", "pwa", serve_path)
                         if os.path.exists(dev_path) and os.path.isfile(dev_path):
                             actual_path = dev_path
                     
-                    # Fallback: developer-pwa inside SRT1-CORE package dir
+                    # Fallback: SRT1-CORE/srt1_platform/pwa
                     if not actual_path:
-                        pkg_dev = os.path.join(os.path.dirname(os.path.abspath(__file__)), "developer-pwa", serve_path)
-                        if os.path.exists(pkg_dev) and os.path.isfile(pkg_dev):
-                            actual_path = pkg_dev
-                    
-                    # Fallback: SRT1-CORE/developer-pwa
-                    if not actual_path:
-                        core_dev = os.path.join(engine.repo_path, "SRT1-CORE", "developer-pwa", serve_path)
+                        core_dev = os.path.join(engine.repo_path, "SRT1-CORE", "srt1_platform", "pwa", serve_path)
                         if os.path.exists(core_dev) and os.path.isfile(core_dev):
                             actual_path = core_dev
                     
@@ -2890,13 +2886,10 @@ class SRT1Engine:
         script_dir = os.path.dirname(os.path.abspath(__file__))
         core_dir = os.path.dirname(script_dir)
         candidates = [
-            os.path.join(core_dir, "developer-pwa", "dashboard.html"),
             # pip-installed package location
             os.path.join(core_dir, "srt1_platform", "pwa", "dashboard.html"),
-            os.path.join(self.repo_path, "developer-pwa", "dashboard.html"),
-            os.path.join(self.repo_path, "SRT1-CORE", "developer-pwa", "dashboard.html"),
-            os.path.join(script_dir, "seed-reflection", "dashboard.html"),
-            os.path.join(self.repo_path, "seed-reflection", "dashboard.html"),
+            os.path.join(self.repo_path, "srt1_platform", "pwa", "dashboard.html"),
+            os.path.join(self.repo_path, "SRT1-CORE", "srt1_platform", "pwa", "dashboard.html"),
         ]
         for c in candidates:
             if os.path.exists(c):
