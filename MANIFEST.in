@@ -3,5 +3,4 @@ include README_PYPI.md
 include pyproject.toml
 recursive-include srt1_code_indexer *.py
 recursive-include srt1_pro *.py
-recursive-include srt1_platform *.py *.html *.js *.css *.json
-recursive-include developer-pwa *.html *.js *.css *.json *.png *.svg
+recursive-include srt1_platform *.py *.html *.js *.css *.json *.png *.svg

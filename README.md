@@ -45,12 +45,11 @@ Every action in the SRT-1 pipeline is cryptographically tied to the codebase usi
 
 ## The Local Developer Experience
 
-SRT-1 ships with a fully-featured **Developer Homepage**, a live **Developer Dashboard**, and a **Mobile PWA** — all served locally from the engine.
+SRT-1 ships with a live **Developer Dashboard**, and a **Mobile PWA** — all served locally from the engine.
 
 | Surface | URL | Purpose |
 |---------|-----|---------|
-| Developer Homepage | `http://localhost:{port}/` | Product overview, interactive demo, pricing |
-| Developer Dashboard | `http://localhost:{port}/dashboard` | Live metrics, trust chain, repo explorer, audit trail |
+| Developer Dashboard | `http://localhost:{port}/` | Live metrics, trust chain, repo explorer, audit trail |
 | Mobile PWA | `http://localhost:{port}/mobile` | Seed planting, task review, mobile companion |
 | API Status | `http://localhost:{port}/status` | JSON engine telemetry |
 
@@ -218,7 +217,7 @@ SRT1-CORE/
 
 Business Source License 1.1 (BSL 1.1)
 
-The source code is available for reading, auditing, and non-production use. Production use requires a commercial license for teams and enterprises. Individual developer use on personal and open-source projects is permitted.
+The source code is available for reading, auditing, and non-production use. Production use requires a commercial license for teams and enterprises. Individual developer use on personal and Proprietary projects is permitted.
 
 **Author:** William Darnell Jernigan IV — THE ORIGINAL SEED
 
