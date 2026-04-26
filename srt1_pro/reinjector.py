@@ -116,6 +116,7 @@ class SCIAReinjector:
     def inject_packets(self, active_task: str, warnings: List[str], reflections: List[Dict] = None) -> bool:
         """
         Segment injection logic. Formats and overrides the 3 distinct JIT zones in AGENTS.md.
+        Uses string splitting instead of regex to avoid catastrophic backtracking on large files.
         """
         if reflections is None:
             reflections = []
@@ -146,19 +147,44 @@ class SCIAReinjector:
         if recall_packets:
             recall_str = "\n".join([f"- **RECALL:** {p.content}" for p in recall_packets])
 
-        # Replace Enforcement Zone
-        pattern_enf = r"(## ⚠️ ACTIVE ENFORCEMENT \(BLOCKING\)\n\*\([^)]+\)\*\n)(.*?)(?=\n\n## 🎯 ACTIVE ALIGNMENT)"
-        content = re.sub(pattern_enf, lambda m: m.group(1) + enforcement_str, content, flags=re.DOTALL)
+        # Replace zones using fast string splitting (no regex)
+        def replace_zone(text, zone_header, next_header, new_content):
+            """Replace content between zone_header and next_header with new_content."""
+            if zone_header not in text:
+                return text
+            parts = text.split(zone_header, 1)
+            if len(parts) < 2:
+                return text
+            before = parts[0]
+            after_zone = parts[1]
+            # Find the metadata line (starts with '*(' and ends with ')*')
+            lines = after_zone.split('\n')
+            meta_end = 0
+            for i, line in enumerate(lines):
+                if line.strip().startswith('*(') and line.strip().endswith(')*'):
+                    meta_end = i + 1
+                    break
+            if meta_end == 0:
+                meta_end = 1  # Skip first line if no meta found
+            meta_lines = '\n'.join(lines[:meta_end])
+            # Find where next section starts
+            remaining = '\n'.join(lines[meta_end:])
+            if next_header and next_header in remaining:
+                old_content, rest = remaining.split(next_header, 1)
+                return before + zone_header + meta_lines + '\n' + new_content + '\n\n' + next_header + rest
+            else:
+                # Last zone — find the next '---' separator
+                if '\n\n---' in remaining:
+                    old_content, rest = remaining.split('\n\n---', 1)
+                    return before + zone_header + meta_lines + '\n' + new_content + '\n\n---' + rest
+                return before + zone_header + meta_lines + '\n' + new_content + '\n'
 
-        # Replace Alignment Zone
-        pattern_align = r"(## 🎯 ACTIVE ALIGNMENT \(GUIDANCE\)\n\*\([^)]+\)\*\n)(.*?)(?=\n\n## 🧠 RELEVANT MEMORY)"
-        content = re.sub(pattern_align, lambda m: m.group(1) + alignment_str, content, flags=re.DOTALL)
-
-        # Replace Recall Zone
-        pattern_recall = r"(## 🧠 RELEVANT MEMORY \(RECALL\)\n\*\([^)]+\)\*\n)(.*?)(?=\n\n---)"
-        content = re.sub(pattern_recall, lambda m: m.group(1) + recall_str, content, flags=re.DOTALL)
+        content = replace_zone(content, "## ⚠️ ACTIVE ENFORCEMENT (BLOCKING)\n", "## 🎯 ACTIVE ALIGNMENT", enforcement_str)
+        content = replace_zone(content, "## 🎯 ACTIVE ALIGNMENT (GUIDANCE)\n", "## 🧠 RELEVANT MEMORY", alignment_str)
+        content = replace_zone(content, "## 🧠 RELEVANT MEMORY (RECALL)\n", None, recall_str)
 
         with open(self.agents_md_path, "w", encoding="utf-8") as f:
             f.write(content)
             
         return True
+

@@ -206,6 +206,16 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
     .cc-gauge-val{font-size:24px;font-weight:900;color:var(--cyan);font-family:'JetBrains Mono',monospace;line-height:1}
     .cc-gauge-status{font-size:10px;color:var(--text3);text-transform:uppercase;margin-top:4px;letter-spacing:0.05em;font-weight:700}
 
+    /* ── REPOSITORY EXPLORER GRID ── */
+    .ex-row { display: grid; grid-template-columns: 120px 1fr 1fr; gap: 16px; padding: 12px; border-bottom: 1px solid var(--border); align-items: start; font-size: 13px; }
+    .ex-row:last-child { border-bottom: none; }
+    .ex-header { font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text3); letter-spacing: 0.05em; background: var(--bg3); border-radius: 6px 6px 0 0; border-bottom: 2px solid var(--border); align-items: center; }
+    .ex-cur:hover, .ex-dep:hover, .ex-risk:hover { background: var(--bg3); }
+    .risk-pill { display: inline-block; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 4px; font-family: var(--mono); }
+    .risk-pill.high { background: rgba(239,68,68,0.1); color: var(--red); border: 1px solid rgba(239,68,68,0.2); }
+    .risk-pill.med { background: rgba(245,158,11,0.1); color: var(--amber); border: 1px solid rgba(245,158,11,0.2); }
+    .risk-pill.low { background: rgba(6,182,212,0.1); color: var(--cyan); border: 1px solid rgba(6,182,212,0.2); }
+    @media(max-width:768px){ .ex-row { grid-template-columns: 1fr; gap: 8px; } }
   </style>
 </head>
 <body>
@@ -281,7 +291,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
       <h1 id="mainDashboardTitle">Dashboard</h1>
       <p id="mainDashboardSubtitle">Code Indexer — Seed-Class Intelligence Architecture v4.0</p>
     </div>
-    <a href="http://localhost:8099/consumer-dashboard.html" style="display:inline-flex;align-items:center;padding:8px 16px;background:var(--bg3);border:1px solid var(--border2);color:var(--text);border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;transition:all 0.15s;">
+    <a href="/consumer/" style="display:inline-flex;align-items:center;padding:8px 16px;background:var(--bg3);border:1px solid var(--border2);color:var(--text);border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;transition:all 0.15s;">
       🌱 Open Consumer Pipeline →
     </a>
   </div>
@@ -435,10 +445,10 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
             <div class="download-icon info">📱</div>
             <div>
               <div class="download-name">Mobile PWA Dashboard</div>
-              <div class="download-version">http://localhost:7605/mobile</div>
+              <div class="download-version"><script>document.write(location.origin + location.pathname.replace('dashboard.html', 'mobile.html'))</script></div>
             </div>
           </div>
-          <button class="download-btn" onclick="window.open('http://localhost:7605/mobile', '_blank')">Open</button>
+          <button class="download-btn" onclick="window.open('mobile.html', '_blank')">Open PWA</button>
         </div>
       </div>
       <div style="margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--border);">
@@ -2470,7 +2480,7 @@ async function loadStatus() {
         mobileTokenBadge.style.color = 'var(--green)';
         mobileTokenList.innerHTML = `<div style="padding:16px;font-size:13px;color:var(--text3);">
           <div style="margin-bottom:8px;color:var(--text);font-weight:600;">Auth tokens configured</div>
-          <div>The mobile companion PWA at <code style="background:var(--bg);padding:2px 6px;border-radius:4px;">localhost:7605/mobile.html</code> can connect using an authorized token.</div>
+          <div>The mobile companion PWA at <code style="background:var(--bg);padding:2px 6px;border-radius:4px;"><script>document.write(location.host+'/mobile')</script></code> can connect using an authorized token.</div>
         </div>`;
       } else {
         mobileTokenBadge.textContent = 'open access';
@@ -2478,7 +2488,7 @@ async function loadStatus() {
         mobileTokenBadge.style.color = 'var(--text4)';
         mobileTokenList.innerHTML = `<div style="padding:16px;font-size:13px;color:var(--text3);">
           <div style="margin-bottom:8px;color:var(--text2);font-weight:600;">No auth configured — open access</div>
-          <div>The mobile companion PWA at <code style="background:var(--bg);padding:2px 6px;border-radius:4px;">localhost:7605/mobile.html</code> is accessible without tokens.</div>
+          <div>The mobile companion PWA at <code style="background:var(--bg);padding:2px 6px;border-radius:4px;"><script>document.write(location.host+'/mobile')</script></code> is accessible without tokens.</div>
           <div style="margin-top:8px;color:var(--text4);font-size:12px;">To enable token auth, configure SCIARemoteAuth in your environment.</div>
         </div>`;
       }
@@ -2829,6 +2839,15 @@ setInterval(loadStatus, 30000);
 
 
 
+<script src="js/platform.js"></script>
+<script>
+// Redirect to front page if not logged in
+if (typeof SRT1Platform !== 'undefined') {
+  if (!SRT1Platform.isLoggedIn() && !SRT1Platform.isDemoMode()) {
+    window.location.replace('index.html');
+  }
+}
+</script>
 <script src="pwa-install.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {

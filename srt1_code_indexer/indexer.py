@@ -82,7 +82,7 @@ SKIP_DIRS: Set[str] = {
     '.git', '__pycache__', 'node_modules', '.venv', 'venv',
     'env', '.tox', '.mypy_cache', '.pytest_cache', 'dist', 'build',
     '.eggs', '.gemini', 'test_venv', 'test_repo', 'test_wheel',
-    'legacy', 'site-packages',
+    'legacy', 'site-packages', 'seed-reflection',
 }
 
 

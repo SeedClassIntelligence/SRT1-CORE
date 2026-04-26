@@ -209,6 +209,7 @@
   </div>
   <div class="nav-bottom">
     <a href="index.html" class="active">Overview</a>
+    <a href="workspace-demo.html">Sandbox & Connector</a>
     <a href="#pricing">Pricing</a>
     <a href="comparison.html">Compare</a>
     <a href="documentation.html">Documentation</a>
@@ -232,6 +233,7 @@
   </div>
   <div class="hero-btns">
     <a href="auth.html?mode=signup&type=developer" class="btn btn-blue">Start Free — No credit card</a>
+    <a href="#demo-video" class="btn btn-outline" style="border-color:var(--cyan);color:var(--cyan);">▶ Watch Demo</a>
     <a href="documentation.html" class="btn btn-outline">Read the Docs →</a>
   </div>
 </section>
@@ -243,6 +245,244 @@
   <div class="stat"><div class="stat-num">8</div><div class="stat-label">Risk Tags</div></div>
   <div class="stat"><div class="stat-num">0</div><div class="stat-label">Dependencies</div></div>
 </div>
+
+<!-- ── INTERACTIVE DEMO ── -->
+<section class="section" id="demo-video" style="padding:64px 5% 80px;background:radial-gradient(ellipse at 50% 80%,rgba(88,166,255,.06) 0%,transparent 55%);">
+  <div class="section-inner" style="max-width:900px;">
+    <div style="text-align:center;margin-bottom:36px;">
+      <div class="eyebrow">See It In Action</div>
+      <h2 class="section-h2">Watch SRT-1 <span>index your codebase</span> in real time.</h2>
+      <p class="section-p" style="margin:12px auto 0;text-align:center;">One command. 7 pipeline stages. A signed manifest that proves your AI was working from ground truth.</p>
+    </div>
+
+    <div class="demo-player" id="demoPlayer">
+      <div class="demo-progress"><div class="demo-progress-bar" id="demoProgressBar"></div></div>
+      <div class="demo-chrome">
+        <div class="ddot" style="background:#ff5f57"></div>
+        <div class="ddot" style="background:#febc2e"></div>
+        <div class="ddot" style="background:#28c840"></div>
+        <span class="demo-url-text">localhost:7605 — SRT-1 Engine</span>
+        <div style="margin-left:auto;display:flex;gap:6px;align-items:center;">
+          <button class="demo-ctrl" onclick="toggleDemoPause()" id="demoPauseBtn" title="Pause/Play">⏸</button>
+        </div>
+      </div>
+      <div class="demo-scenes" id="demoScenes">
+        <!-- Scene 1: Index -->
+        <div class="demo-scene active" data-scene="0">
+          <div class="ds-label">STAGE 1 — Indexing your codebase</div>
+          <div class="ds-terminal">
+            <div class="ds-typing" id="dsTyping"></div>
+            <div class="ds-cursor">▊</div>
+          </div>
+        </div>
+        <!-- Scene 2: Analyze -->
+        <div class="demo-scene" data-scene="1">
+          <div class="ds-label">STAGE 2 — Deep code analysis complete</div>
+          <div class="ds-results">
+            <div class="ds-item ds-item-pop" style="animation-delay:0s;">
+              <div class="ds-item-icon">🏷️</div>
+              <div class="ds-item-body">
+                <div class="ds-item-title">SRT1Engine <span style="color:var(--text3);font-weight:400;font-size:11px;">— engine.py:159</span></div>
+                <div class="ds-item-meta">Role: <span style="color:var(--blue)">ORCHESTRATOR</span> · Risk: <span style="color:var(--red)">AUTH_SENSITIVE</span>, <span style="color:var(--amber)">WRITES_TO_DB</span>, <span style="color:var(--blue)">FILE_IO</span></div>
+              </div>
+            </div>
+            <div class="ds-item ds-item-pop" style="animation-delay:.12s;">
+              <div class="ds-item-icon">🏷️</div>
+              <div class="ds-item-body">
+                <div class="ds-item-title">SeedTemplateRegistry <span style="color:var(--text3);font-weight:400;font-size:11px;">— seed_templates.py:1</span></div>
+                <div class="ds-item-meta">Role: <span style="color:var(--blue)">SERVICE_LAYER</span> · Risk: <span style="color:var(--amber)">WRITES_TO_DB</span>, <span style="color:var(--purple)">HAS_LOGGING</span></div>
+              </div>
+            </div>
+            <div class="ds-item ds-item-pop" style="animation-delay:.24s;">
+              <div class="ds-item-icon">⚠️</div>
+              <div class="ds-item-body">
+                <div class="ds-item-title" style="color:var(--amber)">Duplicate: _repr()</div>
+                <div class="ds-item-meta">Found in: authority_client.py:117, seed_graph.py:220, seed_graph.py:263, seed_graph.py:322</div>
+              </div>
+            </div>
+            <div class="ds-item ds-item-pop" style="animation-delay:.36s;">
+              <div class="ds-item-icon">📊</div>
+              <div class="ds-item-body">
+                <div class="ds-item-title">166 files · 635 functions · 126 classes · 510 call chains</div>
+                <div class="ds-item-meta">Languages: Python (77), Markdown (37), HTML (16), JSON (11), TXT (15)</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Scene 3: Trust Chain -->
+        <div class="demo-scene" data-scene="2">
+          <div class="ds-label">STAGE 3 — Cryptographic trust chain sealed</div>
+          <div class="ds-chain">
+            <div class="ds-chain-node ds-chain-pop" style="animation-delay:0s;">
+              <div class="ds-chain-step">1</div>
+              <div class="ds-chain-info">
+                <div class="ds-chain-name">Scan</div>
+                <div class="ds-chain-hash">sha256: a4f2c8…</div>
+              </div>
+              <div class="ds-chain-arrow">→</div>
+            </div>
+            <div class="ds-chain-node ds-chain-pop" style="animation-delay:.1s;">
+              <div class="ds-chain-step">2</div>
+              <div class="ds-chain-info">
+                <div class="ds-chain-name">Parse</div>
+                <div class="ds-chain-hash">sha256: 7b91e3…</div>
+              </div>
+              <div class="ds-chain-arrow">→</div>
+            </div>
+            <div class="ds-chain-node ds-chain-pop" style="animation-delay:.2s;">
+              <div class="ds-chain-step">3</div>
+              <div class="ds-chain-info">
+                <div class="ds-chain-name">Curate</div>
+                <div class="ds-chain-hash">sha256: d3e0f1…</div>
+              </div>
+              <div class="ds-chain-arrow">→</div>
+            </div>
+            <div class="ds-chain-node ds-chain-pop" style="animation-delay:.3s;">
+              <div class="ds-chain-step">4</div>
+              <div class="ds-chain-info">
+                <div class="ds-chain-name">Reflect</div>
+                <div class="ds-chain-hash">sha256: 5c8a2d…</div>
+              </div>
+              <div class="ds-chain-arrow">→</div>
+            </div>
+            <div class="ds-chain-node ds-chain-pop" style="animation-delay:.4s;">
+              <div class="ds-chain-step">5</div>
+              <div class="ds-chain-info">
+                <div class="ds-chain-name">Trust</div>
+                <div class="ds-chain-hash">sha256: f9b4e7…</div>
+              </div>
+              <div class="ds-chain-arrow">→</div>
+            </div>
+            <div class="ds-chain-node ds-chain-pop" style="animation-delay:.5s;">
+              <div class="ds-chain-step">6</div>
+              <div class="ds-chain-info">
+                <div class="ds-chain-name">Manifest</div>
+                <div class="ds-chain-hash">sha256: 2e6d8a…</div>
+              </div>
+              <div class="ds-chain-arrow">→</div>
+            </div>
+            <div class="ds-chain-node ds-chain-pop" style="animation-delay:.6s;">
+              <div class="ds-chain-step" style="background:rgba(63,185,80,.15);border-color:rgba(63,185,80,.4);color:var(--green);">7</div>
+              <div class="ds-chain-info">
+                <div class="ds-chain-name" style="color:var(--green);">✓ Verified</div>
+                <div class="ds-chain-hash">Chain intact — 0 tampering</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Scene 4: Dashboard -->
+        <div class="demo-scene" data-scene="3">
+          <div class="ds-label">RESULT — Your AI now has full codebase intelligence</div>
+          <div class="ds-dashboard">
+            <div class="ds-dash-stats">
+              <div class="ds-dash-stat"><div class="ds-dash-num" style="color:var(--cyan)">166</div><div class="ds-dash-lbl">Files</div></div>
+              <div class="ds-dash-stat"><div class="ds-dash-num" style="color:var(--cyan)">635</div><div class="ds-dash-lbl">Functions</div></div>
+              <div class="ds-dash-stat"><div class="ds-dash-num" style="color:var(--cyan)">510</div><div class="ds-dash-lbl">Call Chains</div></div>
+              <div class="ds-dash-stat"><div class="ds-dash-num" style="color:var(--green)">✓</div><div class="ds-dash-lbl">Verified</div></div>
+            </div>
+            <div class="ds-dash-files">
+              <div class="ds-dash-file"><span style="color:var(--green)">✓</span> AGENTS.md <span style="color:var(--text3);font-size:10px;">— auto-generated</span></div>
+              <div class="ds-dash-file"><span style="color:var(--green)">✓</span> CLAUDE.md <span style="color:var(--text3);font-size:10px;">— auto-generated</span></div>
+              <div class="ds-dash-file"><span style="color:var(--green)">✓</span> .cursorrules <span style="color:var(--text3);font-size:10px;">— auto-generated</span></div>
+              <div class="ds-dash-file"><span style="color:var(--green)">✓</span> copilot-instructions.md <span style="color:var(--text3);font-size:10px;">— auto-generated</span></div>
+              <div class="ds-dash-file"><span style="color:var(--green)">✓</span> srt1_code_manifest.json <span style="color:var(--text3);font-size:10px;">— signed manifest</span></div>
+            </div>
+            <div class="ds-dash-note">Every AI tool now reads the same ground truth. Cursor, Claude, Copilot — all aligned.</div>
+          </div>
+        </div>
+      </div>
+      <div class="demo-steps">
+        <button class="demo-step active" onclick="goToScene(0)"><span>1</span> Index</button>
+        <button class="demo-step" onclick="goToScene(1)"><span>2</span> Analyze</button>
+        <button class="demo-step" onclick="goToScene(2)"><span>3</span> Trust</button>
+        <button class="demo-step" onclick="goToScene(3)"><span>4</span> Result</button>
+      </div>
+    </div>
+  </div>
+</section>
+<style>
+.demo-player{background:var(--bg-card);border:1px solid var(--border-light);border-radius:16px;overflow:hidden;box-shadow:0 40px 100px rgba(0,0,0,.55),0 0 0 1px rgba(88,166,255,.08);position:relative;}
+.demo-progress{height:3px;background:var(--border);position:relative;overflow:hidden;}
+.demo-progress-bar{height:100%;background:linear-gradient(90deg,var(--blue),var(--cyan));width:0%;transition:width .1s linear;}
+.demo-chrome{background:var(--bg-surface);border-bottom:1px solid var(--border);padding:10px 16px;display:flex;align-items:center;gap:8px;}
+.ddot{width:10px;height:10px;border-radius:50%;}
+.demo-url-text{margin-left:8px;font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;}
+.demo-ctrl{background:transparent;border:1px solid var(--border);color:var(--text3);width:26px;height:26px;border-radius:5px;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.demo-ctrl:hover{border-color:var(--blue);color:var(--blue);}
+.demo-scenes{min-height:340px;position:relative;overflow:hidden;}
+.demo-scene{position:absolute;inset:0;padding:28px 32px;opacity:0;transform:translateY(12px);transition:opacity .45s ease,transform .45s ease;pointer-events:none;}
+.demo-scene.active{opacity:1;transform:translateY(0);pointer-events:auto;position:relative;}
+.demo-steps{display:flex;border-top:1px solid var(--border);background:var(--bg-surface);}
+.demo-step{flex:1;padding:12px 8px;background:transparent;border:none;color:var(--text3);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .2s;border-right:1px solid var(--border);}
+.demo-step:last-child{border-right:none;}
+.demo-step:hover{background:rgba(255,255,255,.03);color:var(--text);}
+.demo-step.active{color:var(--blue);background:rgba(88,166,255,.06);}
+.demo-step span{width:20px;height:20px;border-radius:50%;background:var(--border);display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--text3);transition:all .2s;}
+.demo-step.active span{background:var(--blue);color:#000;}
+.ds-label{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--blue);margin-bottom:18px;}
+.ds-terminal{background:#000;border:1px solid var(--border);border-radius:10px;padding:18px 20px;min-height:180px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--green);line-height:1.7;position:relative;overflow:hidden;}
+.ds-typing{white-space:pre-wrap;}
+.ds-cursor{display:inline;color:var(--green);animation:blink 1s step-end infinite;font-weight:100;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+.ds-results{display:flex;flex-direction:column;gap:10px;}
+.ds-item{background:var(--bg-surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;display:flex;gap:12px;align-items:flex-start;}
+.ds-item-icon{font-size:18px;flex-shrink:0;margin-top:2px;}
+.ds-item-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:3px;}
+.ds-item-meta{font-size:11px;color:var(--text3);}
+.ds-item-pop{opacity:0;transform:translateX(-10px);animation:itemPop .4s ease forwards;}
+@keyframes itemPop{to{opacity:1;transform:translateX(0)}}
+.ds-chain{display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
+.ds-chain-node{display:flex;align-items:center;gap:8px;background:var(--bg-surface);border:1px solid var(--border);border-radius:8px;padding:10px 12px;}
+.ds-chain-step{width:28px;height:28px;border-radius:50%;background:rgba(88,166,255,.1);border:2px solid rgba(88,166,255,.3);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;color:var(--blue);flex-shrink:0;}
+.ds-chain-name{font-size:12px;font-weight:700;color:var(--text);}
+.ds-chain-hash{font-size:10px;color:var(--text3);font-family:'JetBrains Mono',monospace;}
+.ds-chain-arrow{color:var(--text3);font-size:14px;margin:0 2px;}
+.ds-chain-pop{opacity:0;transform:translateY(6px);animation:chainPop .3s ease forwards;}
+@keyframes chainPop{to{opacity:1;transform:translateY(0)}}
+.ds-dashboard{display:flex;flex-direction:column;gap:14px;}
+.ds-dash-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+.ds-dash-stat{background:var(--bg-surface);border:1px solid var(--border);border-radius:8px;padding:14px;text-align:center;}
+.ds-dash-num{font-size:24px;font-weight:900;font-family:'JetBrains Mono',monospace;}
+.ds-dash-lbl{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-top:2px;}
+.ds-dash-files{background:var(--bg-surface);border:1px solid var(--border);border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:6px;}
+.ds-dash-file{font-size:12px;color:var(--text2);font-family:'JetBrains Mono',monospace;display:flex;align-items:center;gap:6px;}
+.ds-dash-note{background:rgba(88,166,255,.06);border:1px solid rgba(88,166,255,.2);border-radius:8px;padding:12px 14px;font-size:12px;color:var(--blue);text-align:center;font-weight:600;}
+@media(max-width:640px){.demo-scene{padding:18px 16px;}.ds-dash-stats{grid-template-columns:repeat(2,1fr);}.demo-step{font-size:11px;padding:10px 4px;}.ds-chain{flex-direction:column;}.ds-chain-arrow{display:none;}}
+</style>
+<script>
+(function(){
+  const SCENE_DURATION = 5500;
+  let currentScene = 0, paused = false, progressTimer = null, progressStart = 0;
+  const termText = `$ srt1-index --repo_path ./\n\n  [1/6] Indexing codebase...\n         166 files, 635 symbols indexed.\n  [2/6] Mapping call flow...\n         510 call chains mapped.\n  [3/6] Analyzing codebase...\n         Synopsis generated.\n  [4/6] Generating AI context files...\n         ✓ AGENTS.md proactively updated\n  [5/6] Generating build plan...\n         Project: SRT1 CODING\n         Health:  healthy\n  [6/6] Starting live server...\n\n  ✓ SRT-1 is ready.\n  Dashboard: http://localhost:7605/dashboard`;
+  function typeText(){
+    const el=document.getElementById('dsTyping');
+    if(!el)return; let i=0; el.textContent='';
+    function tick(){if(i<termText.length&&currentScene===0){el.textContent+=termText[i];i++;setTimeout(tick,14);}};tick();
+  }
+  function goTo(idx){
+    currentScene=idx;
+    document.querySelectorAll('.demo-scene').forEach((s,i)=>s.classList.toggle('active',i===idx));
+    document.querySelectorAll('.demo-step').forEach((s,i)=>s.classList.toggle('active',i===idx));
+    if(idx===0)typeText();
+    progressStart=Date.now();
+    if(progressTimer)cancelAnimationFrame(progressTimer);
+    (function tick(){
+      if(paused){progressTimer=requestAnimationFrame(tick);return;}
+      const pct=Math.min(((Date.now()-progressStart)/SCENE_DURATION)*100,100);
+      const bar=document.getElementById('demoProgressBar');
+      if(bar)bar.style.width=pct+'%';
+      if(pct>=100)goTo((currentScene+1)%4);else progressTimer=requestAnimationFrame(tick);
+    })();
+  }
+  window.goToScene=function(idx){goTo(idx);};
+  window.toggleDemoPause=function(){
+    paused=!paused;
+    const btn=document.getElementById('demoPauseBtn');
+    if(btn)btn.textContent=paused?'▶':'⏸';
+  };
+  setTimeout(()=>goTo(0),500);
+})();
+</script>
 
 <!-- ── FEATURES ── -->
 <section class="section">
@@ -629,7 +869,7 @@ manifest = indexer.<span class="fn">index_repository</span>()
         <li class="dim">Blueprint generation</li>
         <li class="dim">Team sync</li>
       </ul>
-      <a href="documentation.html" class="pcard-btn">Get Started — pip install srt1-core</a>
+      <a href="https://github.com/SeedClassIntelligence/SRT1/releases" class="pcard-btn" id="btn-free-download">⬇ Download Free — pip install srt1-core</a>
     </div>
 
     <!-- PRO -->
@@ -657,8 +897,8 @@ manifest = indexer.<span class="fn">index_repository</span>()
     <!-- ENTERPRISE -->
     <div class="pcard">
       <div class="pcard-tier">Enterprise</div>
-      <div class="pcard-price">Custom</div>
-      <div class="pcard-desc">Team-wide AI governance. Full knowledge infrastructure.</div>
+      <div class="pcard-price">$49<sub>/seat/month</sub></div>
+      <div class="pcard-desc">Team-wide AI governance. Full knowledge infrastructure. Volume pricing available.</div>
       <ul class="pcard-features">
         <li>Everything in Pro</li>
         <li>Team folder sync — connect developers across machines</li>
@@ -670,7 +910,7 @@ manifest = indexer.<span class="fn">index_repository</span>()
         <li>Audit trail exports (compliance-ready)</li>
         <li>SLA support &amp; dedicated onboarding</li>
       </ul>
-      <a href="mailto:enterprise@srt1.network" class="pcard-btn">Contact Sales</a>
+      <a href="contact.html" class="pcard-btn" id="btn-enterprise-contact">Contact Sales — Custom Volume Pricing</a>
     </div>
 
   </div>
@@ -710,6 +950,7 @@ manifest = indexer.<span class="fn">index_repository</span>()
     <a href="documentation.html">Docs</a>
     <a href="https://seeds.srt1.io">Seed Reflection</a>
     <a href="auth.html">Sign Up</a>
+    <a href="contact.html">Enterprise Contact</a>
     <a href="https://github.com/SeedClassIntelligence/SRT1">GitHub</a>
     <a href="https://pypi.org/project/srt1-core">PyPI</a>
   </div>
