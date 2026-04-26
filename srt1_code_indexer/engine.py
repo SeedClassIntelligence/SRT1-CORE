@@ -64,7 +64,11 @@ from typing import Dict, List, Any, Optional
 from urllib.parse import urlparse, parse_qs
 
 # ---- Import Core SCIA IP ----
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+_this_dir = os.path.dirname(os.path.abspath(__file__))
+_core_dir = os.path.dirname(_this_dir)  # SRT1-CORE
+sys.path.insert(0, _this_dir)
+if _core_dir not in sys.path:
+    sys.path.insert(0, _core_dir)
 try:
     from srt import SRT
     from srt import EnforcementLevel
@@ -352,9 +356,16 @@ class SRT1Engine:
         print(f"         Synopsis generated.")
         self._log_event("analysis", "Synopsis generated")
 
-        # Step 4: Generate AI context files
+        # Step 4: Generate AI context files (with timeout to prevent server hang)
         print("  [4/6] Generating AI context files...")
-        self._generate_context_files()
+        import threading
+        ctx_thread = threading.Thread(target=self._generate_context_files, daemon=True)
+        ctx_thread.start()
+        ctx_thread.join(timeout=30)
+        if ctx_thread.is_alive():
+            print("         ⚠ Context generation still running in background (server will start anyway)")
+        else:
+            print("         ✓ Context files generated.")
         self._log_event("context", "Generated AGENTS.md, CLAUDE.md, .cursorrules, copilot-instructions.md", {"files_written": 5})
 
         # Step 5: Generate build plan + plant task seed
@@ -606,12 +617,26 @@ class SRT1Engine:
                                     break
                                     
                     # Extract definitions (H2 and H3 headers and their immediate text)
-                    import re
-                    headers = re.findall(r'^(#{2,3})\s+(.+?)\n([^#]+)', content, re.MULTILINE)
-                    for _, title, body in headers:
-                        body_clean = body.strip().split('\n\n')[0] # Get just the first paragraph of the section
-                        if body_clean and len(body_clean) > 20 and "I have analyzed" not in body_clean:
-                            extracted_rules.append((title.strip(), body_clean.strip()))
+                    # Use line-by-line parsing instead of regex to avoid backtracking on large files
+                    content_lines = content.split('\n')
+                    i = 0
+                    while i < len(content_lines):
+                        line = content_lines[i]
+                        if line.startswith('## ') or line.startswith('### '):
+                            title = line.lstrip('#').strip()
+                            # Collect body text until next header or empty section
+                            body_parts = []
+                            i += 1
+                            while i < len(content_lines) and not content_lines[i].startswith('#'):
+                                body_parts.append(content_lines[i])
+                                i += 1
+                                if len(body_parts) > 10:  # Cap to avoid huge sections
+                                    break
+                            body_clean = '\n'.join(body_parts).strip().split('\n\n')[0]
+                            if body_clean and len(body_clean) > 20 and "I have analyzed" not in body_clean:
+                                extracted_rules.append((title, body_clean.strip()))
+                        else:
+                            i += 1
                 except Exception:
                     pass
 
@@ -941,6 +966,12 @@ class SRT1Engine:
                         
                     dynamic_map = self._build_codebase_map_only()
                     c = c.rstrip() + "\n\n## 📁 Runtime Codebase Map\n\n" + dynamic_map
+                    
+                    # Fix the dashboard link to use the actual runtime port
+                    c = c.replace(
+                        "http://127.0.0.1:7483/dashboard",
+                        f"http://127.0.0.1:{self.port}/dashboard"
+                    )
                     
                     with open(agents_path, "w", encoding="utf-8") as f:
                         f.write(c)
@@ -1628,6 +1659,7 @@ class SRT1Engine:
     }
 
     def _watch_loop(self) -> None:
+        _last_reindex_time = 0.0  # Debounce: prevent re-index storms
         while self._watcher_running:
             time.sleep(15)
             if getattr(self, "enforcement_nudge_enabled", False) and (time.time() - getattr(self, "last_nudge_time", time.time())) >= 1800:
@@ -1637,6 +1669,11 @@ class SRT1Engine:
                     self.last_nudge_time = time.time()
                 except Exception:
                     pass
+
+            # Debounce: skip if we re-indexed less than 60s ago
+            if time.time() - _last_reindex_time < 60:
+                continue
+
             try:
                 changed = False
                 for entry in self.manifest.get("file_manifest", []):
@@ -1663,7 +1700,7 @@ class SRT1Engine:
                         continue
 
                 if changed:
-                    display_path = file_path.replace("seed-reflection/", "").replace("seed-reflection\\\\", "").replace("SRT1-CORE-OSS\\\\", "").replace("SRT1-CORE-OSS/", "")
+                    display_path = file_path.replace("seed-reflection/", "").replace("seed-reflection\\\\", "").replace("SRT1-CORE\\\\", "").replace("SRT1-CORE/", "")
                     self._log_event("watcher", f"File change detected: {display_path}", {"file": display_path})
                     self._index_codebase()
                     new_files = len(self.manifest.get("file_manifest", []))
@@ -1671,9 +1708,20 @@ class SRT1Engine:
                     self._log_event("indexing", f"Re-indexed: {new_files} files, {new_syms} symbols", {"files": new_files, "symbols": new_syms})
                     self._build_call_graph()
                     self._generate_context_files()
+                    # Refresh hashes AFTER context generation to prevent detecting our own writes
+                    for entry in self.manifest.get("file_manifest", []):
+                        fp2 = os.path.join(self.repo_path, entry.get("file_path", ""))
+                        if os.path.exists(fp2):
+                            try:
+                                with open(fp2, "rb") as f2:
+                                    self.file_hashes[entry["file_path"]] = hashlib.sha256(f2.read()).hexdigest()
+                            except OSError:
+                                pass
+                    _last_reindex_time = time.time()
                     self._log_event("context", "Context files regenerated")
             except Exception:
                 pass
+
 
     # -----------------------------------------------------------------
     # HTTP SERVER
@@ -2189,7 +2237,7 @@ class SRT1Engine:
                     if not os.path.exists(mp):
                         mp = os.path.join(engine.repo_path, "developer-pwa", "mobile.html")
                         if not os.path.exists(mp):
-                            mp = os.path.join(engine.repo_path, "SRT1-CORE-OSS", "developer-pwa", "mobile.html")
+                            mp = os.path.join(engine.repo_path, "SRT1-CORE", "developer-pwa", "mobile.html")
                     if os.path.exists(mp):
                         self.send_response(200)
                         self.send_header("Content-Type", "text/html")
@@ -2307,17 +2355,33 @@ class SRT1Engine:
                     serve_path = posixpath.normpath(unquote(serve_path))
                     if serve_path.startswith('/'):
                         serve_path = serve_path[1:]
-                        
-                    local_path = os.path.join(engine.repo_path, "seed-reflection", serve_path)
-                    dev_path = os.path.join(engine.repo_path, "developer-pwa", serve_path)
                     
+                    # Consumer pages accessible under /consumer/ prefix
+                    consumer_prefix = "consumer/"
                     actual_path = None
-                    if os.path.exists(local_path) and os.path.isfile(local_path):
-                        actual_path = local_path
-                    elif os.path.exists(dev_path) and os.path.isfile(dev_path):
-                        actual_path = dev_path
-                    elif os.path.exists(os.path.join(os.path.dirname(os.path.abspath(__file__)), "developer-pwa", serve_path)):
-                        actual_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "developer-pwa", serve_path)
+                    if serve_path.startswith(consumer_prefix):
+                        consumer_file = serve_path[len(consumer_prefix):]
+                        consumer_path = os.path.join(engine.repo_path, "seed-reflection", consumer_file)
+                        if os.path.exists(consumer_path) and os.path.isfile(consumer_path):
+                            actual_path = consumer_path
+                    
+                    # Developer PWA is the primary source for the engine homepage
+                    if not actual_path:
+                        dev_path = os.path.join(engine.repo_path, "developer-pwa", serve_path)
+                        if os.path.exists(dev_path) and os.path.isfile(dev_path):
+                            actual_path = dev_path
+                    
+                    # Fallback: developer-pwa inside SRT1-CORE package dir
+                    if not actual_path:
+                        pkg_dev = os.path.join(os.path.dirname(os.path.abspath(__file__)), "developer-pwa", serve_path)
+                        if os.path.exists(pkg_dev) and os.path.isfile(pkg_dev):
+                            actual_path = pkg_dev
+                    
+                    # Fallback: SRT1-CORE/developer-pwa
+                    if not actual_path:
+                        core_dev = os.path.join(engine.repo_path, "SRT1-CORE", "developer-pwa", serve_path)
+                        if os.path.exists(core_dev) and os.path.isfile(core_dev):
+                            actual_path = core_dev
                     
                     if actual_path:
                         ext = os.path.splitext(actual_path)[1].lower()
@@ -2830,7 +2894,7 @@ class SRT1Engine:
             # pip-installed package location
             os.path.join(core_dir, "srt1_platform", "pwa", "dashboard.html"),
             os.path.join(self.repo_path, "developer-pwa", "dashboard.html"),
-            os.path.join(self.repo_path, "SRT1-CORE-OSS", "developer-pwa", "dashboard.html"),
+            os.path.join(self.repo_path, "SRT1-CORE", "developer-pwa", "dashboard.html"),
             os.path.join(script_dir, "seed-reflection", "dashboard.html"),
             os.path.join(self.repo_path, "seed-reflection", "dashboard.html"),
         ]

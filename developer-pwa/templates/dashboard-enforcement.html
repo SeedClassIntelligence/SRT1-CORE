@@ -1,0 +1,15 @@
+<div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">🛡️ Enforcement Guardrails <span class="info-icon" data-tooltip="The engine of SRT-1 curation. Sweeps your codebase dynamically for duplicate functions, unauthorized file overrides, and architectural drift, halting AI workflows if it detects major integrity risks.">?</span></div>
+        <div style="display:flex; gap: 12px; align-items:center;">
+          <label style="font-size: 11px; display:flex; align-items:center; gap: 6px; cursor: pointer; color: var(--text3);">
+             Auto-Nudge (30m)
+             <input type="checkbox" id="nudgeToggle" checked onchange="toggleNudge(this.checked)">
+          </label>
+          <div class="panel-badge" id="seedFarmBadge">loading...</div>
+        </div>
+      </div>
+      <div class="seed-list" id="seedFarmList">
+        <div style="padding:24px;text-align:center;color:var(--text4);font-size:13px;">Loading violations from engine...</div>
+      </div>
+    </div>
