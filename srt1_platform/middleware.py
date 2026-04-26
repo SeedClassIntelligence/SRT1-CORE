@@ -50,7 +50,7 @@ INTEGRATION:
     - Custom tools: call /context/relevant with the files being edited
 
 Author : William Darnell Jernigan IV (Architect)
-License: Apache License 2.0
+License: Business Source License 1.1
 """
 
 import os

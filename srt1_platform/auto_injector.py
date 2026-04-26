@@ -47,7 +47,7 @@ USAGE:
     python srt1_auto_injector.py --repo_path ./my_project --watch
 
 Author : William Darnell Jernigan IV (Architect)
-License: Apache License 2.0
+License: Business Source License 1.1
 """
 
 import os
