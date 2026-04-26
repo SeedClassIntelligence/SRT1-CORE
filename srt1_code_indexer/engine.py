@@ -551,7 +551,7 @@ class SRT1Engine:
                         with open(audit_path, "w", encoding="utf-8") as f:
                             json.dump(delta_report, f, indent=2)
                     except ImportError:
-                        # Enterprise logic missing; graceful degrade for OSS core.
+                        # Enterprise logic missing; graceful degrade for Core tier.
                         pass
                         
             except Exception as exc:
@@ -2437,7 +2437,7 @@ class SRT1Engine:
                         # Hand over the HTTP Request object (self) and the engine context
                         SCIAProxyEngine.handle_proxy_request(self, engine)
                     except ImportError:
-                        # Graceful degradation for OSS Core tier
+                        # Graceful degradation for Core tier
                         self.send_response(402)
                         self.send_header("Content-Type", "application/json")
                         self.end_headers()

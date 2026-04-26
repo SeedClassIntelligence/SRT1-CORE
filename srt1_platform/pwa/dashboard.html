@@ -6,7 +6,7 @@
 <title>SRT-1 Dashboard</title>
 <link rel="manifest" href="/manifest.json">
 <link rel="preconnect" href="https://fonts.googleapis.com/">
-<link href="./SRT-1 Dashboard_files/css2" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
 :root{
@@ -402,6 +402,12 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
         <div><strong>Repo:</strong> <span id="licenseRepo">...</span></div>
         <div><strong>Port:</strong> <span id="licensePort">...</span></div>
       </div>
+      <!-- Upgrade License CTA (shown for free-tier users) -->
+      <div id="licenseUpgrade" style="margin-top:16px;padding:16px;background:linear-gradient(135deg,rgba(88,166,255,.06),rgba(57,208,216,.04));border:1px solid rgba(88,166,255,.2);border-radius:10px;">
+        <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:6px;">🚀 Unlock Pro Features</div>
+        <div style="font-size:12px;color:var(--text3);line-height:1.6;margin-bottom:12px;">Upgrade to Pro for multi-module workspace connector, mobile companion, MCP integration, and blueprint generation.</div>
+        <a href="https://srt-1.lemonsqueezy.com/checkout/buy/3c7b5b89-fe57-4f36-a664-59d7b69aa04f" class="lemonsqueezy-button" style="display:block;text-align:center;padding:10px;border-radius:8px;font-weight:700;font-size:13px;background:var(--blue,#58a6ff);color:#000;border:none;cursor:pointer;text-decoration:none;">Upgrade to Pro — $9/mo</a>
+      </div>
     </div>
 
     <!-- DOWNLOADS -->
@@ -411,7 +417,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
         <div class="panel-badge info">v2.2.0</div>
       </div>
       <div style="font-size:13px;color:var(--text2);margin-bottom:16px;">
-        The SRT-1 Core OSS engine is free and open source. By adopting the new <strong>Seed Signature</strong> industry standard, all AI-generated logic, code execution, and architectural changes are cryptographically signed—ensuring that every modification is transparently attributed back to you as the original seed.
+        The SRT-1 Core engine is enterprise-grade. By adopting the new <strong>Seed Signature</strong> industry standard, all AI-generated logic, code execution, and architectural changes are cryptographically signed—ensuring that every modification is transparently attributed back to you as the original seed.
       </div>
       <div class="download-list">
         <div class="download-item">
@@ -2152,7 +2158,7 @@ async function downloadPackage(pkg, filename, btn) {
     btn.style.borderColor = 'var(--green-border)';
   } else {
     // Don't redirect to srt1-core PyPI for authorized bundles
-    alert('SRT-1 Pro and Platform are authorized bundles distributed via your license server, not via the public PyPI open source registry.');
+    alert('SRT-1 Pro and Platform are authorized bundles distributed via your license server, not via the public PyPI registry.');
     btn.innerText = 'See license server';
     btn.style.color = 'var(--amber)';
     btn.style.borderColor = 'var(--amber-border)';
@@ -2837,5 +2843,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 500);
 });
 </script>
+<script src="https://app.lemonsqueezy.com/js/lemon.js" defer></script>
 </body></html>
 
