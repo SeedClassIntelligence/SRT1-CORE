@@ -2948,6 +2948,10 @@ class SRT1Engine:
         print(f"    {'✓' if self.bridge else '○'} Execution Bridge    {'(monitoring)' if self.bridge else '(import srt1_execution_bridge to enable)'}")
         print()
         print("  File watcher active. Changes auto-regenerate everything.")
+        print()
+        print("  Community:  https://join.slack.com/t/seedclassinte-phn4203")
+        print("  Signed by:  SeedSignature — Seed Class Intelligence")
+        print()
         print("  Press Ctrl+C to stop.")
         print()
 

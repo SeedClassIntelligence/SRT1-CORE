@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "SRT1-CORE"
-version = "2.3.2"
+version = "2.3.3"
 description = "SRT-1 — Cognitive Operating System for Software Repositories. Anti-hallucination guardrails for AI code assistants."
 readme = "README.md"
 license = {text = "BSL 1.1"}
@@ -31,7 +31,10 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://seedreflection.com"
+Homepage = "https://srt1.io"
+Documentation = "https://srt1.io/documentation.html"
+Repository = "https://github.com/SeedClassIntelligence/SRT1-CORE"
+Slack = "https://join.slack.com/t/seedclassinte-phn4203/shared_invite/zt-3wbucmj9i-RD1sfhXAAN1_3NuWaF8W2g"
 
 [project.scripts]
 srt1-index = "srt1_code_indexer.engine:main"
