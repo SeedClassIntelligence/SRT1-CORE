@@ -957,6 +957,7 @@ manifest = indexer.<span class="fn">index_repository</span>()
 </footer>
 
 <script src="./SRT-1 for Developers — AI That Understands Your Entire Codebase_files/platform.js"></script>
+<script src="https://app.lemonsqueezy.com/js/lemon.js" defer></script>
 <script>
 (async function() {
   const el = document.getElementById('nav-auth');
@@ -967,14 +968,20 @@ manifest = indexer.<span class="fn">index_repository</span>()
   }
 })();
 
-// Checkout — direct Lemon Squeezy buy links (no backend required)
+// Checkout — Lemon Squeezy overlay (stays on page)
 const CHECKOUT_URLS = {
   pro:        'https://srt-1.lemonsqueezy.com/checkout/buy/3c7b5b89-fe57-4f36-a664-59d7b69aa04f',
   governance: 'https://srt-1.lemonsqueezy.com/checkout/buy/2c0e9081-c536-41c5-8a25-80b4e5e9f210',
 };
 function handleCheckout(plan) {
   const url = CHECKOUT_URLS[plan];
-  if (url) { location.href = url; }
+  if (!url) return;
+  // Try overlay first, fall back to redirect
+  if (window.LemonSqueezy) {
+    window.LemonSqueezy.Url.Open(url);
+  } else {
+    window.open(url, '_blank');
+  }
 }
 </script>
 

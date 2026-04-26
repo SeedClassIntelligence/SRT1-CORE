@@ -13,10 +13,10 @@ SRT1_CODING/
 ├── srt1_mobile.html                 (3) Mobile PWA interface
 ├── README_PYPI.md                   (4) Package description and documentation
 ├── pyproject.toml                   (5) Build Configuration
-├── srt1_code_indexer/               (6) Core Package - Open Source Features
+├── srt1_code_indexer/               (6) Core Package
 │   ├── indexer.py                   - Tree traversal and file mapping
 │   ├── srt.py                       - Intent anchoring models
-│   └── srt1_signature_client_community.py (Safe community stub for open source)
+│   └── srt1_signature_client_community.py (Community signature stub)
 ├── external_api/                       (7) Proprietary V2 Core (PROTECTED - Excluded from Git)
 │   └── srt1_signature_client.py     - True cryptographic signing engine
 ├── srt1_platform/                   (8) Internal Tracing, Networking & Queueing

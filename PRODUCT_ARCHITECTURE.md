@@ -56,7 +56,7 @@ The full SCIA ecosystem (SION, SeedFlow, SeedLink, PersonaSwarm, Natural Convers
 
 Given the full 34-module picture, here's how the commercial products map:
 
-### Tier 1: SRT-1 Core (Free / Open Source)
+### Tier 1: SRT-1 Core
 **Modules served:** #16, #26, #27, #29 (partial), #23 (partial)
 
 The developer-facing intelligence layer. Indexes code, tags risk, builds trust chains, enforces rules. This is the **reflection + governance** subsystem exposed as a standalone tool.
