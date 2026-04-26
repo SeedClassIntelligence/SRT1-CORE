@@ -32,7 +32,7 @@ The middleware runs in the background, firing reflection checkpoints.
 The dashboard shows coherence, warnings, and lets them talk to SRT-1.
 
 Author : William Darnell Jernigan IV (Architect)
-License: Apache License 2.0
+License: Business Source License 1.1
 """
 
 import os

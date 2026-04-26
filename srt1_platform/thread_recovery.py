@@ -47,7 +47,7 @@ HOW TO USE:
     Output goes to stdout AND saves to a recovery report file.
 
 Author : William Darnell Jernigan IV (Architect)
-License: Apache License 2.0
+License: Business Source License 1.1
 """
 
 import os

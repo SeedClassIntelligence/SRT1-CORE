@@ -7,7 +7,7 @@ name = "SRT1-CORE"
 version = "2.3.0"
 description = "SRT-1 — Cognitive Operating System for Software Repositories. Anti-hallucination guardrails for AI code assistants."
 readme = "README.md"
-license = {text = "Apache 2.0"}
+license = {text = "BSL 1.1"}
 requires-python = ">=3.9"
 authors = [
     {name = "William Darnell Jernigan IV"}

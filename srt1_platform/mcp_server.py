@@ -59,7 +59,7 @@ HOW TO INSTALL:
     }
 
 Author : William Darnell Jernigan IV (Architect)
-License: Apache License 2.0
+License: Business Source License 1.1
 """
 
 import os

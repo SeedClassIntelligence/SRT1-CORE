@@ -39,7 +39,7 @@ SRT-1 doesn't need full system access. It partners with whatever
 assistant is already running. It's the connective tissue, not the body.
 
 Author : William Darnell Jernigan IV (Architect)
-License: Apache License 2.0
+License: Business Source License 1.1
 """
 
 import os

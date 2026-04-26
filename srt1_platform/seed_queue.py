@@ -38,7 +38,7 @@ walk away, and come back to see "🌸 BLOOMED — 3 files modified,
 all tests passing, coherence 94%."
 
 Author : William Darnell Jernigan IV (Architect)
-License: Apache License 2.0
+License: Business Source License 1.1
 """
 
 import os
