@@ -219,8 +219,18 @@ Business Source License 1.1 (BSL 1.1)
 
 The source code is available for reading, auditing, and non-production use. Production use requires a commercial license for teams and enterprises. Individual developer use on personal and Proprietary projects is permitted.
 
+## Community
+
+Join the **Seed Class Intelligence** Slack — get help, share your setup, request features, and connect with other developers building with SRT-1.
+
+👉 [**Join Slack**](https://join.slack.com/t/seedclassinte-phn4203/shared_invite/zt-3wbucmj9i-RD1sfhXAAN1_3NuWaF8W2g)
+
+---
+
 **Author:** William Darnell Jernigan IV — THE ORIGINAL SEED
 
 **Architecture:** Seed-Class Intelligence Architecture (SCIA)
+
+**Signed by:** SeedSignature
 
 © 2026 SRT-1 — [srt1.io](https://srt1.io)
