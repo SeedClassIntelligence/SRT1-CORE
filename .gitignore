@@ -9,6 +9,8 @@
 # These rules protect against accidental commits of mock services.
 **/srt1_signature_client*.py
 private_core_v2/
+SRT1-ENTERPRISE/
+SRT1-CORE/
 
 # ── Legacy / stale directories ──
 srt1_code_indexer_pkg/
