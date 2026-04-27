@@ -1,3 +1,9 @@
+# ── SECRETS (NEVER COMMIT) ──
+.env
+*.env
+.env.*
+!.env.example
+
 # ── SRT-1 IP Protection ──
 # The Seed Signature authority is PRIVATE. Never push to any public repo.
 # These rules protect against accidental commits of mock services.
