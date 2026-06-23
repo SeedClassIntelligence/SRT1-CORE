@@ -54,22 +54,54 @@ logger = logging.getLogger("srt1.seeds")
 
 
 class SeedStage(Enum):
-    """The lifecycle stages of a seed."""
-    PLANTED     = "planted"       # 🌱 Received, queued
-    GERMINATING = "germinating"   # 🌿 Blueprint generated, dispatched
-    GROWING     = "growing"       # 🌳 Files being modified
-    BLOOMED     = "bloomed"       # 🌸 Completed successfully
-    WILTED      = "wilted"        # 🍂 Failed or abandoned
-    PAUSED      = "paused"        # ⏸️  Temporarily paused
+    """The lifecycle stages of a seed.
+
+    Full lifecycle:
+      planted -> accepted -> blueprint_created -> awaiting_approval -> approved
+      -> executing -> [partial|blocked] -> completed -> verified -> stitched -> closed
+
+    Terminal states: closed, terminated
+    Suspend state: paused (retains last growth)
+    """
+    PLANTED            = "planted"
+    ACCEPTED           = "accepted"
+    GERMINATING        = "germinating"
+    BLUEPRINT_CREATED  = "blueprint_created"
+    AWAITING_APPROVAL  = "awaiting_approval"
+    APPROVED           = "approved"
+    GROWING            = "growing"
+    EXECUTING          = "executing"
+    PARTIAL            = "partial"
+    BLOCKED            = "blocked"
+    BLOOMED            = "bloomed"
+    COMPLETED          = "completed"
+    VERIFIED           = "verified"
+    STITCHED           = "stitched"
+    CLOSED             = "closed"
+    WILTED             = "wilted"
+    TERMINATED         = "terminated"
+    PAUSED             = "paused"
 
     @property
     def emoji(self) -> str:
         return {
             "planted": "🌱",
+            "accepted": "✋",
             "germinating": "🌿",
+            "blueprint_created": "📐",
+            "awaiting_approval": "⏳",
+            "approved": "✅",
             "growing": "🌳",
+            "executing": "⚡",
+            "partial": "🔶",
+            "blocked": "🚫",
             "bloomed": "🌸",
+            "completed": "🏁",
+            "verified": "🔍",
+            "stitched": "🧵",
+            "closed": "📦",
             "wilted": "🍂",
+            "terminated": "❌",
             "paused": "⏸️",
         }.get(self.value, "❓")
 
@@ -78,12 +110,33 @@ class SeedStage(Enum):
         """Base growth percentage for each stage."""
         return {
             "planted": 0,
-            "germinating": 25,
+            "accepted": 5,
+            "germinating": 15,
+            "blueprint_created": 20,
+            "awaiting_approval": 25,
+            "approved": 30,
             "growing": 50,
+            "executing": 50,
+            "partial": 70,
+            "blocked": -1,
             "bloomed": 100,
+            "completed": 100,
+            "verified": 100,
+            "stitched": 100,
+            "closed": 100,
             "wilted": 0,
-            "paused": -1,  # Retains last growth value
+            "terminated": 0,
+            "paused": -1,
         }.get(self.value, 0)
+
+    @property
+    def is_terminal(self) -> bool:
+        return self in (SeedStage.CLOSED, SeedStage.TERMINATED,
+                        SeedStage.BLOOMED, SeedStage.WILTED)
+
+    @property
+    def is_active(self) -> bool:
+        return not self.is_terminal and self != SeedStage.PAUSED
 
 
 class Seed:
@@ -151,9 +204,11 @@ class Seed:
             "note": note or f"Transitioned from {old_stage.value} to {new_stage.value}",
         })
 
-        if new_stage in (SeedStage.BLOOMED, SeedStage.WILTED):
+        if new_stage.is_terminal:
             self.completed_at = self.updated_at
-            self.success = (new_stage == SeedStage.BLOOMED)
+            self.success = new_stage in (SeedStage.BLOOMED, SeedStage.COMPLETED,
+                                          SeedStage.VERIFIED, SeedStage.STITCHED,
+                                          SeedStage.CLOSED)
 
         logger.info(f"Seed {self.seed_id}: {old_stage.emoji} {old_stage.value} → "
                      f"{new_stage.emoji} {new_stage.value}")
@@ -185,8 +240,7 @@ class Seed:
         """Record that a file was modified as part of this seed."""
         if filepath not in self.files_modified:
             self.files_modified.append(filepath)
-        # Increment growth slightly for each file modified during GROWING
-        if self.stage == SeedStage.GROWING:
+        if self.stage in (SeedStage.GROWING, SeedStage.EXECUTING):
             scale = min(95, 50 + len(self.files_modified) * 5)
             self.growth = scale
 
@@ -380,8 +434,65 @@ class SCIASeedQueue:
         self._save()
         return seed
 
+    def accept(self, seed_id: str) -> Optional[Seed]:
+        seed = self._seeds.get(seed_id)
+        if not seed:
+            return None
+        seed.advance(SeedStage.ACCEPTED, "Seed accepted for processing")
+        self._save()
+        return seed
+
+    def await_approval(self, seed_id: str, blueprint: str = "") -> Optional[Seed]:
+        seed = self._seeds.get(seed_id)
+        if not seed:
+            return None
+        seed.advance(SeedStage.AWAITING_APPROVAL, "Blueprint ready for human review")
+        if blueprint:
+            seed.blueprint = blueprint
+        self._save()
+        return seed
+
+    def approve(self, seed_id: str, note: str = "") -> Optional[Seed]:
+        seed = self._seeds.get(seed_id)
+        if not seed:
+            return None
+        seed.advance(SeedStage.APPROVED, note or "Approved by human")
+        self._save()
+        return seed
+
+    def verify(self, seed_id: str, summary: str = "") -> Optional[Seed]:
+        seed = self._seeds.get(seed_id)
+        if not seed:
+            return None
+        seed.advance(SeedStage.VERIFIED, summary or "Changes verified")
+        self._save()
+        return seed
+
+    def stitch(self, seed_id: str, summary: str = "") -> Optional[Seed]:
+        seed = self._seeds.get(seed_id)
+        if not seed:
+            return None
+        seed.advance(SeedStage.STITCHED, summary or "Merged back to main")
+        self._save()
+        return seed
+
+    def close(self, seed_id: str) -> Optional[Seed]:
+        seed = self._seeds.get(seed_id)
+        if not seed:
+            return None
+        seed.advance(SeedStage.CLOSED, "Seed closed")
+        self._save()
+        return seed
+
+    def block(self, seed_id: str, reason: str = "") -> Optional[Seed]:
+        seed = self._seeds.get(seed_id)
+        if not seed:
+            return None
+        seed.advance(SeedStage.BLOCKED, reason or "Blocked by dependency or conflict")
+        self._save()
+        return seed
+
     def pause(self, seed_id: str, reason: str = "") -> Optional[Seed]:
-        """Pause a seed temporarily."""
         seed = self._seeds.get(seed_id)
         if not seed:
             return None
@@ -390,11 +501,10 @@ class SCIASeedQueue:
         return seed
 
     def resume(self, seed_id: str) -> Optional[Seed]:
-        """Resume a paused seed (returns to GROWING)."""
         seed = self._seeds.get(seed_id)
         if not seed or seed.stage != SeedStage.PAUSED:
             return None
-        seed.advance(SeedStage.GROWING, "Resumed by user")
+        seed.advance(SeedStage.EXECUTING, "Resumed by user")
         self._save()
         return seed
 
@@ -407,9 +517,9 @@ class SCIASeedQueue:
         seed = self._seeds.get(seed_id)
         if seed:
             seed.record_file_change(filepath)
-            # Auto-advance to GROWING if still GERMINATING
-            if seed.stage == SeedStage.GERMINATING:
-                seed.advance(SeedStage.GROWING, f"First file modified: {filepath}")
+            if seed.stage in (SeedStage.GERMINATING, SeedStage.BLUEPRINT_CREATED,
+                              SeedStage.APPROVED):
+                seed.advance(SeedStage.EXECUTING, f"First file modified: {filepath}")
             self._save()
 
     def record_coherence(self, seed_id: str, score: float, status: str) -> None:
@@ -452,7 +562,7 @@ class SCIASeedQueue:
 
         # Sort: active seeds first (by priority), then completed (by date)
         def sort_key(s):
-            is_active = s.stage not in (SeedStage.BLOOMED, SeedStage.WILTED)
+            is_active = s.stage.is_active
             return (not is_active, -s.priority, s.created_at)
 
         seeds.sort(key=sort_key)
@@ -464,8 +574,7 @@ class SCIASeedQueue:
 
     def get_active_seed(self) -> Optional[Dict]:
         """Get the single currently-active seed (highest priority growing/germinating)."""
-        active = [s for s in self._seeds.values() 
-                  if s.stage in (SeedStage.PLANTED, SeedStage.GERMINATING, SeedStage.GROWING)]
+        active = [s for s in self._seeds.values() if s.stage.is_active]
         if not active:
             return None
         active.sort(key=lambda s: (-s.priority, s.created_at))
@@ -507,7 +616,7 @@ class SCIASeedQueue:
             total_growth += seed.growth
 
             # Completion stats
-            if seed.stage == SeedStage.BLOOMED:
+            if seed.stage.is_terminal and seed.success:
                 bloomed_count += 1
                 if seed.completed_at and seed.created_at:
                     try:
@@ -516,7 +625,7 @@ class SCIASeedQueue:
                         bloom_times.append((completed - created).total_seconds())
                     except ValueError:
                         pass
-            elif seed.stage == SeedStage.WILTED:
+            elif seed.stage.is_terminal and not seed.success:
                 wilted_count += 1
 
         # Success rate
@@ -550,8 +659,7 @@ class SCIASeedQueue:
 
     def _oldest_active(self) -> Optional[Dict]:
         """Find the oldest active seed (might need attention)."""
-        active = [s for s in self._seeds.values()
-                  if s.stage not in (SeedStage.BLOOMED, SeedStage.WILTED)]
+        active = [s for s in self._seeds.values() if s.stage.is_active]
         if not active:
             return None
         oldest = min(active, key=lambda s: s.created_at)
@@ -600,7 +708,7 @@ class SCIASeedQueue:
         Returns number of seeds pruned.
         """
         completed = [(sid, s) for sid, s in self._seeds.items()
-                     if s.stage in (SeedStage.BLOOMED, SeedStage.WILTED)]
+                     if s.stage.is_terminal]
         completed.sort(key=lambda x: x[1].completed_at or "", reverse=True)
 
         pruned = 0
