@@ -69,4 +69,24 @@ SEED GRAPH/
 srt1_dashboard.html
 srt1_mobile.html
 seed-reflection/
-\n# -- ENTERPRISE PLATFORM (DO NOT TRACK IN CORE) --\nsrt1_platform/remote_auth.py\nsrt1_platform/proxy_engine.py\nsrt1_platform/delta_auditor.py\nsrt1_platform/srt1_sion_cli.py\nsrt1_code_indexer_engine.py
+
+# -- ENTERPRISE PLATFORM (DO NOT TRACK IN CORE) --
+srt1_platform/remote_auth.py
+srt1_platform/proxy_engine.py
+srt1_platform/delta_auditor.py
+srt1_platform/srt1_sion_cli.py
+srt1_code_indexer_engine.py
+
+# -- PRIVATE IMPLEMENTATIONS (DO NOT TRACK IN CORE) --
+memory/
+scia_memory/
+scia_security/
+docs/SRT1_ENTERPRISE_ARCHITECTURE.md
+
+# -- LOCAL RECOVERY / RUNTIME ARTIFACTS --
+debug.log
+pytest_output.txt
+srt1_audit_delta.json
+*.bak
+scratch.html
+unknown_to_ast.py
