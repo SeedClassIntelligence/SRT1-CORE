@@ -51,7 +51,7 @@ platform = []
 all = []
 
 [tool.setuptools.packages.find]
-include = ["srt1_code_indexer*", "srt1_pro*", "srt1_platform*"]
+include = ["srt1_code_indexer*", "srt1_pro*", "srt1_platform*", "srt1_sandbox*", "srt1_stitching*"]
 exclude = ["srt1_code_indexer_pkg*"]
 
 [tool.setuptools.data-files]
