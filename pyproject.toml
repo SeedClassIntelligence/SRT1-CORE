@@ -54,6 +54,10 @@ all = []
 include = ["srt1_code_indexer*", "srt1_pro*", "srt1_platform*"]
 exclude = ["srt1_code_indexer_pkg*"]
 
-[tool.setuptools.package-data]
-srt1_platform = ["pwa/*.html", "pwa/**/*.js", "pwa/**/*.css", "pwa/**/*.json", "pwa/**/*.png", "pwa/**/*.svg", "pwa/**/*.woff2", "mobile/*.html"]
+[tool.setuptools.data-files]
+"share/srt1/developer-pwa" = ["developer-pwa/*.html", "developer-pwa/*.js", "developer-pwa/*.json"]
+"share/srt1/developer-pwa/js" = ["developer-pwa/js/*.js"]
+"share/srt1/developer-pwa/assets" = ["developer-pwa/assets/*.css"]
+"share/srt1/developer-pwa/api" = ["developer-pwa/api/*.js"]
+"share/srt1/developer-pwa/templates" = ["developer-pwa/templates/*.html"]
 

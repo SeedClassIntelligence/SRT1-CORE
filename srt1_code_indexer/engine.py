@@ -2886,10 +2886,10 @@ class SRT1Engine:
         script_dir = os.path.dirname(os.path.abspath(__file__))
         core_dir = os.path.dirname(script_dir)
         candidates = [
-            # pip-installed package location
+            os.path.join(core_dir, "developer-pwa", "dashboard.html"),
+            os.path.join(self.repo_path, "developer-pwa", "dashboard.html"),
             os.path.join(core_dir, "srt1_platform", "pwa", "dashboard.html"),
             os.path.join(self.repo_path, "srt1_platform", "pwa", "dashboard.html"),
-            os.path.join(self.repo_path, "SRT1-CORE", "srt1_platform", "pwa", "dashboard.html"),
         ]
         for c in candidates:
             if os.path.exists(c):
