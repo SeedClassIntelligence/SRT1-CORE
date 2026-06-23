@@ -71,7 +71,7 @@ class ExecutionGraph(SQLiteDatabaseManager):
         super().__init__(db_path or os.environ.get("EXECUTION_GRAPH_DB", "./data/execution_graph.db"))
 
         # Encryption at rest
-        from security.encryption import DataEncryptor
+        from .encryption import DataEncryptor
         self._encryptor = DataEncryptor(master_secret=encryption_key)
 
         # Access audit logging
