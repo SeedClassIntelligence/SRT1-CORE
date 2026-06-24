@@ -25,6 +25,13 @@ import argparse
 from datetime import datetime
 from collections import defaultdict
 
+try:
+    from srt1_code_indexer.language_parsers import dispatch_parser
+except ImportError:
+    try:
+        from language_parsers import dispatch_parser
+    except ImportError:
+        dispatch_parser = lambda source, file_path, extension: []
 
 # ─── MODULE SCANNER ───────────────────────────────────────────────
 
@@ -33,8 +40,8 @@ class ModuleScanner:
 
     # File extensions to scan
     PY_EXTENSIONS = {".py"}
-    WEB_EXTENSIONS = {".html", ".js", ".css"}
-    ALL_EXTENSIONS = PY_EXTENSIONS | WEB_EXTENSIONS | {".md", ".json", ".yaml", ".yml"}
+    WEB_EXTENSIONS = {".html", ".js", ".jsx", ".css", ".scss", ".ts", ".tsx"}
+    ALL_EXTENSIONS = PY_EXTENSIONS | WEB_EXTENSIONS | {".go", ".rs", ".java", ".c", ".cpp", ".h", ".md", ".json", ".yaml", ".yml"}
 
     def __init__(self, module_path: str, module_name: str):
         self.path = os.path.abspath(module_path)
@@ -49,7 +56,7 @@ class ModuleScanner:
     def scan(self) -> dict:
         """Scan the module and return a structured summary."""
         self._collect_files()
-        self._analyze_python_files()
+        self._analyze_source_files()
         return self._build_summary()
 
     def _collect_files(self):
@@ -66,19 +73,54 @@ class ModuleScanner:
                         "size": os.path.getsize(os.path.join(root, f))
                     })
 
-    def _analyze_python_files(self):
-        """Parse Python files to extract classes, functions, and imports."""
+    def _analyze_source_files(self):
+        """Parse all source files to extract classes, functions, and imports."""
         for file_info in self.files:
-            if file_info["type"] != ".py":
-                continue
+            ext = file_info["type"]
             full_path = os.path.join(self.path, file_info["path"])
+            
             try:
                 with open(full_path, "r", encoding="utf-8", errors="ignore") as f:
                     source = f.read()
-                tree = ast.parse(source, filename=file_info["path"])
-                self._extract_from_ast(tree, file_info["path"])
-            except (SyntaxError, UnicodeDecodeError):
-                pass
+            except OSError:
+                continue
+
+            if ext == ".py":
+                self._analyze_python_file(source, file_info["path"])
+            elif ext in {".js", ".jsx", ".ts", ".tsx", ".go", ".rs", ".java", ".c", ".cpp", ".h"}:
+                self._analyze_with_regex(source, file_info["path"], ext)
+
+    def _analyze_python_file(self, source: str, filepath: str):
+        try:
+            tree = ast.parse(source, filename=filepath)
+            self._extract_from_ast(tree, filepath)
+        except (SyntaxError, UnicodeDecodeError):
+            pass
+
+    def _analyze_with_regex(self, source: str, filepath: str, ext: str):
+        symbols = dispatch_parser(source, filepath, ext)
+        for sym in symbols:
+            if sym["type"] == "class":
+                self.classes.append({
+                    "name": sym["name"],
+                    "file": filepath,
+                    "line": sym["line"],
+                    "methods": []
+                })
+                self.exports.append(sym["name"])
+            elif sym["type"] == "function":
+                self.functions.append({
+                    "name": sym["name"],
+                    "file": filepath,
+                    "line": sym["line"]
+                })
+                if not sym["name"].startswith("_"):
+                    self.exports.append(sym["name"])
+            elif sym["type"] in {"interface", "type", "enum", "struct", "trait"}:
+                if not sym["name"].startswith("_"):
+                    self.exports.append(sym["name"])
+            # Note: For workspace connector we keep the existing import logic simple.
+            # Regex parsers don't currently extract 'imports' robustly into a separate list.
 
     def _extract_from_ast(self, tree: ast.AST, filepath: str):
         """Extract classes, functions, and imports from an AST."""
