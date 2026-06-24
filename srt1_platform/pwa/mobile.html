@@ -6,11 +6,11 @@
   <meta name="theme-color" content="#06080f">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Seed Reflection">
-  <link rel="manifest" href="/manifest.json">
+  <meta name="apple-mobile-web-app-title" content="SRT-1 Mobile PWA">
+  <link rel="manifest" href="manifest.json">
   <link rel="preconnect" href="https://fonts.googleapis.com/">
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-  <title>Seed Reflection</title>
+  <title>SRT-1 Mobile PWA</title>
   <style>
     :root {
       --bg:#060a0f;--bg2:#0b1018;--bg3:#111820;--bg4:#1a222e;--bg5:#222d3a;
@@ -256,7 +256,7 @@
           <button class="btn-secondary" id="btn-reject" onclick="rejectBlueprint()" style="opacity: 0.5;" disabled>Reject</button>
         </div>
         <div style="text-align: center; font-size: 9px; color: var(--text3); margin-top: 12px; letter-spacing: 0.05em; font-family: var(--mono);">
-          🛡️ All actions cryptographically signed by Seed Signature
+          🛡️ Trust metadata recorded; Seed Signature applies when configured
         </div>
       </div>
 
@@ -748,7 +748,7 @@ async function approveBlueprint() {
     if (resp.ok) {
       seed.status = 'growing';
       await dbPut('seeds', seed);
-      showToast('✅ Approved & Signed by Seed Signature', 'success');
+      showToast('✅ Approved; trust state recorded', 'success');
     } else {
       showToast('⚠️ Approved locally — dispatch will retry', '');
     }
@@ -769,7 +769,7 @@ async function rejectBlueprint() {
   seed.status = 'wilted';
   await dbPut('seeds', seed);
 
-  showToast('❌ Rejected — Logged by Seed Signature', '');
+  showToast('❌ Rejected — review state recorded', '');
   resetReviewCard();
   loadRecentSeeds();
   updatePendingBadge();
@@ -1076,7 +1076,7 @@ function extractChatGPTMessages(conv) {
 }
 
 // ── Garden (Live Dashboard) ───────────────────────────────────────────────────
-const ENGINE_BASE = window.location.port === '7483' ? '' : 'http://127.0.0.1:7483';
+const ENGINE_BASE = (window.location.port && window.location.port !== '8080' && window.location.port !== '8000') ? '' : 'http://127.0.0.1:8475';
 
 async function loadGarden() {
   // Always load local data first

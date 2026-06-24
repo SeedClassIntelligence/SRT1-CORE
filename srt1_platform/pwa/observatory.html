@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SRT-1 Continuity Observatory</title>
+<link rel="preconnect" href="https://fonts.googleapis.com/">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#060a0f;--bg2:#0b1018;--bg3:#111820;--bg4:#1a222e;--bg5:#222d3a;
+  --border:#1e2a38;--border2:#2a3a4e;--border3:#384860;
+  --text:#e8edf4;--text2:#a0aec0;--text3:#6b7a8d;--text4:#4a5568;
+  --green:#22c55e;--green2:#16a34a;--green-bg:rgba(34,197,94,0.08);--green-border:rgba(34,197,94,0.2);
+  --cyan:#06b6d4;--cyan-bg:rgba(6,182,212,0.08);--cyan-border:rgba(6,182,212,0.2);
+  --amber:#f59e0b;--amber-bg:rgba(245,158,11,0.08);--amber-border:rgba(245,158,11,0.2);
+  --red:#ef4444;--red-bg:rgba(239,68,68,0.08);--red-border:rgba(239,68,68,0.2);
+  --purple:#a78bfa;--purple-bg:rgba(167,139,250,0.08);--purple-border:rgba(167,139,250,0.2);
+  --sans:'Inter',system-ui,sans-serif;
+  --mono:'JetBrains Mono',monospace;
+}
+html{-webkit-font-smoothing:antialiased;}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;display:flex;}
+
+/* === SIDEBAR === */
+.sidebar{width:260px;background:var(--bg2);border-right:1px solid var(--border);padding:24px 0;display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100;overflow-y:auto;}
+.sidebar-logo{display:flex;align-items:center;gap:12px;padding:0 24px;margin-bottom:32px;}
+.sidebar-logo-icon{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--cyan),var(--purple));display:flex;align-items:center;justify-content:center;font-weight:900;font-size:14px;color:#000;font-family:var(--mono);}
+.sidebar-logo-text{font-family:var(--mono);font-weight:700;font-size:15px;}
+.sidebar-logo-text span{display:block;font-size:11px;color:var(--text3);font-weight:400;}
+.sidebar-nav{flex:1;}
+.nav-section{padding:0 16px;margin-bottom:24px;}
+.nav-section-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--text4);padding:0 8px;margin-bottom:8px;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;color:var(--text2);font-size:14px;font-weight:500;cursor:pointer;transition:all 0.15s;text-decoration:none;margin-bottom:2px;}
+.nav-item:hover{background:var(--bg3);color:var(--text);}
+.nav-item.active{background:var(--cyan-bg);color:var(--cyan);border:1px solid var(--cyan-border);}
+
+/* === MAIN === */
+.main{margin-left:260px;flex:1;padding:32px;min-height:100vh;max-width:1400px;}
+.page-header{margin-bottom:32px;display:flex;justify-content:space-between;align-items:flex-start;}
+.page-header h1{font-size:32px;font-weight:300;letter-spacing:-0.5px;margin-bottom:4px;}
+.page-header p{color:var(--text3);font-size:14px;}
+
+/* === STAT CARDS === */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:32px;}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:24px;position:relative;overflow:hidden;}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+.stat-card.green::before{background:var(--green);}
+.stat-card.cyan::before{background:var(--cyan);}
+.stat-card.amber::before{background:var(--amber);}
+.stat-card.purple::before{background:var(--purple);}
+.stat-card.red::before{background:var(--red);}
+.stat-card.grey::before{background:var(--text4);}
+.stat-label{font-size:12px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;}
+.stat-value{font-family:var(--mono);font-size:28px;font-weight:700;line-height:1;}
+.stat-sub{font-size:12px;color:var(--text3);margin-top:6px;}
+
+/* === PANELS === */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:32px;}
+.panel{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:24px;overflow:visible;}
+.panel-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
+.panel-title{font-size:15px;font-weight:700;}
+.panel-badge{font-family:var(--mono);font-size:11px;padding:4px 12px;border-radius:6px;background:var(--bg3);color:var(--green);border:1px solid var(--green-border);}
+.panel-badge.warn{color:var(--amber);border-color:var(--amber-border);background:var(--amber-bg);}
+.panel-badge.unknown{color:var(--text3);border-color:var(--border2);background:var(--bg3);}
+.panel-badge.degraded{color:var(--red);border-color:var(--red-border);background:var(--red-bg);}
+
+/* === FRESHNESS TABLE === */
+.freshness-table{width:100%;border-collapse:collapse;}
+.freshness-table th{text-align:left;font-size:11px;color:var(--text4);text-transform:uppercase;letter-spacing:0.5px;padding:8px 12px;border-bottom:1px solid var(--border);}
+.freshness-table td{padding:12px;border-bottom:1px solid var(--border);font-size:13px;}
+.freshness-table tr:last-child td{border-bottom:none;}
+.freshness-table .doc-name{font-family:var(--mono);font-weight:600;color:var(--text);}
+.freshness-table .doc-time{font-family:var(--mono);font-size:11px;color:var(--text3);}
+
+/* === STATUS BADGES === */
+.status-badge{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;padding:4px 10px;border-radius:6px;font-weight:600;}
+.status-badge.fresh{color:var(--green);background:var(--green-bg);border:1px solid var(--green-border);}
+.status-badge.stale{color:var(--amber);background:var(--amber-bg);border:1px solid var(--amber-border);}
+.status-badge.degraded{color:var(--red);background:var(--red-bg);border:1px solid var(--red-border);}
+.status-badge.unknown{color:var(--text3);background:var(--bg3);border:1px solid var(--border2);}
+
+/* === POSTURE GRID === */
+.posture-grid{display:flex;flex-direction:column;gap:6px;}
+.posture-row{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg);border:1px solid var(--border);border-radius:8px;font-size:13px;}
+.posture-label{color:var(--text2);font-weight:500;}
+.posture-value{font-family:var(--mono);font-size:12px;font-weight:600;}
+.posture-value.active{color:var(--green);}
+.posture-value.disabled{color:var(--text4);}
+.posture-value.forbidden{color:var(--red);}
+.posture-value.sandbox{color:var(--cyan);}
+.posture-value.observational{color:var(--purple);}
+
+/* === CONSISTENCY CHECKS === */
+.check-grid{display:flex;flex-direction:column;gap:6px;}
+.check-row{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--bg);border:1px solid var(--border);border-radius:8px;font-size:13px;transition:border-color 0.2s;}
+.check-row:hover{border-color:var(--border2);}
+.check-name{color:var(--text2);font-weight:500;}
+.check-desc{font-size:11px;color:var(--text4);margin-top:2px;}
+.check-status{display:flex;align-items:center;gap:8px;}
+.check-time{font-size:10px;color:var(--text4);font-family:var(--mono);}
+
+/* === DOCTRINE BANNER === */
+.doctrine-banner{padding:16px 20px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;margin-bottom:32px;display:flex;align-items:center;gap:16px;font-size:13px;color:var(--text3);line-height:1.6;}
+.doctrine-banner .icon{font-size:24px;flex-shrink:0;}
+.doctrine-banner strong{color:var(--cyan);}
+
+/* === RESPONSIVE === */
+@media(max-width:1200px){.stats-row{grid-template-columns:repeat(2,1fr);}.grid-2{grid-template-columns:1fr;}}
+@media(max-width:768px){
+  body{flex-direction:column;}
+  .sidebar{position:static;width:100%;height:auto;border-right:none;border-bottom:1px solid var(--border);padding:16px 0;}
+  .main{margin-left:0;padding:16px;width:100%;overflow-x:hidden;}
+  .stats-row{grid-template-columns:1fr;}
+}
+
+/* === PULSE ANIMATION === */
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.4;}}
+.pulse{animation:pulse 2s infinite;}
+
+/* === LOADING STATE === */
+.loading-shimmer{background:linear-gradient(90deg,var(--bg3) 25%,var(--bg4) 50%,var(--bg3) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;}
+@keyframes shimmer{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="sidebar-logo-icon">CO</div>
+    <div class="sidebar-logo-text">SRT-1<span>Continuity Observatory</span></div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section">
+      <div class="nav-section-label">Observatory</div>
+      <a class="nav-item active" href="#freshness">🔍 Freshness Monitor</a>
+      <a class="nav-item" href="#posture">📋 Stabilization Posture</a>
+      <a class="nav-item" href="#consistency">⚠️ Consistency Checks</a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-section-label">Navigation</div>
+      <a class="nav-item" href="constellation.html" style="color:var(--cyan);">↑ Constellation</a>
+      <a class="nav-item" href="dashboard.html">← Module Dashboard</a>
+      <a class="nav-item" href="Install-SRT1.ps1" download>⬇️ Download Installer</a>
+    </div>
+  </nav>
+  <div style="padding:16px 24px;border-top:1px solid var(--border);margin-top:auto;">
+    <div style="font-size:10px;color:var(--text4);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Doctrine</div>
+    <div style="font-size:11px;color:var(--text3);line-height:1.5;font-style:italic;">Reports divergence.<br>Does not fix divergence.</div>
+  </div>
+</aside>
+
+<!-- MAIN CONTENT -->
+<main class="main">
+
+  <div class="page-header">
+    <div>
+      <h1>Continuity Observatory</h1>
+      <p>Canonical memory integrity — detective only, read-only, GET-only</p>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <div class="panel-badge unknown" id="globalFreshness">LOADING...</div>
+      <button onclick="loadContinuity()" style="padding:8px 16px;background:var(--bg3);border:1px solid var(--border2);color:var(--text);border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--sans);">Refresh</button>
+    </div>
+  </div>
+
+  <!-- DOCTRINE BANNER -->
+  <div class="doctrine-banner">
+    <div class="icon">🔒</div>
+    <div>This page is <strong>detective-only</strong>. It reports the state of canonical continuity memory. It does not modify, remediate, or correct any document. All data is fetched via <strong>GET /api/continuity</strong>. No mutation controls exist on this surface.</div>
+  </div>
+
+  <!-- STAT CARDS -->
+  <div class="stats-row">
+    <div class="stat-card grey" id="statCardFreshness">
+      <div class="stat-label">Overall Freshness</div>
+      <div class="stat-value" id="statFreshness" style="color:var(--text3);">—</div>
+      <div class="stat-sub" id="statFreshnessSub">Loading from engine...</div>
+    </div>
+    <div class="stat-card grey" id="statCardDocs">
+      <div class="stat-label">Canonical Documents</div>
+      <div class="stat-value" id="statDocs" style="color:var(--text3);">—</div>
+      <div class="stat-sub" id="statDocsSub">Loading...</div>
+    </div>
+    <div class="stat-card grey" id="statCardPosture">
+      <div class="stat-label">Stabilization Phase</div>
+      <div class="stat-value" id="statPosture" style="color:var(--text3);font-size:20px;">—</div>
+      <div class="stat-sub" id="statPostureSub">Loading...</div>
+    </div>
+    <div class="stat-card grey" id="statCardChecks">
+      <div class="stat-label">Consistency Checks</div>
+      <div class="stat-value" id="statChecks" style="color:var(--text3);">—</div>
+      <div class="stat-sub" id="statChecksSub">Loading...</div>
+    </div>
+  </div>
+
+  <!-- FRESHNESS MONITOR + POSTURE -->
+  <div class="grid-2">
+    <!-- FRESHNESS MONITOR -->
+    <div class="panel" id="freshness" style="scroll-margin-top:80px;">
+      <div class="panel-header">
+        <div class="panel-title">🔍 Continuity Freshness Monitor</div>
+        <div class="panel-badge unknown" id="freshnessBadge">loading...</div>
+      </div>
+      <table class="freshness-table" id="freshnessTable">
+        <thead><tr><th>Document</th><th>Modified</th><th>Status</th></tr></thead>
+        <tbody id="freshnessBody">
+          <tr><td colspan="3" style="text-align:center;color:var(--text4);padding:24px;">Loading continuity data...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- STABILIZATION POSTURE -->
+    <div class="panel" id="posture" style="scroll-margin-top:80px;">
+      <div class="panel-header">
+        <div class="panel-title">📋 Stabilization Posture</div>
+        <div class="panel-badge unknown" id="postureBadge">loading...</div>
+      </div>
+      <div class="posture-grid" id="postureGrid">
+        <div style="text-align:center;color:var(--text4);padding:24px;font-size:13px;">Loading posture data...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONSISTENCY VERIFICATION -->
+  <div class="panel" id="consistency" style="scroll-margin-top:80px;margin-bottom:32px;">
+    <div class="panel-header">
+      <div class="panel-title">⚠️ Consistency Verification (Detective Only)</div>
+      <div class="panel-badge unknown" id="consistencyBadge">loading...</div>
+    </div>
+    <div style="font-size:12px;color:var(--text4);margin-bottom:16px;line-height:1.5;">
+      Detects divergence between canonical compressed memory and physical runtime state. Reports only — never repairs.
+    </div>
+    <div class="check-grid" id="consistencyGrid">
+      <div style="text-align:center;color:var(--text4);padding:24px;font-size:13px;">Loading consistency checks...</div>
+    </div>
+  </div>
+
+  <!-- LAST CHECKED FOOTER -->
+  <div style="text-align:center;padding:16px;font-size:11px;color:var(--text4);font-family:var(--mono);">
+    Last fetched: <span id="lastChecked">never</span> · Data source: <span id="dataSource">—</span> · Constitution v<span id="constVersion">—</span>
+  </div>
+
+</main>
+
+<script>
+const API_BASE = (window.location.port && window.location.port !== '8080' && window.location.port !== '8000') ? window.location.origin : 'http://127.0.0.1:8475';
+const FRESHNESS_COLORS = {
+  FRESH: { color: 'var(--green)', class: 'fresh', card: 'green', icon: '🟢' },
+  STALE: { color: 'var(--amber)', class: 'stale', card: 'amber', icon: '🟡' },
+  DEGRADED: { color: 'var(--red)', class: 'degraded', card: 'red', icon: '🔴' },
+  UNKNOWN: { color: 'var(--text3)', class: 'unknown', card: 'grey', icon: '⚪' }
+};
+
+async function loadContinuity() {
+  try {
+    const res = await fetch(`${API_BASE}/api/continuity`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    renderFreshness(data);
+    renderPosture(data);
+    renderConsistency(data);
+    renderStats(data);
+    document.getElementById('lastChecked').textContent = new Date().toLocaleTimeString();
+    document.getElementById('dataSource').textContent = data.data_source || 'engine';
+    document.getElementById('constVersion').textContent = data.constitution_version || '?';
+  } catch (err) {
+    renderError(err.message);
+  }
+}
+
+function renderFreshness(data) {
+  const docs = data.documents || [];
+  const overall = data.freshness_state || 'UNKNOWN';
+  const fc = FRESHNESS_COLORS[overall] || FRESHNESS_COLORS.UNKNOWN;
+
+  // Global badge
+  const gb = document.getElementById('globalFreshness');
+  gb.textContent = overall;
+  gb.className = `panel-badge ${fc.class}`;
+
+  // Panel badge
+  const fb = document.getElementById('freshnessBadge');
+  const freshCount = docs.filter(d => d.freshness === 'FRESH').length;
+  fb.textContent = `${freshCount}/${docs.length} FRESH`;
+  fb.className = freshCount === docs.length ? 'panel-badge' : (freshCount > 0 ? 'panel-badge warn' : 'panel-badge degraded');
+
+  // Table
+  const tbody = document.getElementById('freshnessBody');
+  if (docs.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--text4);padding:24px;">No canonical documents found — freshness: DEGRADED</td></tr>';
+    return;
+  }
+  tbody.innerHTML = docs.map(doc => {
+    const dfc = FRESHNESS_COLORS[doc.freshness] || FRESHNESS_COLORS.UNKNOWN;
+    const age = doc.age_display || '—';
+    return `<tr>
+      <td class="doc-name">${dfc.icon} ${doc.name}</td>
+      <td class="doc-time">${doc.last_modified || '—'}<br><span style="color:var(--text4)">${age}</span></td>
+      <td><span class="status-badge ${dfc.class}">${doc.freshness}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+function renderPosture(data) {
+  const posture = data.posture || [];
+  const pb = document.getElementById('postureBadge');
+  pb.textContent = data.stabilization_phase || 'UNKNOWN';
+  pb.className = data.stabilization_phase === 'ACTIVE' ? 'panel-badge' : 'panel-badge unknown';
+
+  const grid = document.getElementById('postureGrid');
+  if (posture.length === 0) {
+    grid.innerHTML = '<div style="text-align:center;color:var(--text4);padding:24px;font-size:13px;">Posture data unavailable — UNKNOWN</div>';
+    return;
+  }
+  grid.innerHTML = posture.map(p => {
+    let cls = 'disabled';
+    const v = (p.value || '').toUpperCase();
+    if (v.includes('ACTIVE') || v.includes('PRESERVED') || v.includes('OPERATIONAL')) cls = 'active';
+    else if (v.includes('FORBIDDEN')) cls = 'forbidden';
+    else if (v.includes('SANDBOX') || v.includes('HUMAN')) cls = 'sandbox';
+    else if (v.includes('OBSERVATIONAL')) cls = 'observational';
+    return `<div class="posture-row">
+      <span class="posture-label">${p.label}</span>
+      <span class="posture-value ${cls}">${p.value}</span>
+    </div>`;
+  }).join('');
+}
+
+function renderConsistency(data) {
+  const checks = data.consistency_checks || [];
+  const cb = document.getElementById('consistencyBadge');
+  const implemented = checks.filter(c => c.status !== 'UNKNOWN').length;
+  cb.textContent = implemented > 0 ? `${implemented}/${checks.length} CHECKED` : 'NOT IMPLEMENTED';
+  cb.className = implemented > 0 ? 'panel-badge warn' : 'panel-badge unknown';
+
+  const grid = document.getElementById('consistencyGrid');
+  if (checks.length === 0) {
+    grid.innerHTML = '<div style="text-align:center;color:var(--text4);padding:24px;font-size:13px;">No consistency checks defined</div>';
+    return;
+  }
+  grid.innerHTML = checks.map(c => {
+    const cfc = FRESHNESS_COLORS[c.status] || FRESHNESS_COLORS.UNKNOWN;
+    return `<div class="check-row">
+      <div>
+        <div class="check-name">${c.name}</div>
+        <div class="check-desc">${c.description || ''}</div>
+      </div>
+      <div class="check-status">
+        <span class="check-time">${c.last_checked || 'Never'}</span>
+        <span class="status-badge ${cfc.class}">${c.status}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderStats(data) {
+  const docs = data.documents || [];
+  const checks = data.consistency_checks || [];
+  const overall = data.freshness_state || 'UNKNOWN';
+  const fc = FRESHNESS_COLORS[overall] || FRESHNESS_COLORS.UNKNOWN;
+  const freshCount = docs.filter(d => d.freshness === 'FRESH').length;
+
+  // Freshness stat
+  const sf = document.getElementById('statFreshness');
+  sf.textContent = overall;
+  sf.style.color = fc.color;
+  document.getElementById('statCardFreshness').className = `stat-card ${fc.card}`;
+  document.getElementById('statFreshnessSub').textContent = `${freshCount}/${docs.length} docs verified fresh`;
+
+  // Docs stat
+  document.getElementById('statDocs').textContent = docs.length;
+  document.getElementById('statDocs').style.color = 'var(--cyan)';
+  document.getElementById('statCardDocs').className = 'stat-card cyan';
+  document.getElementById('statDocsSub').textContent = 'Canonical documents tracked';
+
+  // Posture stat
+  const sp = document.getElementById('statPosture');
+  sp.textContent = data.stabilization_phase || 'UNKNOWN';
+  sp.style.color = data.stabilization_phase === 'ACTIVE' ? 'var(--green)' : 'var(--text3)';
+  document.getElementById('statCardPosture').className = data.stabilization_phase === 'ACTIVE' ? 'stat-card green' : 'stat-card grey';
+  document.getElementById('statPostureSub').textContent = 'Plateau 1';
+
+  // Checks stat
+  const impl = checks.filter(c => c.status !== 'UNKNOWN').length;
+  document.getElementById('statChecks').textContent = `${impl}/${checks.length}`;
+  document.getElementById('statChecks').style.color = impl > 0 ? 'var(--amber)' : 'var(--text3)';
+  document.getElementById('statCardChecks').className = impl > 0 ? 'stat-card amber' : 'stat-card grey';
+  document.getElementById('statChecksSub').textContent = impl > 0 ? 'Checks implemented' : 'Not yet implemented';
+}
+
+function renderError(msg) {
+  document.getElementById('globalFreshness').textContent = 'DEGRADED';
+  document.getElementById('globalFreshness').className = 'panel-badge degraded';
+  document.getElementById('freshnessBody').innerHTML = `<tr><td colspan="3" style="text-align:center;color:var(--red);padding:24px;">Engine unavailable: ${msg}</td></tr>`;
+  document.getElementById('postureGrid').innerHTML = `<div style="text-align:center;color:var(--red);padding:24px;font-size:13px;">Engine unavailable: ${msg}</div>`;
+  document.getElementById('consistencyGrid').innerHTML = `<div style="text-align:center;color:var(--red);padding:24px;font-size:13px;">Engine unavailable: ${msg}</div>`;
+  document.getElementById('statFreshness').textContent = 'DEGRADED';
+  document.getElementById('statFreshness').style.color = 'var(--red)';
+  document.getElementById('statCardFreshness').className = 'stat-card red';
+  document.getElementById('statFreshnessSub').textContent = 'Cannot reach engine';
+}
+
+// Smooth scroll for nav
+document.querySelectorAll('.nav-item[href^="#"]').forEach(a => {
+  a.addEventListener('click', e => {
+    e.preventDefault();
+    const target = document.querySelector(a.getAttribute('href'));
+    if (target) target.scrollIntoView({ behavior: 'smooth' });
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    a.classList.add('active');
+  });
+});
+
+// Load on page ready
+loadContinuity();
+// Auto-refresh every 60s (read-only polling, no mutation)
+setInterval(loadContinuity, 60000);
+</script>
+</body>
+</html>
+

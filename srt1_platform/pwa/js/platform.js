@@ -443,10 +443,14 @@
   async function pollLocalIndexer() {
     try {
       // Connect to the local hardware indexer via Zero-Knowledge bridge
-      const r = await fetch('http://127.0.0.1:7483/api/stats', {
+      const signal = typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function' 
+        ? AbortSignal.timeout(2000) 
+        : null;
+      const port = (window.location.port && window.location.port !== '8080' && window.location.port !== '8000') ? window.location.port : '8475';
+      const r = await fetch('http://127.0.0.1:' + port + '/api/stats', {
         headers: { 'Accept': 'application/json' },
         // short timeout to fail fast if daemon isn't running
-        signal: AbortSignal.timeout(2000)
+        ...(signal ? { signal } : {})
       });
       if (r.ok) {
         const data = await r.json();
@@ -499,7 +503,7 @@
 
   async function requirePlan(minPlan, options) {
     const hierarchy = { free: 0, pro: 1, enterprise: 2 };
-    const opts = { redirect: '/website/auth.html', onUpgrade: null, ...options };
+    const opts = { redirect: 'auth.html', onUpgrade: null, ...options };
 
     const user = await getUser();
     if (!user) {

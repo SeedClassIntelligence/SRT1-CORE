@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sandbox & Connector — SRT-1 Core</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg: #06080f;
+      --bg-card: #0d1117;
+      --bg-surface: #161b22;
+      --border: #21262d;
+      --border-light: #30363d;
+      --text: #f0f6fc;
+      --text2: #c9d1d9;
+      --text3: #8b949e;
+      --text4: #6e7681;
+      --blue: #58a6ff;
+      --cyan: #39d0d8;
+      --green: #3fb950;
+      --amber: #d29922;
+      --red: #f85149;
+      --purple: #bc8cff;
+      --sans: 'Inter', sans-serif;
+      --mono: 'JetBrains Mono', monospace;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: var(--sans);
+      background: var(--bg);
+      background-image: radial-gradient(ellipse at 50% -10%, rgba(57,208,216,0.06) 0%, transparent 60%);
+      color: var(--text);
+      line-height: 1.6;
+      overflow-x: hidden;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    a {
+      color: var(--cyan);
+      text-decoration: none;
+      transition: color 0.15s ease;
+    }
+
+    a:hover {
+      color: var(--blue);
+      text-decoration: underline;
+    }
+
+    /* ── Two-Row Nav ── */
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(6, 8, 15, 0.95);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 5%;
+      height: 50px;
+      border-bottom: 1px solid rgba(33, 38, 45, 0.5);
+    }
+
+    .nav-logo {
+      font-weight: 900;
+      font-size: 17px;
+      color: var(--text);
+      text-decoration: none;
+      letter-spacing: -.5px;
+    }
+
+    .nav-logo em {
+      color: var(--cyan);
+      font-style: normal;
+    }
+
+    .nav-top-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .nav-top-right a {
+      font-size: 13px;
+      font-weight: 600;
+      text-decoration: none;
+    }
+
+    .nav-top-right .signin {
+      color: var(--text3);
+    }
+
+    .nav-top-right .signin:hover {
+      color: var(--text);
+    }
+
+    .nav-top-right .signup {
+      background: var(--green);
+      color: #000;
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-weight: 700;
+    }
+
+    .nav-top-right .signup:hover {
+      filter: brightness(1.1);
+    }
+
+    .nav-bottom {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 0 5%;
+      height: 38px;
+      overflow-x: auto;
+      white-space: nowrap;
+    }
+
+    .nav-bottom a {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text3);
+      text-decoration: none;
+      padding: 4px 10px;
+      border-radius: 4px;
+      transition: color 0.15s, background 0.15s;
+    }
+
+    .nav-bottom a:hover {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .nav-bottom a.active {
+      color: var(--cyan);
+    }
+
+    /* ── PAGE CONTENT ── */
+    .sandbox-container {
+      max-width: 1100px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 60px 24px;
+      flex: 1;
+    }
+
+    .hero-area {
+      text-align: center;
+      margin-bottom: 56px;
+    }
+
+    .badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--cyan);
+      background: rgba(57, 208, 216, 0.1);
+      border: 1px solid rgba(57, 208, 216, 0.2);
+      padding: 4px 10px;
+      border-radius: 20px;
+      margin-bottom: 16px;
+    }
+
+    h1 {
+      font-size: clamp(32px, 5vw, 48px);
+      font-weight: 900;
+      letter-spacing: -1.5px;
+      line-height: 1.1;
+      margin-bottom: 16px;
+    }
+
+    .subtitle {
+      font-size: 16px;
+      color: var(--text3);
+      max-width: 640px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+
+    /* Concept Grid */
+    .concept-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-bottom: 56px;
+    }
+
+    @media (max-width: 768px) {
+      .concept-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .ccard {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 32px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.02);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .ccard-tag {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      align-self: flex-start;
+      margin-bottom: 16px;
+    }
+
+    .tag-free {
+      background: rgba(63, 185, 80, 0.1);
+      color: var(--green);
+      border: 1px solid rgba(63, 185, 80, 0.2);
+    }
+
+    .tag-pro {
+      background: rgba(88, 166, 255, 0.1);
+      color: var(--blue);
+      border: 1px solid rgba(88, 166, 255, 0.2);
+    }
+
+    .ccard h3 {
+      font-size: 20px;
+      font-weight: 800;
+      margin-bottom: 12px;
+    }
+
+    .ccard h3 span {
+      color: var(--cyan);
+      margin-right: 4px;
+    }
+
+    .ccard p {
+      font-size: 14px;
+      color: var(--text2);
+      line-height: 1.6;
+      margin-bottom: 16px;
+    }
+
+    /* Terminal Simulator */
+    .terminal-section-title {
+      font-size: 20px;
+      font-weight: 800;
+      margin-bottom: 16px;
+      letter-spacing: -0.3px;
+    }
+
+    .terminal {
+      background: #04060a;
+      border: 1px solid var(--border-light);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+      margin-bottom: 40px;
+    }
+
+    .term-header {
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border);
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    .dot.r { background: var(--red); }
+    .dot.y { background: var(--amber); }
+    .dot.g { background: var(--green); }
+
+    .term-title {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text3);
+      margin-left: 8px;
+    }
+
+    .term-body {
+      padding: 24px;
+      font-family: var(--mono);
+      font-size: 13px;
+      line-height: 1.7;
+      color: var(--text2);
+      white-space: pre-wrap;
+      overflow-x: auto;
+    }
+
+    .c-cmd { color: var(--cyan); font-weight: 600; }
+    .c-green { color: var(--green); }
+    .c-warn { color: var(--amber); }
+    .c-dim { color: var(--text4); }
+
+    /* FOOTER */
+    footer {
+      padding: 40px 5%;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      font-size: 13px;
+      color: var(--text3);
+      background: var(--bg);
+    }
+
+    .fl {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .fl a {
+      color: var(--text3);
+    }
+
+    .fl a:hover {
+      color: var(--text);
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="nav-top">
+    <a href="srt1-core.html" class="nav-logo">SRT<em>-1</em> <span style="font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;margin-left:4px">CORE</span></a>
+    <div class="nav-top-right" id="nav-auth">
+      <a href="auth.html?mode=login" class="signin">Sign In</a>
+      <a href="auth.html?mode=signup" class="signup">Sign Up</a>
+    </div>
+  </div>
+  <div class="nav-bottom">
+    <a href="srt1-core.html">🌱 Home</a>
+    <a href="comparison.html">Compare</a>
+    <a href="documentation.html">Documentation</a>
+  </div>
+</header>
+
+<div class="sandbox-container">
+  <div class="hero-area">
+    <div class="badge">Pro Feature Sandbox</div>
+    <h1>Sandbox & Connector</h1>
+    <p class="subtitle">Isolate your intelligence. Connect your components. SRT-1 gives you deep, cross-module context mapping without re-indexing a single file.</p>
+  </div>
+
+  <!-- Concept grid template -->
+  <div class="concept-grid">
+    <div class="ccard">
+      <span class="ccard-tag tag-free">Free Tier — Included</span>
+      <h3><span>1.</span> Single-Folder Sandbox</h3>
+      <p>Drop SRT-1 into any folder. It starts its own engine on a <strong>dedicated port</strong>, derived from the folder path. No config needed.</p>
+      <p>When you ask the AI to "fix the login flow," it only sees auth code. No bleed from payments. No confusion from frontend CSS. Pure, isolated intelligence.</p>
+      <div style="margin-top:20px;background:var(--bg-surface);border:1px solid var(--border);border-radius:10px;padding:20px;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.8">
+        <div style="color:var(--text4);margin-bottom:8px">── Your machine ──</div>
+        <div><span style="color:var(--green)">●</span> <span style="color:var(--cyan)">auth-module/</span> → Engine on <span style="color:var(--amber)">port 7483</span> &nbsp;· 12 files, 47 functions</div>
+        <div><span style="color:var(--green)">●</span> <span style="color:var(--cyan)">payments/</span> → Engine on <span style="color:var(--amber)">port 8192</span> &nbsp;&nbsp;· 8 files, 31 functions</div>
+        <div><span style="color:var(--green)">●</span> <span style="color:var(--cyan)">frontend/</span> → Engine on <span style="color:var(--amber)">port 9104</span> &nbsp;&nbsp;· 24 files, 89 functions</div>
+        <div><span style="color:var(--green)">●</span> <span style="color:var(--cyan)">api-gateway/</span> → Engine on <span style="color:var(--amber)">port 7821</span> · 6 files, 22 functions</div>
+        <div><span style="color:var(--green)">●</span> <span style="color:var(--cyan)">admin-panel/</span> → Engine on <span style="color:var(--amber)">port 8640</span> · 15 files, 53 functions</div>
+        <div style="color:var(--text4);margin-top:12px;border-top:1px solid var(--border);padding-top:10px">Each engine: independent process, independent manifest, independent dashboard.</div>
+      </div>
+    </div>
+
+    <div class="ccard">
+      <span class="ccard-tag tag-pro">Pro Tier — $9/month</span>
+      <h3><span>2.</span> Workspace Connector</h3>
+      <p>Modules don't exist in a vacuum. Auth calls payments. The gateway routes to both. You need a bird's-eye view.</p>
+      <p>The Workspace Connector acts as a <strong>parent orchestrator</strong>. It doesn't re-read your code. Instead, it queries each running Sandbox engine on its port, collects their live manifests, and builds a unified cross-module dependency map.</p>
+      <div style="margin-top:20px;background:var(--bg-surface);border:1px solid var(--border);border-radius:10px;padding:20px;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.8">
+        <div style="color:var(--text4);margin-bottom:8px">── Workspace Connector ──</div>
+        <div style="color:var(--cyan)">$ srt1-workspace --root ./my-platform</div>
+        <div style="margin-top:8px"><span style="color:var(--green)">✓</span> Discovered 5 running Sandbox engines</div>
+        <div><span style="color:var(--green)">✓</span> Collected 5 manifests (242 functions total)</div>
+        <div><span style="color:var(--green)">✓</span> Mapped 24 cross-module imports</div>
+        <div><span style="color:var(--amber)">⚠</span> Circular dependency: auth ↔ api-gateway</div>
+        <div style="color:var(--text4);margin-top:12px;border-top:1px solid var(--border);padding-top:10px">Zero re-indexing. The Connector reads what's already running.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sandbox terminal template -->
+  <div class="terminal-section-title">📺 Live Connector Simulation</div>
+  <div class="terminal">
+    <div class="term-header">
+      <div class="dot r"></div><div class="dot y"></div><div class="dot g"></div>
+      <div class="term-title">srt1_pro.workspace_connector</div>
+    </div>
+    <div class="term-body"><span class="c-cmd">$ python -m srt1_pro.workspace_connector --root .</span>
+
+╔══════════════════════════════════════════════════════════════╗
+║           SRT-1 Workspace Connector (Pro)                    ║
+╚══════════════════════════════════════════════════════════════╝
+
+<span class="c-green">✓ Workspace loaded: SRT-1 Core Platform</span>
+  5 modules defined · 5 Sandbox engines detected
+
+Discovering running engines...
+
+<span class="c-green">●</span> Engine → :7483  │ 6 files, 15 classes, 105 functions
+<span class="c-green">●</span> Platform → :8192 │ 17 files, 30 classes, 202 functions
+<span class="c-green">●</span> Pro → :9104      │ 9 files, 18 classes, 104 functions
+<span class="c-green">●</span> Memory → :7821   │ 9 files, 25 classes, 99 functions
+<span class="c-green">●</span> Website → :8640  │ 14 files, 0 classes, 23 functions
+
+Analyzing cross-module dependencies...
+<span class="c-green">✓ Found 24 cross-module imports across 5 engines</span>
+
+┌─ Module Summary ────────────────────────────────────────────┐
+│                                                             │
+│  Module          Port    Files   Classes   Functions        │
+│  ────────────── ────── ────── ───────── ───────────        │
+│  Engine          :7483      6        15         105        │
+│  Platform        :8192     17        30         202        │
+│  Pro             :9104      9        18         104        │
+│  Memory          :7821      9        25          99        │
+│  Website         :8640     14         0          23        │
+│  ────────────── ────── ────── ───────── ───────────        │
+│  <span class="c-cmd">TOTAL              5     55        88         533</span>        │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+
+┌─ Cross-Module Dependencies ─────────────────────────────────┐
+│                                                             │
+│  Engine :7483   → Platform :8192, Pro :9104                │
+│  Platform :8192 → Engine :7483, Pro :9104                  │
+│  Pro :9104      → Engine :7483                             │
+│  Memory :7821     <span class="c-dim">(standalone — no cross-module deps)</span>     │
+│  Website :8640    <span class="c-dim">(standalone — no cross-module deps)</span>     │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+
+┌─ Architecture Health ───────────────────────────────────────┐
+│                                                             │
+│  🟢 Standalone modules: Memory (:7821), Website (:8640)      │
+│  🔗 Connected modules:  Engine, Platform, Pro                │
+│                                                             │
+│  <span class="c-warn">⚠️  Circular dependencies detected:</span>                        │
+│     Engine :7483 ↔ Platform :8192                           │
+│     Engine :7483 ↔ Pro :9104                                │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+
+<span class="c-green">✓ Report saved to .srt1\workspace_report.json</span></div>
+  </div>
+</div>
+
+<footer>
+  <div>© 2026 SRT-1 — Seed-Class Intelligence Architecture · Created by William Darnell Jernigan IV</div>
+  <div class="fl">
+    <a href="srt1-core.html">Home</a>
+    <a href="comparison.html">Compare</a>
+    <a href="documentation.html">Docs</a>
+    <a href="https://github.com/SeedClassIntelligence/SRT1">GitHub</a>
+  </div>
+</footer>
+
+<script src="js/platform.js"></script>
+<script>
+  // Render navigation auth state
+  if (window.SRT1Platform) {
+    SRT1Platform.renderNavAuth('#nav-auth');
+  }
+</script>
+</body>
+</html>

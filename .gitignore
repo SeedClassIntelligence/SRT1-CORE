@@ -101,3 +101,7 @@ sion_output/
 docs/marketing/
 *_Marketing_*.webp
 *_Promo.webp
+
+# -- LOCAL PWA PROTOTYPE COPY --
+# Public Core ships the packaged cockpit from srt1_platform/pwa/.
+developer-pwa/

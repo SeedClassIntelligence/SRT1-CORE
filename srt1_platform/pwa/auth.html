@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Authentication — SRT-1 Core</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg: #06080f;
+      --bg-card: rgba(13, 17, 23, 0.75);
+      --bg-surface: #161b22;
+      --border: #21262d;
+      --border-light: #30363d;
+      --text: #f0f6fc;
+      --text2: #c9d1d9;
+      --text3: #8b949e;
+      --blue: #58a6ff;
+      --cyan: #39d0d8;
+      --green: #3fb950;
+      --amber: #d29922;
+      --red: #f85149;
+      --purple: #bc8cff;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      background-image: radial-gradient(ellipse at 50% -10%, rgba(88,166,255,0.12) 0%, transparent 60%);
+      color: var(--text);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      overflow-x: hidden;
+      padding: 24px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 440px;
+      position: relative;
+    }
+
+    .logo-area {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    .logo-link {
+      font-weight: 900;
+      font-size: 26px;
+      color: var(--text);
+      text-decoration: none;
+      letter-spacing: -1px;
+    }
+
+    .logo-link em {
+      color: var(--cyan);
+      font-style: normal;
+    }
+
+    .logo-sub {
+      font-size: 13px;
+      color: var(--text3);
+      margin-top: 6px;
+    }
+
+    .card {
+      background: var(--bg-card);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 40px 32px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255,255,255,0.02);
+      transition: all 0.3s ease;
+    }
+
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 28px;
+    }
+
+    .tab {
+      flex: 1;
+      text-align: center;
+      padding: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text3);
+      background: none;
+      border: none;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s ease;
+    }
+
+    .tab:hover {
+      color: var(--text);
+    }
+
+    .tab.active {
+      color: var(--blue);
+      border-bottom-color: var(--blue);
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text2);
+      letter-spacing: 0.3px;
+    }
+
+    .input-field {
+      width: 100%;
+      padding: 11px 14px;
+      background: rgba(22, 27, 34, 0.5);
+      border: 1px solid var(--border-light);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 14px;
+      outline: none;
+      transition: all 0.2s ease;
+    }
+
+    .input-field:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.15);
+      background: rgba(22, 27, 34, 0.8);
+    }
+
+    .alert {
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      margin-bottom: 20px;
+      line-height: 1.5;
+      display: none;
+    }
+
+    .alert-error {
+      background: rgba(248, 81, 73, 0.1);
+      border: 1px solid rgba(248, 81, 73, 0.2);
+      color: var(--red);
+    }
+
+    .alert-success {
+      background: rgba(63, 185, 80, 0.1);
+      border: 1px solid rgba(63, 185, 80, 0.2);
+      color: var(--green);
+    }
+
+    .btn {
+      width: 100%;
+      padding: 12px;
+      background: var(--blue);
+      color: #05070a;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .btn:hover {
+      filter: brightness(1.1);
+      transform: translateY(-1px);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+    }
+
+    .btn-secondary {
+      background: transparent;
+      border: 1px solid var(--border-light);
+      color: var(--text2);
+      margin-top: 12px;
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--blue);
+      color: var(--blue);
+      background: rgba(88, 166, 255, 0.03);
+    }
+
+    .switch-prompt {
+      text-align: center;
+      margin-top: 24px;
+      font-size: 13px;
+      color: var(--text3);
+    }
+
+    .switch-link {
+      color: var(--blue);
+      text-decoration: none;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .switch-link:hover {
+      text-decoration: underline;
+    }
+
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(0, 0, 0, 0.2);
+      border-top-color: #05070a;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      display: none;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .hidden {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="logo-area">
+    <a href="srt1-core.html" class="logo-link">SRT<em>-1</em> <span style="font-size:16px;color:var(--text3);font-family:'JetBrains Mono',monospace;margin-left:4px">CORE</span></a>
+    <div class="logo-sub">Edge Intelligence & Cryptographic Trust Chain</div>
+  </div>
+
+  <div class="card">
+    <div class="tabs">
+      <button class="tab active" id="tab-login" onclick="setMode('login')">Sign In</button>
+      <button class="tab" id="tab-signup" onclick="setMode('signup')">Sign Up</button>
+    </div>
+
+    <!-- Alert Panel -->
+    <div class="alert" id="alertBox"></div>
+
+    <form id="authForm" onsubmit="handleSubmit(event)">
+      <!-- Name (Only visible for Signup) -->
+      <div class="form-group hidden" id="group-name">
+        <label class="form-label" for="input-name">Full Name</label>
+        <input class="input-field" type="text" id="input-name" placeholder="John Doe">
+      </div>
+
+      <!-- Email -->
+      <div class="form-group">
+        <label class="form-label" for="input-email">Email Address</label>
+        <input class="input-field" type="email" id="input-email" required placeholder="name@domain.com">
+      </div>
+
+      <!-- Password -->
+      <div class="form-group">
+        <label class="form-label" for="input-password">Password</label>
+        <input class="input-field" type="password" id="input-password" required placeholder="••••••••">
+      </div>
+
+      <!-- Account Type (Only visible for Signup) -->
+      <div class="form-group hidden" id="group-role">
+        <label class="form-label" for="input-role">Account Scope</label>
+        <select class="input-field" id="input-role">
+          <option value="developer">Developer (Workspace Curation + Indexer)</option>
+          <option value="consumer">Consumer (Zero-Knowledge Reflections)</option>
+        </select>
+      </div>
+
+      <!-- Action Button -->
+      <button class="btn" type="submit" id="submitBtn">
+        <div class="spinner" id="btnSpinner"></div>
+        <span id="btnText">Sign In</span>
+      </button>
+
+      <!-- Demo mode shortcut -->
+      <button class="btn btn-secondary" type="button" onclick="continueAsGuest()">
+        Continue as Guest (Demo Mode) →
+      </button>
+    </form>
+
+    <div class="switch-prompt">
+      <span id="promptText">Don't have an account?</span>
+      <span class="switch-link" id="promptLink" onclick="toggleMode()">Create one</span>
+    </div>
+  </div>
+</div>
+
+<script src="js/platform.js"></script>
+<script>
+  let mode = 'login';
+
+  // Read URL query params on load
+  window.addEventListener('DOMContentLoaded', () => {
+    const params = new URLSearchParams(window.location.search);
+    const initialMode = params.get('mode');
+    const roleParam = params.get('type');
+    
+    if (initialMode === 'signup') {
+      setMode('signup');
+    } else {
+      setMode('login');
+    }
+
+    if (roleParam === 'developer' && document.getElementById('input-role')) {
+      document.getElementById('input-role').value = 'developer';
+    }
+  });
+
+  function setMode(newMode) {
+    mode = newMode;
+    const tabLogin = document.getElementById('tab-login');
+    const tabSignup = document.getElementById('tab-signup');
+    const groupName = document.getElementById('group-name');
+    const groupRole = document.getElementById('group-role');
+    const btnText = document.getElementById('btnText');
+    const promptText = document.getElementById('promptText');
+    const promptLink = document.getElementById('promptLink');
+    const alertBox = document.getElementById('alertBox');
+    
+    // Reset alert box
+    alertBox.style.display = 'none';
+
+    if (mode === 'login') {
+      tabLogin.classList.add('active');
+      tabSignup.classList.remove('active');
+      groupName.classList.add('hidden');
+      groupRole.classList.add('hidden');
+      document.getElementById('input-name').required = false;
+      btnText.textContent = 'Sign In';
+      promptText.textContent = "Don't have an account?";
+      promptLink.textContent = 'Create one';
+    } else {
+      tabLogin.classList.remove('active');
+      tabSignup.classList.add('active');
+      groupName.classList.remove('hidden');
+      groupRole.classList.remove('hidden');
+      document.getElementById('input-name').required = true;
+      btnText.textContent = 'Create Account';
+      promptText.textContent = 'Already have an account?';
+      promptLink.textContent = 'Sign in';
+    }
+  }
+
+  function toggleMode() {
+    setMode(mode === 'login' ? 'signup' : 'login');
+  }
+
+  function showAlert(message, type = 'error') {
+    const alertBox = document.getElementById('alertBox');
+    alertBox.className = `alert alert-${type}`;
+    alertBox.textContent = message;
+    alertBox.style.display = 'block';
+  }
+
+  async function handleSubmit(event) {
+    event.preventDefault();
+    
+    const email = document.getElementById('input-email').value;
+    const password = document.getElementById('input-password').value;
+    const name = document.getElementById('input-name').value;
+    const role = document.getElementById('input-role').value;
+    
+    const spinner = document.getElementById('btnSpinner');
+    const submitBtn = document.getElementById('submitBtn');
+    
+    // Start loading
+    spinner.style.display = 'block';
+    submitBtn.disabled = true;
+    document.getElementById('alertBox').style.display = 'none';
+
+    try {
+      let res;
+      if (mode === 'login') {
+        res = await SRT1Platform.login(email, password);
+      } else {
+        res = await SRT1Platform.signup(email, name, password, role);
+      }
+      
+      showAlert(res.demo ? 'Authenticated via Demo Mode. Redirecting...' : 'Authenticated successfully! Redirecting...', 'success');
+      
+      // Determine redirection target based on role
+      const user = await SRT1Platform.getUser().catch(() => null);
+      let target = 'srt1-core.html';
+      if (user) {
+        if (user.role === 'developer' || role === 'developer') {
+          target = 'dashboard.html';
+        } else {
+          target = 'srt1-core.html';
+        }
+      }
+      
+      setTimeout(() => {
+        const next = new URLSearchParams(window.location.search).get('next');
+        location.href = next ? decodeURIComponent(next) : target;
+      }, 1000);
+      
+    } catch (err) {
+      spinner.style.display = 'none';
+      submitBtn.disabled = false;
+      showAlert(err.message || 'An error occurred during authentication. Please try again.');
+    }
+  }
+
+  function continueAsGuest() {
+    // Force enter demo mode as developer
+    SRT1Platform.signup('demo@srt1.app', 'Demo Developer', 'password', 'developer')
+      .then(() => {
+        showAlert('Entering Demo Workspace as Guest...', 'success');
+        setTimeout(() => {
+          location.href = 'dashboard.html';
+        }, 800);
+      });
+  }
+</script>
+
+</body>
+</html>

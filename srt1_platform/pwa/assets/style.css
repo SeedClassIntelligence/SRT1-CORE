@@ -36,6 +36,9 @@ img { max-width: 100%; }
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: var(--bg-card); }
 ::-webkit-scrollbar-thumb { background: var(--border-hi); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--cyan); }
+/* Firefox support */
+* { scrollbar-width: thin; scrollbar-color: var(--border-hi) var(--bg-card); }
 
 /* ── NAV ───────────────────────────────── */
 .nav {

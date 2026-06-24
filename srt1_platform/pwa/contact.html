@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contact Sales — SRT-1 Core</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg: #06080f;
+      --bg-card: rgba(13, 17, 23, 0.75);
+      --bg-surface: #161b22;
+      --border: #21262d;
+      --border-light: #30363d;
+      --text: #f0f6fc;
+      --text2: #c9d1d9;
+      --text3: #8b949e;
+      --text4: #6e7681;
+      --blue: #58a6ff;
+      --cyan: #39d0d8;
+      --green: #3fb950;
+      --amber: #d29922;
+      --red: #f85149;
+      --purple: #bc8cff;
+      --sans: 'Inter', sans-serif;
+      --mono: 'JetBrains Mono', monospace;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: var(--sans);
+      background: var(--bg);
+      background-image: radial-gradient(ellipse at 50% -10%, rgba(188,140,255,0.06) 0%, transparent 60%);
+      color: var(--text);
+      line-height: 1.6;
+      overflow-x: hidden;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    a {
+      color: var(--cyan);
+      text-decoration: none;
+      transition: color 0.15s ease;
+    }
+
+    a:hover {
+      color: var(--blue);
+      text-decoration: underline;
+    }
+
+    /* ── Two-Row Nav ── */
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(6, 8, 15, 0.95);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 5%;
+      height: 50px;
+      border-bottom: 1px solid rgba(33, 38, 45, 0.5);
+    }
+
+    .nav-logo {
+      font-weight: 900;
+      font-size: 17px;
+      color: var(--text);
+      text-decoration: none;
+      letter-spacing: -.5px;
+    }
+
+    .nav-logo em {
+      color: var(--cyan);
+      font-style: normal;
+    }
+
+    .nav-top-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .nav-top-right a {
+      font-size: 13px;
+      font-weight: 600;
+      text-decoration: none;
+    }
+
+    .nav-top-right .signin {
+      color: var(--text3);
+    }
+
+    .nav-top-right .signin:hover {
+      color: var(--text);
+    }
+
+    .nav-top-right .signup {
+      background: var(--green);
+      color: #000;
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-weight: 700;
+    }
+
+    .nav-top-right .signup:hover {
+      filter: brightness(1.1);
+    }
+
+    .nav-bottom {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 0 5%;
+      height: 38px;
+      overflow-x: auto;
+      white-space: nowrap;
+    }
+
+    .nav-bottom a {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text3);
+      text-decoration: none;
+      padding: 4px 10px;
+      border-radius: 4px;
+      transition: color 0.15s, background 0.15s;
+    }
+
+    .nav-bottom a:hover {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .nav-bottom a.active {
+      color: var(--cyan);
+    }
+
+    /* ── PAGE LAYOUT ── */
+    .contact-container {
+      max-width: 1100px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 60px 24px;
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 48px;
+      align-items: flex-start;
+    }
+
+    @media (max-width: 768px) {
+      .contact-container {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .info-area h1 {
+      font-size: clamp(32px, 5vw, 44px);
+      font-weight: 900;
+      letter-spacing: -1.5px;
+      line-height: 1.1;
+      margin-bottom: 20px;
+    }
+
+    .info-area h1 span {
+      background: linear-gradient(135deg, var(--purple), var(--cyan));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .info-area p {
+      font-size: 15px;
+      color: var(--text2);
+      line-height: 1.7;
+      margin-bottom: 32px;
+    }
+
+    .feature-list {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .feature-item {
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+    }
+
+    .feature-icon {
+      font-size: 20px;
+      background: rgba(188, 140, 255, 0.1);
+      border: 1px solid rgba(188, 140, 255, 0.2);
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      color: var(--purple);
+    }
+
+    .feature-text h3 {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+
+    .feature-text p {
+      font-size: 13px;
+      color: var(--text3);
+      line-height: 1.5;
+      margin-bottom: 0;
+    }
+
+    /* Form Card */
+    .card {
+      background: var(--bg-card);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 40px 32px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255,255,255,0.02);
+    }
+
+    .card-title {
+      font-size: 20px;
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+
+    .card-desc {
+      font-size: 13px;
+      color: var(--text3);
+      margin-bottom: 28px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text2);
+      letter-spacing: 0.3px;
+    }
+
+    .input-field {
+      width: 100%;
+      padding: 11px 14px;
+      background: rgba(22, 27, 34, 0.5);
+      border: 1px solid var(--border-light);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 14px;
+      outline: none;
+      transition: all 0.2s ease;
+    }
+
+    .input-field:focus {
+      border-color: var(--purple);
+      box-shadow: 0 0 0 3px rgba(188, 140, 255, 0.15);
+      background: rgba(22, 27, 34, 0.8);
+    }
+
+    textarea.input-field {
+      resize: vertical;
+      min-height: 100px;
+    }
+
+    .alert {
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      margin-bottom: 20px;
+      line-height: 1.5;
+      display: none;
+    }
+
+    .alert-success {
+      background: rgba(63, 185, 80, 0.1);
+      border: 1px solid rgba(63, 185, 80, 0.2);
+      color: var(--green);
+    }
+
+    .btn {
+      width: 100%;
+      padding: 12px;
+      background: linear-gradient(135deg, var(--purple), var(--cyan));
+      color: #05070a;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .btn:hover {
+      filter: brightness(1.1);
+      transform: translateY(-1px);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+    }
+
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(0, 0, 0, 0.2);
+      border-top-color: #05070a;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      display: none;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* FOOTER */
+    footer {
+      padding: 40px 5%;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      font-size: 13px;
+      color: var(--text3);
+      background: var(--bg);
+    }
+
+    .fl {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .fl a {
+      color: var(--text3);
+    }
+
+    .fl a:hover {
+      color: var(--text);
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="nav-top">
+    <a href="srt1-core.html" class="nav-logo">SRT<em>-1</em> <span style="font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;margin-left:4px">CORE</span></a>
+    <div class="nav-top-right" id="nav-auth">
+      <a href="auth.html?mode=login" class="signin">Sign In</a>
+      <a href="auth.html?mode=signup" class="signup">Sign Up</a>
+    </div>
+  </div>
+  <div class="nav-bottom">
+    <a href="srt1-core.html">🌱 Home</a>
+    <a href="comparison.html">Compare</a>
+    <a href="documentation.html">Documentation</a>
+  </div>
+</header>
+
+<div class="contact-container">
+  <div class="info-area">
+    <div class="badge" style="color:var(--purple);background:rgba(188,140,255,0.1);border-color:rgba(188,140,255,0.2)">Enterprise Tier</div>
+    <h1>Secure Curation & <span>Autonomous Governance.</span></h1>
+    <p>For organizations requiring sovereign codebase boundary protection, private cryptographic Seed Signatures, and air-gapped models, the paid <strong>SRT-1 Enterprise</strong> platform provides absolute code compliance.</p>
+    
+    <div class="feature-list">
+      <div class="feature-item">
+        <div class="feature-icon">🔒</div>
+        <div class="feature-text">
+          <h3>Sovereign FileCell Boundaries</h3>
+          <p>Strict structural cell encapsulation. Restricts AI model reading and writing access strictly within defined local workspace cell boundaries.</p>
+        </div>
+      </div>
+
+      <div class="feature-item">
+        <div class="feature-icon">🔏</div>
+        <div class="feature-text">
+          <h3>Private Signature Curation Authority</h3>
+          <p>Deploy a local trust chain signing authority to cryptographically certify repository updates, protecting intellectual attribution and provenance.</p>
+        </div>
+      </div>
+
+      <div class="feature-item">
+        <div class="feature-icon">📊</div>
+        <div class="feature-text">
+          <h3>Centralized Governance Ledger</h3>
+          <p>Collect immutable SCIA logs, access audit records, and automated compliance reports across multiple team workspaces.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Contact Sales</div>
+    <div class="card-desc">Submit an inquiry for custom enterprise volume pricing and private licensing.</div>
+    
+    <!-- Success Alert Box -->
+    <div class="alert alert-success" id="alertBox"></div>
+
+    <form id="contactForm" onsubmit="handleSubmit(event)">
+      <!-- Name -->
+      <div class="form-group">
+        <label class="form-label" for="input-name">Full Name</label>
+        <input class="input-field" type="text" id="input-name" required placeholder="John Doe">
+      </div>
+
+      <!-- Email -->
+      <div class="form-group">
+        <label class="form-label" for="input-email">Work Email</label>
+        <input class="input-field" type="email" id="input-email" required placeholder="name@organization.com">
+      </div>
+
+      <!-- Org -->
+      <div class="form-group">
+        <label class="form-label" for="input-org">Organization Name</label>
+        <input class="input-field" type="text" id="input-org" required placeholder="Acme Corp">
+      </div>
+
+      <!-- Repo Size -->
+      <div class="form-group">
+        <label class="form-label" for="input-size">Estimated Repository Size</label>
+        <select class="input-field" id="input-size">
+          <option value="small">&lt; 100 source files</option>
+          <option value="medium">100 - 1,000 source files</option>
+          <option value="large">1,000 - 10,000 source files</option>
+          <option value="enterprise">&gt; 10,000 source files</option>
+        </select>
+      </div>
+
+      <!-- Details -->
+      <div class="form-group">
+        <label class="form-label" for="input-details">Curation & Governance Requirements</label>
+        <textarea class="input-field" id="input-details" placeholder="Describe your codebase architecture, auditing, or compliance requirements..."></textarea>
+      </div>
+
+      <!-- Action Button -->
+      <button class="btn" type="submit" id="submitBtn">
+        <div class="spinner" id="btnSpinner"></div>
+        <span id="btnText">Submit Inquiry</span>
+      </button>
+    </form>
+  </div>
+</div>
+
+<footer>
+  <div>© 2026 SRT-1 — Seed-Class Intelligence Architecture · Created by William Darnell Jernigan IV</div>
+  <div class="fl">
+    <a href="srt1-core.html">Home</a>
+    <a href="comparison.html">Compare</a>
+    <a href="documentation.html">Docs</a>
+    <a href="https://github.com/SeedClassIntelligence/SRT1">GitHub</a>
+  </div>
+</footer>
+
+<script src="js/platform.js"></script>
+<script>
+  // Render navigation auth state
+  if (window.SRT1Platform) {
+    SRT1Platform.renderNavAuth('#nav-auth');
+  }
+
+  function handleSubmit(event) {
+    event.preventDefault();
+    const spinner = document.getElementById('btnSpinner');
+    const submitBtn = document.getElementById('submitBtn');
+    const alertBox = document.getElementById('alertBox');
+    
+    spinner.style.display = 'block';
+    submitBtn.disabled = true;
+    
+    setTimeout(() => {
+      spinner.style.display = 'none';
+      alertBox.textContent = 'Inquiry successfully submitted! An Enterprise Curation Specialist will reach out to you within 24 hours.';
+      alertBox.style.display = 'block';
+      
+      // Reset form
+      document.getElementById('contactForm').reset();
+      submitBtn.disabled = false;
+    }, 1200);
+  }
+</script>
+</body>
+</html>

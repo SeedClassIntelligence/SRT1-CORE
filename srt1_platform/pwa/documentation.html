@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Documentation — SRT-1 Core</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg: #06080f;
+      --bg-card: #0d1117;
+      --bg-surface: #161b22;
+      --border: #21262d;
+      --border-light: #30363d;
+      --text: #f0f6fc;
+      --text2: #c9d1d9;
+      --text3: #8b949e;
+      --text4: #6e7681;
+      --blue: #58a6ff;
+      --cyan: #39d0d8;
+      --green: #3fb950;
+      --amber: #d29922;
+      --red: #f85149;
+      --purple: #bc8cff;
+      --sans: 'Inter', sans-serif;
+      --mono: 'JetBrains Mono', monospace;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      overflow-x: hidden;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    a {
+      color: var(--cyan);
+      text-decoration: none;
+      transition: color 0.15s ease;
+    }
+
+    a:hover {
+      color: var(--blue);
+      text-decoration: underline;
+    }
+
+    /* ── Two-Row Nav ── */
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(6, 8, 15, 0.95);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 5%;
+      height: 50px;
+      border-bottom: 1px solid rgba(33, 38, 45, 0.5);
+    }
+
+    .nav-logo {
+      font-weight: 900;
+      font-size: 17px;
+      color: var(--text);
+      text-decoration: none;
+      letter-spacing: -.5px;
+    }
+
+    .nav-logo em {
+      color: var(--cyan);
+      font-style: normal;
+    }
+
+    .nav-top-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .nav-top-right a {
+      font-size: 13px;
+      font-weight: 600;
+      text-decoration: none;
+    }
+
+    .nav-top-right .signin {
+      color: var(--text3);
+    }
+
+    .nav-top-right .signin:hover {
+      color: var(--text);
+    }
+
+    .nav-top-right .signup {
+      background: var(--green);
+      color: #000;
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-weight: 700;
+    }
+
+    .nav-top-right .signup:hover {
+      filter: brightness(1.1);
+    }
+
+    .nav-bottom {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 0 5%;
+      height: 38px;
+      overflow-x: auto;
+      white-space: nowrap;
+    }
+
+    .nav-bottom a {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text3);
+      text-decoration: none;
+      padding: 4px 10px;
+      border-radius: 4px;
+      transition: color 0.15s, background 0.15s;
+    }
+
+    .nav-bottom a:hover {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .nav-bottom a.active {
+      color: var(--cyan);
+    }
+
+    /* ── DOCS LAYOUT ── */
+    .docs-container {
+      display: flex;
+      flex: 1;
+      max-width: 1300px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 40px 24px;
+      gap: 40px;
+    }
+
+    /* ── SIDEBAR ── */
+    .docs-sidebar {
+      width: 240px;
+      flex-shrink: 0;
+      position: sticky;
+      top: 110px;
+      height: calc(100vh - 150px);
+      overflow-y: auto;
+      padding-right: 16px;
+      border-right: 1px solid var(--border);
+    }
+
+    .sidebar-section {
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--text4);
+      margin: 20px 0 8px;
+    }
+
+    .sidebar-section:first-child {
+      margin-top: 0;
+    }
+
+    .sidebar-link {
+      display: block;
+      padding: 6px 12px;
+      font-size: 13px;
+      color: var(--text3);
+      border-radius: 6px;
+      margin-bottom: 2px;
+      transition: all 0.15s ease;
+    }
+
+    .sidebar-link:hover {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.03);
+      text-decoration: none;
+    }
+
+    .sidebar-link.active {
+      color: var(--cyan);
+      background: rgba(57, 208, 216, 0.08);
+      font-weight: 600;
+    }
+
+    /* ── MAIN CONTENT ── */
+    .docs-main {
+      flex: 1;
+      min-width: 0;
+      padding-bottom: 60px;
+    }
+
+    .badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--cyan);
+      background: rgba(57, 208, 216, 0.1);
+      border: 1px solid rgba(57, 208, 216, 0.2);
+      padding: 4px 10px;
+      border-radius: 20px;
+      margin-bottom: 16px;
+    }
+
+    .docs-main h1 {
+      font-size: 38px;
+      font-weight: 900;
+      letter-spacing: -1.5px;
+      margin-bottom: 20px;
+    }
+
+    .docs-main p {
+      font-size: 15px;
+      color: var(--text2);
+      line-height: 1.7;
+      margin-bottom: 24px;
+    }
+
+    .docs-main h2 {
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      margin: 44px 0 16px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+      scroll-margin-top: 110px;
+    }
+
+    .docs-main h3 {
+      font-size: 16px;
+      font-weight: 700;
+      margin: 24px 0 12px;
+      color: var(--text);
+    }
+
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .doc-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px;
+      transition: border-color 0.2s ease;
+    }
+
+    .doc-card:hover {
+      border-color: var(--border-light);
+      text-decoration: none !important;
+    }
+
+    .doc-card h3 {
+      margin: 0 0 8px 0 !important;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .doc-card p {
+      margin: 0 !important;
+      font-size: 12px;
+      color: var(--text3);
+      line-height: 1.5;
+    }
+
+    pre {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      font-family: var(--mono);
+      font-size: 13px;
+      color: var(--text2);
+      margin-bottom: 24px;
+      overflow-x: auto;
+    }
+
+    /* FOOTER */
+    footer {
+      padding: 40px 5%;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      font-size: 13px;
+      color: var(--text3);
+      background: var(--bg);
+    }
+
+    .fl {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .fl a {
+      color: var(--text3);
+    }
+
+    .fl a:hover {
+      color: var(--text);
+      text-decoration: none;
+    }
+
+    @media (max-width: 900px) {
+      .docs-container {
+        flex-direction: column;
+      }
+      .docs-sidebar {
+        width: 100%;
+        height: auto;
+        position: static;
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+        padding-bottom: 20px;
+        padding-right: 0;
+      }
+      .sidebar-link {
+        display: inline-block;
+        margin-right: 8px;
+      }
+      .sidebar-section {
+        display: block;
+        margin-top: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="nav-top">
+    <a href="srt1-core.html" class="nav-logo">SRT<em>-1</em> <span style="font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;margin-left:4px">CORE</span></a>
+    <div class="nav-top-right" id="nav-auth">
+      <a href="auth.html?mode=login" class="signin">Sign In</a>
+      <a href="auth.html?mode=signup" class="signup">Sign Up</a>
+    </div>
+  </div>
+  <div class="nav-bottom">
+    <a href="srt1-core.html">🌱 Home</a>
+    <a href="comparison.html">Compare</a>
+    <a href="documentation.html" class="active">Documentation</a>
+  </div>
+</header>
+
+<div class="docs-container">
+  <!-- SIDEBAR TEMPLATE CONTENT -->
+  <nav class="docs-sidebar">
+    <div class="sidebar-section">Getting Started</div>
+    <a href="#overview" class="sidebar-link active">Overview</a>
+    <a href="#quickstart" class="sidebar-link">Quickstart</a>
+    <div class="sidebar-section">Core Concepts</div>
+    <a href="#architecture" class="sidebar-link">Architecture</a>
+    <a href="#trust-layer" class="sidebar-link">Trust Layer</a>
+    <div class="sidebar-section">Reference</div>
+    <a href="#api-reference" class="sidebar-link">API Reference</a>
+    <a href="#mobile" class="sidebar-link">Mobile PWA</a>
+    <div class="sidebar-section">Deep Dive</div>
+    <a href="#context-injection" class="sidebar-link">AI Context Injection</a>
+    <a href="#signing" class="sidebar-link">Signing (SeedSignature)</a>
+    <a href="#scia-packages" class="sidebar-link">SCIA Packages</a>
+    <a href="#engine-api" class="sidebar-link">Engine API</a>
+  </nav>
+
+  <!-- DOC CONTENT TEMPLATE CONTENT -->
+  <main class="docs-main">
+    <div class="badge">Documentation</div>
+    <h1>SRT-1 Docs</h1>
+    <p>SRT-1 is a 7-stage codebase intelligence pipeline that produces a verified Code Manifest. It gives any AI assistant a ground-truth map of your codebase — with every function tagged by architectural role and risk profile.</p>
+    <p>Start with the <a href="#quickstart">Quickstart</a> to get indexed in under a minute, then read the <a href="#architecture">Architecture</a> guide to understand the pipeline stages.</p>
+
+    <h2 id="overview">Guides</h2>
+    <div class="card-grid">
+      <a href="#quickstart" class="doc-card" style="color:inherit">
+        <h3>⚡ Quickstart</h3>
+        <p>Install, index your first repo, and verify the manifest.</p>
+      </a>
+      <a href="#architecture" class="doc-card" style="color:inherit">
+        <h3>🏗️ Architecture</h3>
+        <p>The 7-stage SCIA pipeline from scan to signed manifest.</p>
+      </a>
+      <a href="#trust-layer" class="doc-card" style="color:inherit">
+        <h3>🔐 Trust Layer</h3>
+        <p>Integrity hashing, trust chains, and manifest verification.</p>
+      </a>
+      <a href="#api-reference" class="doc-card" style="color:inherit">
+        <h3>📖 API Reference</h3>
+        <p>SRT1CodeIndexer class, CLI flags, and manifest schema.</p>
+      </a>
+      <a href="#mobile" class="doc-card" style="color:inherit">
+        <h3>📱 Mobile PWA</h3>
+        <p>Set up the mobile dashboard and remote auth tokens.</p>
+      </a>
+      <a href="#context-injection" class="doc-card" style="color:inherit">
+        <h3>🧠 AI Context Injection</h3>
+        <p>How AGENTS.md and CLAUDE.md give AI complete repo comprehension.</p>
+      </a>
+      <a href="#signing" class="doc-card" style="color:inherit">
+        <h3>🔏 Signing (SeedSignature)</h3>
+        <p>Cryptographic provenance via the signing authority.</p>
+      </a>
+      <a href="#scia-packages" class="doc-card" style="color:inherit">
+        <h3>📦 SCIA Packages</h3>
+        <p>Seed Signature and private memory/security systems are optional external integrations.</p>
+      </a>
+      <a href="#engine-api" class="doc-card" style="color:inherit">
+        <h3>⚡ Engine API</h3>
+        <p>HTTP endpoints on port 7483 for dashboard and automation.</p>
+      </a>
+    </div>
+
+    <!-- ── QUICKSTART ── -->
+    <h2 id="quickstart">⚡ Quickstart</h2>
+    <p>Get your first verified Code Manifest in under 60 seconds.</p>
+    <h3>1. Install</h3>
+    <pre style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:16px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan);margin-bottom:16px;overflow-x:auto">pip install srt1-core</pre>
+    <h3>2. Index your repository</h3>
+    <pre style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:16px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--text2);margin-bottom:16px;overflow-x:auto">trust_state = {"signature": "unsigned", "verification": "unverified", "lineage": "missing"}`nmanifest["trust_state"] = trust_state</pre>
+    <h3>What Gets Signed</h3>
+    <div style="overflow-x:auto;margin-bottom:24px">
+    <table style="width:100%;border-collapse:collapse;font-size:14px;color:var(--text2)">
+      <thead><tr style="border-bottom:2px solid var(--border)">
+        <th style="text-align:left;padding:10px 12px;color:var(--text);font-weight:700">Artifact</th>
+        <th style="text-align:left;padding:10px 12px;color:var(--text);font-weight:700">Phase</th>
+        <th style="text-align:left;padding:10px 12px;color:var(--text);font-weight:700">When</th>
+      </tr></thead>
+      <tbody>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">Trust bootstrap entry</td><td style="padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan)">bootstrap</td><td style="padding:8px 12px;color:var(--text3)">Engine startup after indexing</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">Enforcement violations</td><td style="padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan)">enforcement</td><td style="padding:8px 12px;color:var(--text3)">When violations are detected</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">Context documents</td><td style="padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan)">context_generation</td><td style="padding:8px 12px;color:var(--text3)">After AGENTS.md is written</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">Violation resolutions</td><td style="padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan)">enforcement_resolve</td><td style="padding:8px 12px;color:var(--text3)">When developer resolves a block</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">Violation overrides</td><td style="padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan)">enforcement_override</td><td style="padding:8px 12px;color:var(--text3)">When developer overrides with justification (signed)</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">Consumer reflections</td><td style="padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan)">consumer_reflection</td><td style="padding:8px 12px;color:var(--text3)">Every Seed Reflections output</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <h3>Signature Envelope</h3>
+    <p>Each signed artifact receives a sealed envelope containing a composite SHA-256 hash (content + semantic + timestamp), a unique <code style="color:var(--cyan);background:var(--bg-card);padding:2px 8px;border-radius:4px;font-size:13px">SCIA-[hash]</code> signature ID, and a chain link to the previous signature. The signing authority verifies via a three-pillar model: content integrity, registry presence, and digest validation.</p>
+
+    <!-- ── OPTIONAL PRIVATE INTEGRATIONS ── -->
+    <h2 id="scia-packages">📦 Optional Private Integrations</h2>
+    <p>SRT-1 Core is standalone. Private memory, private security, signing authority, and Enterprise backend systems may integrate with Core, but they are not shipped in public Core.</p>
+    <h3>Private security/signing authority</h3>
+    <p>Optional external services may provide signing, private audit, encryption, and enterprise policy enforcement. Public Core records trust state and fails closed when those services are unavailable.</p>
+    <div style="overflow-x:auto;margin-bottom:24px">
+    <table style="width:100%;border-collapse:collapse;font-size:14px;color:var(--text2)">
+      <thead><tr style="border-bottom:2px solid var(--border)">
+        <th style="text-align:left;padding:10px 12px;color:var(--text);font-weight:700">Class</th>
+        <th style="text-align:left;padding:10px 12px;color:var(--text);font-weight:700">Purpose</th>
+      </tr></thead>
+      <tbody>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan)">External signing hook</td><td style="padding:8px 12px">Optional external authority attaches provenance when configured</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan)">IntegrityValidator</td><td style="padding:8px 12px">SHA-256 content hashing, tamper detection, file verification</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan)">DataEncryptor</td><td style="padding:8px 12px">AES-256-GCM encryption at rest for sensitive data</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan)">AccessAuditLog</td><td style="padding:8px 12px">Append-only SQLite audit trail of all actions</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan)">ExecutionGraph</td><td style="padding:8px 12px">DAG-based operation tracking across pipeline stages</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <h3>Private memory implementation</h3>
+    <p>Optional private memory systems may provide long-term organizational recall. Public Core uses RecallPacket-shaped data and does not require private memory to run.</p>
+    <div style="overflow-x:auto;margin-bottom:24px">
+    <table style="width:100%;border-collapse:collapse;font-size:14px;color:var(--text2)">
+      <thead><tr style="border-bottom:2px solid var(--border)">
+        <th style="text-align:left;padding:10px 12px;color:var(--text);font-weight:700">Class</th>
+        <th style="text-align:left;padding:10px 12px;color:var(--text);font-weight:700">Purpose</th>
+      </tr></thead>
+      <tbody>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan)">ReflexMemory</td><td style="padding:8px 12px">Fast pattern matching for immediate responses</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan)">RegenerativeMemory</td><td style="padding:8px 12px">Self-improving long-term memory with consolidation</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan)">AdvancedMemorySystem</td><td style="padding:8px 12px">5-tier storage (reflex, working, episodic, semantic, procedural)</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan)">MemoryOrchestratorV2</td><td style="padding:8px 12px">Unified interface across all memory tiers</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <h3>Tier Access</h3>
+    <div style="overflow-x:auto;margin-bottom:24px">
+    <table style="width:100%;border-collapse:collapse;font-size:14px;color:var(--text2)">
+      <thead><tr style="border-bottom:2px solid var(--border)">
+        <th style="text-align:left;padding:10px 12px;color:var(--text);font-weight:700">Component</th>
+        <th style="text-align:left;padding:10px 12px;color:var(--text);font-weight:700">Core</th>
+        <th style="text-align:left;padding:10px 12px;color:var(--text);font-weight:700">Seed Reflections</th>
+        <th style="text-align:left;padding:10px 12px;color:var(--text);font-weight:700">Enterprise</th>
+      </tr></thead>
+      <tbody>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">External signing hook</td><td style="padding:8px 12px;color:var(--green)">✓</td><td style="padding:8px 12px;color:var(--green)">✓</td><td style="padding:8px 12px;color:var(--green)">✓</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">DataEncryptor</td><td style="padding:8px 12px;color:var(--text3)">—</td><td style="padding:8px 12px;color:var(--green)">✓</td><td style="padding:8px 12px;color:var(--green)">✓</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">AccessAuditLog</td><td style="padding:8px 12px;color:var(--text3)">—</td><td style="padding:8px 12px;color:var(--green)">✓</td><td style="padding:8px 12px;color:var(--green)">✓</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">IntegrityValidator</td><td style="padding:8px 12px;color:var(--text3)">—</td><td style="padding:8px 12px;color:var(--text3)">—</td><td style="padding:8px 12px;color:var(--green)">✓</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">ExecutionGraph</td><td style="padding:8px 12px;color:var(--text3)">—</td><td style="padding:8px 12px;color:var(--text3)">—</td><td style="padding:8px 12px;color:var(--green)">✓</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">Private memory integration</td><td style="padding:8px 12px;color:var(--text3)">—</td><td style="padding:8px 12px;color:var(--text3)">—</td><td style="padding:8px 12px;color:var(--green)">✓</td></tr>
+      </tbody>
+    </table>
+    </div>
+
+    <!-- ── ENGINE API ── -->
+    <h2 id="engine-api">⚡ Engine API (Port 7483)</h2>
+    <p>The SRT-1 engine exposes a local HTTP API on port 7483. The developer dashboard and mobile PWA communicate through these endpoints.</p>
+    <h3>GET Endpoints</h3>
+    <div style="overflow-x:auto;margin-bottom:24px">
+    <table style="width:100%;border-collapse:collapse;font-size:14px;color:var(--text2)">
+      <thead><tr style="border-bottom:2px solid var(--border)">
+        <th style="text-align:left;padding:10px 12px;color:var(--text);font-weight:700">Endpoint</th>
+        <th style="text-align:left;padding:10px 12px;color:var(--text);font-weight:700">Returns</th>
+      </tr></thead>
+      <tbody>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan)">GET /status</td><td style="padding:8px 12px">Full engine state: manifest summary, trust chain, enforcement stats, uptime</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan)">GET /manifest</td><td style="padding:8px 12px">Complete code manifest JSON</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan)">GET /seeds</td><td style="padding:8px 12px">All seeds in the queue with lifecycle stage</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan)">GET /enforcement</td><td style="padding:8px 12px">Active blocks, compliance scorecard, violation history</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <h3>POST Endpoints</h3>
+    <div style="overflow-x:auto;margin-bottom:24px">
+    <table style="width:100%;border-collapse:collapse;font-size:14px;color:var(--text2)">
+      <thead><tr style="border-bottom:2px solid var(--border)">
+        <th style="text-align:left;padding:10px 12px;color:var(--text);font-weight:700">Endpoint</th>
+        <th style="text-align:left;padding:10px 12px;color:var(--text);font-weight:700">Body</th>
+        <th style="text-align:left;padding:10px 12px;color:var(--text);font-weight:700">Action</th>
+      </tr></thead>
+      <tbody>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan)">POST /task</td><td style="padding:8px 12px;font-size:13px"><code>{"task": "..."}</code></td><td style="padding:8px 12px">Plant a seed and optionally dispatch</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan)">POST /operation</td><td style="padding:8px 12px;font-size:13px"><code>{"description": "..."}</code></td><td style="padding:8px 12px">Log an operation with enforcement check</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan)">POST /enforcement/resolve</td><td style="padding:8px 12px;font-size:13px"><code>{"event_id": "..."}</code></td><td style="padding:8px 12px">Mark a violation as resolved</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan)">POST /enforcement/override</td><td style="padding:8px 12px;font-size:13px"><code>{"event_id": "...", "reason": "..."}</code></td><td style="padding:8px 12px">Override with justification (signed)</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan)">POST /blueprint</td><td style="padding:8px 12px;font-size:13px"><code>{"seed": "..."}</code></td><td style="padding:8px 12px">Generate implementation blueprint from seed</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p>All enforcement responses include a <code style="color:var(--cyan);background:var(--bg-card);padding:2px 8px;border-radius:4px;font-size:13px">_provenance</code> field when the signing service is connected — cryptographic proof of the action.</p>
+
+  </main>
+</div>
+
+<footer>
+  <div>© 2026 SRT-1 — Seed-Class Intelligence Architecture · Created by William Darnell Jernigan IV</div>
+  <div class="fl">
+    <a href="srt1-core.html">Home</a>
+    <a href="comparison.html">Compare</a>
+    <a href="documentation.html">Docs</a>
+    <a href="https://github.com/SeedClassIntelligence/SRT1">GitHub</a>
+  </div>
+</footer>
+
+<script src="js/platform.js"></script>
+<script>
+  // Simple scroll-spy and active class for links
+  window.addEventListener('scroll', () => {
+    const fromTop = window.scrollY + 150;
+    const links = document.querySelectorAll('.sidebar-link');
+    
+    links.forEach(link => {
+      const section = document.querySelector(link.getAttribute('href'));
+      if (!section) return;
+      
+      if (
+        section.offsetTop <= fromTop &&
+        section.offsetTop + section.offsetHeight > fromTop
+      ) {
+        links.forEach(l => l.classList.remove('active'));
+        link.classList.add('active');
+      }
+    });
+  });
+
+  // Render navigation auth state
+  if (window.SRT1Platform) {
+    SRT1Platform.renderNavAuth('#nav-auth');
+  }
+</script>
+</body>
+</html>

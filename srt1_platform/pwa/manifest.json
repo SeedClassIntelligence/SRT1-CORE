@@ -2,7 +2,7 @@
   "name": "SRT-1 CORE Developer Platform",
   "short_name": "SRT-1 Developer",
   "description": "Command Center and Intelligence Hub for SRT-1 CORE",
-  "start_url": "/index.html",
+  "start_url": "/srt1-core.html",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
