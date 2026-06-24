@@ -103,6 +103,20 @@ class Seed:
         self.priority = priority           # 1 (low) to 10 (critical)
         self.tags = tags or []
 
+        # Continuity compatibility metadata. These fields are optional so old
+        # queue records can load without migration.
+        self.srt_anchor_id: Optional[str] = None
+        self.manifest_hash: Optional[str] = None
+        self.trust_state: Dict[str, str] = {
+            "signature": "unsigned",
+            "verification": "unverified",
+            "lineage": "missing",
+        }
+        self.lifecycle_version: int = 1
+        self.completion_state: Optional[str] = None
+        self.verification_result: Optional[Dict[str, Any]] = None
+        self.human_acceptance: Optional[Dict[str, Any]] = None
+
         # Lifecycle
         self.stage = SeedStage.PLANTED
         self.growth = 0                    # 0-100% progress indicator
@@ -198,6 +212,13 @@ class Seed:
             "source": self.source,
             "priority": self.priority,
             "tags": self.tags,
+            "srt_anchor_id": self.srt_anchor_id,
+            "manifest_hash": self.manifest_hash,
+            "trust_state": self.trust_state,
+            "lifecycle_version": self.lifecycle_version,
+            "completion_state": self.completion_state,
+            "verification_result": self.verification_result,
+            "human_acceptance": self.human_acceptance,
             "stage": self.stage.value,
             "stage_emoji": self.stage.emoji,
             "growth": self.growth,
@@ -248,6 +269,17 @@ class Seed:
             priority=data.get("priority", 5),
             tags=data.get("tags", []),
         )
+        seed.srt_anchor_id = data.get("srt_anchor_id")
+        seed.manifest_hash = data.get("manifest_hash")
+        seed.trust_state = data.get("trust_state") or {
+            "signature": "unsigned",
+            "verification": "unverified",
+            "lineage": "missing",
+        }
+        seed.lifecycle_version = data.get("lifecycle_version", 1)
+        seed.completion_state = data.get("completion_state")
+        seed.verification_result = data.get("verification_result")
+        seed.human_acceptance = data.get("human_acceptance")
         seed.stage = SeedStage(data.get("stage", "planted"))
         seed.growth = data.get("growth", 0)
         seed.created_at = data.get("created_at", seed.created_at)
@@ -364,6 +396,13 @@ class SCIASeedQueue:
         seed = self._seeds.get(seed_id)
         if not seed:
             return None
+        seed.completion_state = seed.completion_state or "human_accepted"
+        if seed.human_acceptance is None:
+            seed.human_acceptance = {
+                "accepted": True,
+                "timestamp": datetime.now().isoformat(),
+                "summary": summary,
+            }
         seed.advance(SeedStage.BLOOMED, summary or "Seed completed successfully")
         seed.result_summary = summary
         seed.growth = 100
@@ -398,6 +437,97 @@ class SCIASeedQueue:
         self._save()
         return seed
 
+    def propose_completion(self, seed_id: str, summary: str = "",
+                           files_modified: Optional[List[str]] = None) -> Optional[Seed]:
+        """Record a proposed completion without finalizing lifecycle truth."""
+        seed = self._seeds.get(seed_id)
+        if not seed:
+            return None
+        seed.completion_state = "awaiting_review"
+        seed.result_summary = summary
+        for filepath in files_modified or []:
+            seed.record_file_change(filepath)
+        seed.history.append({
+            "stage": seed.stage.value,
+            "timestamp": datetime.now().isoformat(),
+            "note": "Completion proposed; awaiting verification/human acceptance",
+            "completion_state": seed.completion_state,
+        })
+        seed.updated_at = datetime.now().isoformat()
+        self._save()
+        return seed
+
+    def record_verification_result(self, seed_id: str, verified: bool,
+                                   details: Optional[Dict[str, Any]] = None) -> Optional[Seed]:
+        """Store verification verdict separately from lifecycle transition."""
+        seed = self._seeds.get(seed_id)
+        if not seed:
+            return None
+        seed.verification_result = {
+            "verified": verified,
+            "timestamp": datetime.now().isoformat(),
+            "details": details or {},
+        }
+        seed.completion_state = "verified_completion" if verified else "returned_for_revision"
+        seed.history.append({
+            "stage": seed.stage.value,
+            "timestamp": datetime.now().isoformat(),
+            "note": "Verification result recorded",
+            "completion_state": seed.completion_state,
+            "verified": verified,
+        })
+        seed.updated_at = datetime.now().isoformat()
+        self._save()
+        return seed
+
+    def accept_completion(self, seed_id: str, summary: str = "",
+                          actor: str = "system") -> Optional[Seed]:
+        """Record acceptance and preserve BLOOMED compatibility."""
+        seed = self._seeds.get(seed_id)
+        if not seed:
+            return None
+        seed.completion_state = "human_accepted"
+        seed.human_acceptance = {
+            "accepted": True,
+            "actor": actor,
+            "timestamp": datetime.now().isoformat(),
+            "summary": summary,
+        }
+        return self.bloom(seed_id, summary=summary)
+
+    def return_for_revision(self, seed_id: str, reason: str = "") -> Optional[Seed]:
+        """Represent a returned/revision path without changing legacy stage names."""
+        seed = self._seeds.get(seed_id)
+        if not seed:
+            return None
+        seed.completion_state = "returned_for_revision"
+        seed.result_summary = reason
+        seed.history.append({
+            "stage": seed.stage.value,
+            "timestamp": datetime.now().isoformat(),
+            "note": reason or "Returned for revision",
+            "completion_state": seed.completion_state,
+        })
+        seed.updated_at = datetime.now().isoformat()
+        self._save()
+        return seed
+
+    def mark_partial(self, seed_id: str, note: str = "") -> Optional[Seed]:
+        """Represent partial completion without finalizing lifecycle truth."""
+        seed = self._seeds.get(seed_id)
+        if not seed:
+            return None
+        seed.completion_state = "partial_completion"
+        seed.history.append({
+            "stage": seed.stage.value,
+            "timestamp": datetime.now().isoformat(),
+            "note": note or "Partial completion recorded",
+            "completion_state": seed.completion_state,
+        })
+        seed.updated_at = datetime.now().isoformat()
+        self._save()
+        return seed
+
     # -----------------------------------------------------------------
     # TRACKING
     # -----------------------------------------------------------------
@@ -417,6 +547,15 @@ class SCIASeedQueue:
         seed = self._seeds.get(seed_id)
         if seed:
             seed.record_coherence(score, status)
+
+    def set_srt_anchor(self, seed_id: str, srt_anchor_id: Optional[str]) -> Optional[Seed]:
+        """Link the canonical queue seed to its SRT reflection anchor."""
+        seed = self._seeds.get(seed_id)
+        if not seed:
+            return None
+        seed.srt_anchor_id = srt_anchor_id
+        self._save()
+        return seed
 
     def update_growth(self, seed_id: str, percentage: int, note: str = "") -> Optional[Seed]:
         """Update growth percentage for fine-grained progress."""

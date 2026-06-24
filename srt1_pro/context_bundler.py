@@ -179,6 +179,51 @@ class SCIAContextBundler:
     # CORE PUBLIC METHOD
     # ==========================================================================
 
+    def build_recall_candidates(self, task: str, queue_seed_id: str,
+                                srt_anchor_id: Optional[str] = None,
+                                max_candidates: int = 10,
+                                max_depth: int = 1) -> List[Dict[str, Any]]:
+        """
+        Return RecallPacket-compatible manifest candidates.
+
+        This is retrieval/recall candidate generation only. It does not assemble
+        a full assistant prompt, write context files, or call private memory.
+        """
+        from srt1_platform.recall_packet import RecallPacket
+
+        task_analysis = self._analyze_task(task)
+        relevant_symbols = self._search_symbols(task_analysis)
+        expanded_symbols = self._trace_dependencies(relevant_symbols, max_depth)
+        manifest_hash = self.manifest.get("integrity", {}).get("manifest_hash")
+
+        candidates: List[Dict[str, Any]] = []
+        seen_source_ids: Set[str] = set()
+        for symbol in expanded_symbols:
+            source_id = symbol.get("qualified_name") or f"{symbol.get('file')}::{symbol.get('name')}"
+            if source_id in seen_source_ids:
+                continue
+            seen_source_ids.add(source_id)
+
+            content = symbol.get("purpose") or (
+                f"{symbol.get('name')} in {symbol.get('file')} supports {task}"
+            )
+            packet = RecallPacket.from_manifest_candidate(
+                {
+                    "name": source_id,
+                    "content": content,
+                    "purpose": symbol.get("purpose", ""),
+                    "relevance_score": symbol.get("relevance_score", 0.0),
+                },
+                queue_seed_id=queue_seed_id,
+                srt_anchor_id=srt_anchor_id,
+                manifest_hash=manifest_hash,
+            )
+            candidates.append(packet.to_dict())
+            if len(candidates) >= max_candidates:
+                break
+
+        return candidates
+
     def build_context_bundle(self, task: str, max_files: int = 10, max_depth: int = 3) -> Dict[str, Any]:
         """
         Given a developer task, assemble a complete Context Bundle.
@@ -225,7 +270,7 @@ class SCIAContextBundler:
         )
 
         # Step 8: Sign the bundle
-        bundle = self._sign_bundle(bundle)
+        bundle = self._finalize_bundle(bundle)
 
         print()
         print("--- [SRT-1 Context Bundler] Bundle Complete ---")

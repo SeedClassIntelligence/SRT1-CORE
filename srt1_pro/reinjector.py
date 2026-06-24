@@ -2,7 +2,7 @@ import os
 import re
 import json
 from dataclasses import dataclass, asdict
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from datetime import datetime
 
 @dataclass
@@ -14,6 +14,13 @@ class ContextPacket:
     timestamp: str     # ISO8601 creation time
     ttl: int           # Time-to-Live (e.g., number of execution cycles)
     resolved: bool = False
+    queue_seed_id: Optional[str] = None
+    srt_anchor_id: Optional[str] = None
+    source_type: Optional[str] = None
+    freshness_state: Optional[str] = None
+    trust_state: Optional[Dict[str, str]] = None
+    degradation_reason: Optional[str] = None
+    warning: Optional[str] = None
 
 class SCIAReinjector:
     """
@@ -62,6 +69,40 @@ class SCIAReinjector:
         with open(self.state_file, "w", encoding="utf-8") as f:
             json.dump([asdict(p) for p in packets], f, indent=2)
 
+    def _normalize_recall_packet(self, packet: Any) -> ContextPacket:
+        """Normalize RecallPacket-shaped data without performing recall lookup."""
+        if hasattr(packet, "to_reinjection_dict"):
+            data = packet.to_reinjection_dict()
+        elif hasattr(packet, "to_dict"):
+            data = packet.to_dict()
+        elif isinstance(packet, dict):
+            data = dict(packet)
+        else:
+            data = {"content": str(packet)}
+
+        freshness = data.get("freshness_state")
+        degradation_reason = data.get("degradation_reason")
+        warning = None
+        if freshness in ("degraded", "unknown") or degradation_reason:
+            warning = degradation_reason or f"Recall freshness is {freshness or 'unknown'}"
+
+        return ContextPacket(
+            mode=data.get("mode", "recall"),
+            priority=data.get("priority", 40),
+            content=data.get("content", ""),
+            source=data.get("source") or data.get("source_type", "knowledge_graph"),
+            timestamp=data.get("created_at") or data.get("timestamp") or datetime.now().isoformat(),
+            ttl=data.get("ttl", 3),
+            resolved=data.get("resolved", False),
+            queue_seed_id=data.get("queue_seed_id"),
+            srt_anchor_id=data.get("srt_anchor_id"),
+            source_type=data.get("source_type"),
+            freshness_state=freshness,
+            trust_state=data.get("trust_state"),
+            degradation_reason=degradation_reason,
+            warning=warning,
+        )
+
     def route_and_create_packets(self, active_task: str, warnings: List[str], reflections: List[Dict]) -> List[ContextPacket]:
         """Routes inputs into prioritized memory streams."""
         packets = self._load_active_packets()
@@ -99,16 +140,9 @@ class SCIAReinjector:
         # 3. Recall (Priority 1-49)
         # Historical lessons relevant to the task hydrated from Backend
         for r in reflections:
-            if not any(p.content == r.get("content") for p in packets):
-                packets.append(ContextPacket(
-                    mode=r.get("mode", "recall"),
-                    priority=r.get("priority", 40),
-                    content=r.get("content", ""),
-                    source=r.get("source", "knowledge_graph"),
-                    timestamp=datetime.now().isoformat(),
-                    ttl=r.get("ttl", 3),
-                    resolved=False
-                ))
+            recall_packet = self._normalize_recall_packet(r)
+            if not any(p.content == recall_packet.content for p in packets):
+                packets.append(recall_packet)
 
         self._save_packets(packets)
         return packets
@@ -145,7 +179,22 @@ class SCIAReinjector:
 
         recall_str = "- **RELEVANT LESSONS:** `None`"
         if recall_packets:
-            recall_str = "\n".join([f"- **RECALL:** {p.content}" for p in recall_packets])
+            recall_lines = []
+            for p in recall_packets:
+                meta = []
+                if p.queue_seed_id:
+                    meta.append(f"queue_seed_id={p.queue_seed_id}")
+                if p.srt_anchor_id:
+                    meta.append(f"srt_anchor_id={p.srt_anchor_id}")
+                if p.source_type:
+                    meta.append(f"source_type={p.source_type}")
+                if p.freshness_state:
+                    meta.append(f"freshness={p.freshness_state}")
+                if p.warning:
+                    meta.append(f"warning={p.warning}")
+                suffix = f" ({'; '.join(meta)})" if meta else ""
+                recall_lines.append(f"- **RECALL:** {p.content}{suffix}")
+            recall_str = "\n".join(recall_lines)
 
         # Replace zones using fast string splitting (no regex)
         def replace_zone(text, zone_header, next_header, new_content):

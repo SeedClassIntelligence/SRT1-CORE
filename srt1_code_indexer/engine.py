@@ -915,6 +915,97 @@ class SRT1Engine:
     # CONTEXT FILE GENERATION (Auto-Injection)
     # -----------------------------------------------------------------
 
+    def _get_recall_seed_id(self) -> Optional[str]:
+        """Return the canonical seed identity for recall hydration."""
+        identity = self._get_active_seed_identity()
+        if identity:
+            return identity.get("queue_seed_id") or identity.get("seed_id")
+        return self.task_seed_id
+
+    def _get_recall_identity(self) -> Dict[str, Optional[str]]:
+        """Return recall identity with queue seed as canonical when present."""
+        identity = self._get_active_seed_identity()
+        if identity:
+            queue_seed_id = identity.get("queue_seed_id") or identity.get("seed_id")
+            return {
+                "queue_seed_id": queue_seed_id,
+                "srt_anchor_id": identity.get("srt_anchor_id"),
+                "manifest_hash": identity.get("manifest_hash"),
+            }
+        return {
+            "queue_seed_id": self.task_seed_id,
+            "srt_anchor_id": self.task_seed_id,
+            "manifest_hash": None,
+        }
+
+    def _build_recall_url(self, seed_id: str, limit: int = 3) -> str:
+        """Build the optional private-memory recall URL safely."""
+        from urllib.parse import quote
+        return f"http://127.0.0.1:8000/api/v1/memory/recall/{quote(seed_id, safe='')}?limit={limit}"
+
+    def _fetch_recall_reflections(self, limit: int = 3) -> List[Dict[str, Any]]:
+        """Fetch optional private recall packets; fail closed when unavailable."""
+        identity = self._get_recall_identity()
+        seed_id = identity.get("queue_seed_id")
+        if not seed_id or "{" in seed_id or "}" in seed_id:
+            return []
+
+        try:
+            import urllib.request
+            from srt1_platform.recall_packet import RecallPacket
+
+            url = self._build_recall_url(seed_id, limit=limit)
+            req = urllib.request.Request(url, method="GET")
+            with urllib.request.urlopen(req, timeout=1.5) as response:
+                if response.status == 200:
+                    data = json.loads(response.read().decode())
+                    recalls = data.get("recalls", [])
+                    if not isinstance(recalls, list):
+                        return []
+                    return [
+                        RecallPacket.from_external_reflection(
+                            recall,
+                            queue_seed_id=seed_id,
+                            srt_anchor_id=identity.get("srt_anchor_id"),
+                            manifest_hash=identity.get("manifest_hash"),
+                        ).to_reinjection_dict()
+                        for recall in recalls
+                    ]
+        except Exception:
+            return []
+
+        return []
+
+    def _build_manifest_recall_candidates(self, limit: int = 5) -> List[Dict[str, Any]]:
+        """Build local manifest recall candidates as packet-shaped data."""
+        identity = self._get_recall_identity()
+        queue_seed_id = identity.get("queue_seed_id")
+        if not queue_seed_id or not self.task:
+            return []
+
+        manifest_path = os.path.join(self.repo_path, "srt1_code_manifest.json")
+        if not os.path.isfile(manifest_path):
+            return []
+
+        try:
+            from srt1_pro.context_bundler import SCIAContextBundler
+            bundler = SCIAContextBundler(manifest_path)
+            return bundler.build_recall_candidates(
+                task=self.task,
+                queue_seed_id=queue_seed_id,
+                srt_anchor_id=identity.get("srt_anchor_id"),
+                max_candidates=limit,
+            )
+        except Exception:
+            return []
+
+    def _build_recall_packets(self, limit: int = 3) -> List[Dict[str, Any]]:
+        """Collect packet-shaped recall inputs for reinjection."""
+        packets: List[Dict[str, Any]] = []
+        packets.extend(self._fetch_recall_reflections(limit=limit))
+        packets.extend(self._build_manifest_recall_candidates(limit=limit))
+        return packets
+
     def _generate_context_files(self) -> None:
         """Inject JIT Context directly into the AGENTS.md master document via Reinjector."""
         try:
@@ -926,12 +1017,12 @@ class SRT1Engine:
             warnings = self._collect_warnings()
             
             # Hydrate Recall Memory from backend (Phase 4 Runtime Hydration Bridge)
-            reflections = []
-            if self.task_seed_id:
+            reflections = self._build_recall_packets(limit=3)
+            if False:
                 try:
                     import urllib.request
                     import json
-                    url = f"http://127.0.0.1:8000/api/v1/memory/recall/{self.task_seed_id}?limit=3"
+                    url = self._build_recall_url(self._get_recall_seed_id(), limit=3)
                     req = urllib.request.Request(url, method="GET")
                     with urllib.request.urlopen(req, timeout=1.5) as response:
                         if response.status == 200:
@@ -1033,10 +1124,18 @@ class SRT1Engine:
         and domain. Otherwise, auto-detects the best matching template.
         Falls back to generic keyword extraction if no template matches.
         """
-        self.current_task = task
+        self.task = task
         self.operations = []
         self.injections = []
         self.srt_tool = SRT(reflection_interval=self.REFLECTION_INTERVAL)
+
+        # Canonical lifecycle seed: create queue record before reflection anchor.
+        queue_seed_id = None
+        if self.seed_queue:
+            seed = self.seed_queue.plant(
+                intent=task, source=source, priority=priority
+            )
+            queue_seed_id = seed.seed_id
 
         # Template-aware planting
         applied_template = None
@@ -1080,17 +1179,19 @@ class SRT1Engine:
         self.task_seed_id = self.srt_tool._active_seed_id
         self._applied_template = applied_template
 
+        if queue_seed_id and self.seed_queue:
+            if hasattr(self.seed_queue, "set_srt_anchor"):
+                self.seed_queue.set_srt_anchor(queue_seed_id, self.task_seed_id)
+            else:
+                seed = self.seed_queue._seeds.get(queue_seed_id)
+                if seed:
+                    seed.srt_anchor_id = self.task_seed_id
+                    self.seed_queue._save()
+
         if self.analytics:
             self.analytics.record_seed_planted(applied_template)
 
-        # Register in seed queue with lifecycle tracking
-        queue_seed_id = None
-        if self.seed_queue:
-            seed = self.seed_queue.plant(
-                intent=task, source=source, priority=priority
-            )
-            queue_seed_id = seed.seed_id
-
+        if queue_seed_id and self.seed_queue:
             # Auto-dispatch through execution bridge (in background thread)
             if auto_dispatch and self.bridge:
                 def _dispatch_async(sid, t):
@@ -1121,9 +1222,29 @@ class SRT1Engine:
 
         return queue_seed_id
 
+    def _resolve_queue_seed_id(self, seed_id: Optional[str]) -> Optional[str]:
+        """Resolve a public/callback seed id to canonical queue seed id."""
+        if not seed_id or not self.seed_queue:
+            return None
+        if self.seed_queue.get_seed(seed_id):
+            return seed_id
+        for candidate in self.seed_queue.list_seeds(limit=1000):
+            full_seed = self.seed_queue.get_seed(candidate["seed_id"])
+            if full_seed and full_seed.get("srt_anchor_id") == seed_id:
+                return full_seed["seed_id"]
+        return None
+
     def _on_seed_completed(self, seed_id: str, files_modified: List[str],
                            summary: str) -> None:
         """Callback when the execution bridge detects seed completion."""
+        queue_seed_id = self._resolve_queue_seed_id(seed_id)
+        if self.seed_queue and queue_seed_id:
+            self.seed_queue.propose_completion(
+                queue_seed_id,
+                summary=summary,
+                files_modified=files_modified,
+            )
+
         # --- COMPLETENESS VERIFICATION ENFORCEMENT ---
         if self.validator:
             report = self.validator.verify_tree(files_to_check=files_modified if files_modified else None)
@@ -1140,25 +1261,86 @@ class SRT1Engine:
                     
                 error_msg += "Your task is NOT done. Fill in the missing logic before attempting to mark as complete again."
                 
-                if self.seed_queue:
+                if self.seed_queue and queue_seed_id:
                     # Update seed status to active / error
-                    self.seed_queue.update_growth(seed_id, "warning", error_msg)
+                    self.seed_queue.return_for_revision(queue_seed_id, reason=error_msg)
                 
                 self.srt_tool.add_reflection("WARNING", error_msg, {"action": "rejected_completion"})
                 return
+            if self.seed_queue and queue_seed_id:
+                self.seed_queue.record_verification_result(
+                    queue_seed_id,
+                    verified=True,
+                    details={"validator": "SeedTreeValidator"},
+                )
 
         # Commit bloom
-        if self.seed_queue:
-            self.seed_queue.bloom(seed_id, summary=summary)
+        if self.seed_queue and queue_seed_id:
+            self.seed_queue.accept_completion(queue_seed_id, summary=summary, actor="verification")
             for f in files_modified:
-                self.seed_queue.record_file_change(seed_id, f)
+                self.seed_queue.record_file_change(queue_seed_id, f)
         logger.info(f"🌸 Seed {seed_id} BLOOMED: {summary}")
 
     def _on_seed_failed(self, seed_id: str, reason: str) -> None:
         """Callback when a seed fails or goes stale."""
-        if self.seed_queue:
-            self.seed_queue.wilt(seed_id, reason=reason)
+        queue_seed_id = self._resolve_queue_seed_id(seed_id)
+        if self.seed_queue and queue_seed_id:
+            self.seed_queue.wilt(queue_seed_id, reason=reason)
         logger.warning(f"🍂 Seed {seed_id} WILTED: {reason}")
+
+    def _build_task_response(self, task: str, queue_seed_id: Optional[str],
+                             auto_dispatch: bool) -> Dict[str, Any]:
+        """Build the /task response without changing lifecycle ownership."""
+        response = {
+            "status": "task_set", "task": task,
+            "seed_id": queue_seed_id or self.task_seed_id,
+            "queue_seed_id": queue_seed_id,
+            "srt_anchor_id": self.task_seed_id,
+            "dispatched": auto_dispatch and self.bridge is not None,
+            "codebase_files": len(self.manifest.get("file_manifest", [])),
+            "template_applied": getattr(self, '_applied_template', None),
+        }
+        if queue_seed_id and self.seed_queue:
+            seed = self.seed_queue.get_seed(queue_seed_id)
+            if seed:
+                response["lifecycle"] = {
+                    "stage": seed["stage"],
+                    "stage_emoji": seed["stage_emoji"],
+                    "growth": seed["growth"],
+                }
+        return response
+
+    def _get_active_seed_identity(self) -> Optional[Dict[str, Any]]:
+        """Return user-facing seed identity with queue state as canonical."""
+        if self.seed_queue:
+            active_seed = self.seed_queue.get_active_seed()
+            if active_seed:
+                return {
+                    "seed_id": active_seed["seed_id"],
+                    "queue_seed_id": active_seed["seed_id"],
+                    "srt_anchor_id": active_seed.get("srt_anchor_id") or self.task_seed_id,
+                    "lifecycle_state": active_seed.get("stage"),
+                    "trust_state": active_seed.get("trust_state"),
+                    "manifest_hash": active_seed.get("manifest_hash"),
+                    "intent": active_seed.get("intent"),
+                    "stage": active_seed.get("stage"),
+                    "growth": active_seed.get("growth"),
+                }
+
+        if self.task_seed_id:
+            return {
+                "seed_id": self.task_seed_id,
+                "queue_seed_id": None,
+                "srt_anchor_id": self.task_seed_id,
+                "lifecycle_state": None,
+                "trust_state": None,
+                "manifest_hash": None,
+                "intent": getattr(self, "task", None),
+                "stage": None,
+                "growth": None,
+            }
+
+        return None
 
     def _task_keywords(self, task: str) -> List[str]:
         noise = {"a","an","the","to","in","on","at","for","of","and","or","is",
@@ -1941,10 +2123,9 @@ class SRT1Engine:
 
                     # Include seed queue stats in status
                     seed_stats = None
-                    active_seed = None
                     if engine.seed_queue:
                         seed_stats = engine.seed_queue.get_stats()
-                        active_seed = engine.seed_queue.get_active_seed()
+                    active_seed = engine._get_active_seed_identity()
 
                     # Real enforcement data
                     enforcement = engine.srt_tool.get_compliance_stats()
@@ -1964,10 +2145,7 @@ class SRT1Engine:
                         "coherence": coherence,
                         "watcher": "active",
                         "seed_farm": seed_stats,
-                        "active_seed": {"seed_id": active_seed["seed_id"],
-                                        "intent": active_seed["intent"],
-                                        "stage": active_seed["stage"],
-                                        "growth": active_seed["growth"]} if active_seed else None,
+                        "active_seed": active_seed,
                         "bridge": "active" if engine.bridge else "not_available",
                         "auth": "enabled" if engine.auth and engine.auth._tokens else "disabled",
                         "enforcement": enforcement,
@@ -2541,22 +2719,11 @@ class SRT1Engine:
                     )
                     engine.current_task = task
                     threading.Thread(target=engine._generate_context_files, daemon=True).start()
-                    response = {
-                        "status": "task_set", "task": task,
-                        "seed_id": engine.task_seed_id,
-                        "queue_seed_id": queue_seed_id,
-                        "dispatched": auto_dispatch and engine.bridge is not None,
-                        "codebase_files": len(engine.manifest.get("file_manifest", [])),
-                        "template_applied": getattr(engine, '_applied_template', None),
-                    }
-                    if queue_seed_id and engine.seed_queue:
-                        seed = engine.seed_queue.get_seed(queue_seed_id)
-                        if seed:
-                            response["lifecycle"] = {
-                                "stage": seed["stage"],
-                                "stage_emoji": seed["stage_emoji"],
-                                "growth": seed["growth"],
-                            }
+                    response = engine._build_task_response(
+                        task=task,
+                        queue_seed_id=queue_seed_id,
+                        auto_dispatch=auto_dispatch,
+                    )
                     # Sign the task dispatch via SeedSignature
                     if engine.signing_client:
                         try:
@@ -2750,18 +2917,44 @@ class SRT1Engine:
                         self._json({"error": "Seed queue not available"}, 503)
                         return
                     seed_id = path.replace("/seeds/", "").replace("/complete", "")
+                    queue_seed_id = engine._resolve_queue_seed_id(seed_id)
+                    if not queue_seed_id:
+                        self._json({"error": f"Seed {seed_id} not found"}, 404)
+                        return
                     summary = body.get("summary", "Manually completed")
-                    result = engine.seed_queue.bloom(seed_id, summary=summary)
+                    files_modified = body.get("files_modified", [])
+                    engine.seed_queue.propose_completion(
+                        queue_seed_id,
+                        summary=summary,
+                        files_modified=files_modified,
+                    )
+                    if body.get("review_only") or body.get("awaiting_review"):
+                        self._json({
+                            "status": "awaiting_review",
+                            "seed": engine.seed_queue.get_seed(queue_seed_id),
+                            "message": "Completion proposed; awaiting review.",
+                        })
+                        return
+                    engine.seed_queue.record_verification_result(
+                        queue_seed_id,
+                        verified=body.get("verified", True),
+                        details={"source": "manual_complete_route"},
+                    )
+                    result = engine.seed_queue.accept_completion(
+                        queue_seed_id,
+                        summary=summary,
+                        actor=body.get("actor", "human"),
+                    )
                     if result:
                         # Also notify the bridge
                         if engine.bridge:
                             engine.bridge.mark_complete(
-                                seed_id, summary=summary,
-                                files_modified=body.get("files_modified", [])
+                                queue_seed_id, summary=summary,
+                                files_modified=files_modified
                             )
                         self._json({
                             "status": "bloomed",
-                            "seed": engine.seed_queue.get_seed(seed_id),
+                            "seed": engine.seed_queue.get_seed(queue_seed_id),
                             "message": "🌸 Seed has BLOOMED!",
                         })
                     else:
@@ -2772,14 +2965,18 @@ class SRT1Engine:
                         self._json({"error": "Seed queue not available"}, 503)
                         return
                     seed_id = path.replace("/seeds/", "").replace("/fail", "")
+                    queue_seed_id = engine._resolve_queue_seed_id(seed_id)
+                    if not queue_seed_id:
+                        self._json({"error": f"Seed {seed_id} not found"}, 404)
+                        return
                     reason = body.get("reason", "Manually marked as failed")
-                    result = engine.seed_queue.wilt(seed_id, reason=reason)
+                    result = engine.seed_queue.wilt(queue_seed_id, reason=reason)
                     if result:
                         if engine.bridge:
-                            engine.bridge.mark_failed(seed_id, reason=reason)
+                            engine.bridge.mark_failed(queue_seed_id, reason=reason)
                         self._json({
                             "status": "wilted",
-                            "seed": engine.seed_queue.get_seed(seed_id),
+                            "seed": engine.seed_queue.get_seed(queue_seed_id),
                             "message": "🍂 Seed has WILTED.",
                         })
                     else:
