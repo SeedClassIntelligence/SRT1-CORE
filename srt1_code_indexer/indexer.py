@@ -58,9 +58,11 @@ from typing import Dict, List, Any, Set, Optional
 # Core SCIA IP imports
 try:
     from srt1_code_indexer.srt import SRT
+    from srt1_code_indexer.language_parsers import dispatch_parser
 except ImportError:
     try:
         from srt import SRT
+        from language_parsers import dispatch_parser
     except ImportError:
         sys.exit('[FATAL] Cannot import SRT. Ensure the srt1_code_indexer package is installed.')
 
@@ -73,7 +75,7 @@ except ImportError:
 
 SUPPORTED_EXTENSIONS: Set[str] = {
     '.py', '.js', '.ts', '.jsx', '.tsx',
-    '.go', '.rs', '.java', '.c', '.cpp', '.h',
+    '.go', '.rs', '.java', '.c', '.cpp', '.h', '.cs',
     '.md', '.txt', '.json', '.yaml', '.yml',
     '.html', '.css', '.scss',
 }
@@ -82,8 +84,11 @@ SKIP_DIRS: Set[str] = {
     '.git', '__pycache__', 'node_modules', '.venv', 'venv',
     'env', '.tox', '.mypy_cache', '.pytest_cache', 'dist', 'build',
     '.eggs', '.gemini', 'test_venv', 'test_repo', 'test_wheel',
-    'legacy', 'site-packages', 'seed-reflection',
+    'legacy', 'site-packages', 'seed-reflection', '.srt1',
+    'SRT1-CORE', 'developer-pwa',  # Stale copies; packaged PWA is served from srt1_platform/pwa
+    'memory', 'scia_memory', 'scia_security', 'srt1-contracts', 'sion_output', 'scratch_ledger_test',  # Local/private/generated layers
 }
+
 
 
 
@@ -220,6 +225,8 @@ class SRT1CodeIndexer:
                 if d not in SKIP_DIRS and not d.endswith('.egg-info')
             ]
             for fname in filenames:
+                if fname in {'srt1_code_manifest.json', 'srt1_audit_delta.json', 'srt1_build_plan.json', 'srt1_context.json', 'package-lock.json', 'yarn.lock'}:
+                    continue
                 ext = os.path.splitext(fname)[1].lower()
                 if ext not in SUPPORTED_EXTENSIONS:
                     continue
@@ -265,47 +272,85 @@ class SRT1CodeIndexer:
     # STAGE 2: Structural Parser
     # ------------------------------------------------------------------
 
+    def _parse_python(self, source: str, rel_path: str) -> List[Dict[str, Any]]:
+        symbols = []
+        try:
+            tree = ast.parse(source, filename=rel_path)
+        except SyntaxError as exc:
+            print(f'    [WARN] Syntax error in {rel_path}: {exc}')
+            return symbols
+
+        for node in ast.walk(tree):
+            if isinstance(node, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
+                symbol_type = 'class' if isinstance(node, ast.ClassDef) else 'function'
+                deps = _extract_dependencies(node)
+                docstring_first = _first_docstring_line(node)
+                params: List[str] = []
+                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    for arg in node.args.args:
+                        params.append(arg.arg)
+                symbols.append({
+                    'name': node.name,
+                    'type': symbol_type,
+                    'line': node.lineno,
+                    'end_line': getattr(node, 'end_lineno', None),
+                    'dependencies': deps,
+                    'parameters': params,
+                    'docstring_first_line': docstring_first,
+                    'category': 'code',
+                })
+        return symbols
+
     def _parse_source_files(self) -> None:
-        """Parse Python files with ast and build the symbol table."""
+        """Parse source files and build the symbol table.
+        Python: full AST parsing. Other languages: regex-based structural extraction."""
         start_time = time.time()
         total_symbols = 0
 
+        self.code_manifest["language_coverage"] = {}
+
         for entry in self.file_manifest:
-            if entry['extension'] != '.py':
-                continue
             fpath = entry['full_path']
             rel = entry['file_path']
+            ext = entry['extension']
+            
             try:
                 with open(fpath, 'r', encoding='utf-8', errors='replace') as fh:
                     source = fh.read()
-                tree = ast.parse(source, filename=rel)
-            except SyntaxError as exc:
-                print(f'    [WARN] Syntax error in {rel}: {exc}')
+            except OSError:
                 continue
 
-            symbols: List[Dict[str, Any]] = []
-            for node in ast.walk(tree):
-                if isinstance(node, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
-                    symbol_type = 'class' if isinstance(node, ast.ClassDef) else 'function'
-                    deps = _extract_dependencies(node)
-                    docstring_first = _first_docstring_line(node)
-                    params: List[str] = []
-                    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                        for arg in node.args.args:
-                            params.append(arg.arg)
-                    symbols.append({
-                        'name': node.name,
-                        'type': symbol_type,
-                        'line': node.lineno,
-                        'end_line': getattr(node, 'end_lineno', None),
-                        'dependencies': deps,
-                        'parameters': params,
-                        'docstring_first_line': docstring_first,
-                    })
-                    total_symbols += 1
+            if ext == '.py':
+                symbols = self._parse_python(source, rel)
+                parser_used = "ast"
+                fidelity = "full"
+            else:
+                symbols = dispatch_parser(source, rel, ext)
+                # Determine fidelity based on extension
+                if ext in ('.html', '.htm', '.css', '.scss', '.less', '.json', '.yaml', '.yml', '.md'):
+                    parser_used = "regex"
+                    fidelity = "structural-anchor"
+                else:
+                    parser_used = "regex"
+                    fidelity = "structural"
+
+            # Track coverage with code vs anchor split
+            if ext not in self.code_manifest["language_coverage"]:
+                self.code_manifest["language_coverage"][ext] = {
+                    "parser": parser_used, "fidelity": fidelity,
+                    "files": 0, "code_symbols": 0, "anchor_symbols": 0, "total_symbols": 0
+                }
+            
+            self.code_manifest["language_coverage"][ext]["files"] += 1
 
             if symbols:
+                code_count = sum(1 for s in symbols if s.get('category') == 'code')
+                anchor_count = sum(1 for s in symbols if s.get('category') == 'anchor')
                 self.symbol_table[rel] = symbols
+                total_symbols += len(symbols)
+                self.code_manifest["language_coverage"][ext]["code_symbols"] += code_count
+                self.code_manifest["language_coverage"][ext]["anchor_symbols"] += anchor_count
+                self.code_manifest["language_coverage"][ext]["total_symbols"] += len(symbols)
 
         duration_ms = int((time.time() - start_time) * 1000)
 
@@ -487,7 +532,7 @@ class SRT1CodeIndexer:
         # Pre-load source for risk analysis scoped to each symbol
         source_lines_cache: Dict[str, List[str]] = {}
         for entry in self.file_manifest:
-            if entry['extension'] == '.py':
+            if entry['file_path'] in self.symbol_table:
                 try:
                     with open(entry['full_path'], 'r', encoding='utf-8', errors='replace') as fh:
                         source_lines_cache[entry['file_path']] = fh.read().splitlines()
@@ -497,7 +542,12 @@ class SRT1CodeIndexer:
         for file_path, symbols in self.symbol_table.items():
             source_lines = source_lines_cache.get(file_path, [])
 
-            for symbol in symbols:
+            # Separate code symbols from anchors for this file
+            code_symbols = [s for s in symbols if s.get('category') == 'code']
+            anchor_symbols = [s for s in symbols if s.get('category') == 'anchor']
+
+            # Generate full reflections for code symbols
+            for symbol in code_symbols:
                 purpose = symbol.get('docstring_first_line') or 'No docstring provided.'
 
                 # Extract only this symbol's source for precise risk scoping
@@ -516,6 +566,7 @@ class SRT1CodeIndexer:
                     'parameters': symbol.get('parameters', []),
                     'symbol_type': symbol['type'],
                     'location': f"{file_path}:{symbol['line']}",
+                    'category': 'code',
                 }
 
                 # Use core SCIA IP to add the reflection
@@ -533,6 +584,31 @@ class SRT1CodeIndexer:
 
                 # Augment the symbol table entry
                 symbol['reflection'] = reflection_content
+
+            # Generate ONE summary reflection per file for anchor symbols
+            if anchor_symbols:
+                anchor_summary = {
+                    'purpose': f'Structural anchors for {file_path}',
+                    'architectural_role': 'STRUCTURAL_ANCHOR',
+                    'risk_profile': ['LOW_RISK'],
+                    'anchor_count': len(anchor_symbols),
+                    'anchor_types': list(set(s['type'] for s in anchor_symbols)),
+                    'sample_names': [s['name'] for s in anchor_symbols[:10]],
+                    'symbol_type': 'anchor_summary',
+                    'location': file_path,
+                    'category': 'anchor',
+                }
+                self.srt_tool.add_reflection(
+                    reflection_type='code_artifact',
+                    content=json.dumps(anchor_summary),
+                    metadata={
+                        'file': file_path,
+                        'symbol': f'_anchor_summary_{len(anchor_symbols)}',
+                        'line': 0,
+                        'module': 'reflector',
+                        'context': 'index structural anchor summary',
+                    },
+                )
 
         # Restore reflection interval for live conversation monitoring
         self.srt_tool.reflection_interval = original_interval
@@ -646,6 +722,8 @@ class SRT1CodeIndexer:
             for entry in self.file_manifest
         ]
 
+        language_coverage = self.code_manifest.get('language_coverage', {})
+
         self.code_manifest = {
             'metadata': {
                 'manifest_version': '2.0.0',
@@ -659,6 +737,7 @@ class SRT1CodeIndexer:
             },
             'file_manifest': safe_file_manifest,
             'symbol_table': self.symbol_table,
+            'language_coverage': language_coverage,
             'curation_report': self.curation_report,
             'reflections': self.srt_tool.get_reflections(),
             'reflection_summary': self.srt_tool.summarize_reflections(),
