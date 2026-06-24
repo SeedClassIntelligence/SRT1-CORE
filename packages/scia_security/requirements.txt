@@ -1,2 +1,0 @@
-# SCIA Security Utilities — Dependencies
-# Core: zero dependencies (standard library only)
