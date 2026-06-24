@@ -1,69 +1,88 @@
-# SRT-1 Canonical Directory Tree & Build Guide
+﻿# SRT-1 Canonical Build Guide
 
-This document maintains the canonical file mappings and build architecture for the SRT-1 Unified Engine.
+This document maps the public SRT-1 Core build boundary. It is an authority map, not permission to move files or merge duplicate surfaces.
 
-## Canonical Directory Tree
+SRT-1 is a repo-continuity and alignment partner for AI coding assistants. Core includes local repo understanding, continuity, reflection, recall, reinjection, context isolation, verification, human co-creation, constellation awareness, and trust awareness.
 
-Below is the authoritative map of the SRT-1 platform. Use this map to prevent duplication and ensure you are working on the correct production files.
+## Public Directory Map
 
 ```text
-SRT1_CODING/
-├── srt1_code_indexer_engine.py      (1) The Primary Core Engine & API Server (Port 7483)
-├── srt1_dashboard.html              (2) The Production Developer Dashboard (Command Center) 
-├── srt1_mobile.html                 (3) Mobile PWA interface
-├── README_PYPI.md                   (4) Package description and documentation
-├── pyproject.toml                   (5) Build Configuration
-├── srt1_code_indexer/               (6) Core Package
-│   ├── indexer.py                   - Tree traversal and file mapping
-│   ├── srt.py                       - Intent anchoring models
-│   └── srt1_signature_client_community.py (Community signature stub)
-├── external_api/                       (7) Proprietary V2 Core (PROTECTED - Excluded from Git)
-│   └── srt1_signature_client.py     - True cryptographic signing engine
-├── srt1_platform/                   (8) Internal Tracing, Networking & Queueing
-│   ├── mcp_server.py                - Multi-agent control plane
-│   ├── tracing_system.py            - Graph-based deterministic pipeline tracer
-│   └── seed_queue.py                - Lifecycle execution & task tracking
-├── srt1_pro/                        (9) Enterprise Features & Context Injectors
-│   ├── execution_engine.py          - Bridge executing and writing final tasks
-│   └── self_heal.py                 - Autonomous redundancy repair tools
-└── seed-reflection/                 (10) Public Marketing & Sales Funnel (Static)
-    ├── home.html                    - Public Root / Landing Page
-    ├── developer-landing.html       - Developer Pitch
-    ├── comparison.html              - Competitive Comparison Matrix
-    └── auth.html                    - Registration / Login Gateway
+SRT1 CODING/
+├── srt1_code_indexer/       Repo understanding authority
+│   ├── indexer.py           File traversal, hashing, manifest and symbol-map support
+│   ├── engine.py            Local engine/API surface for index and status serving
+│   ├── language_parsers.py  Parser expansion candidate
+│   └── srt.py               Reflection/trace models and enforcement vocabulary
+├── srt1_platform/           Local platform authorities
+│   ├── seed_queue.py        Seed lifecycle and continuity candidate
+│   ├── tracing_system.py    Trace/reflection support
+│   ├── mcp_server.py        Assistant interface/context serving candidate
+│   ├── filecell.py          Local containment concept candidate
+│   ├── manifest_deriver.py  Manifest-derived boundary candidate
+│   ├── verification.py      Verification/stitch preparation candidate
+│   └── operational_registry.py  Local runtime/constellation registry candidate
+├── srt1_pro/                Public/Pro extensions
+│   ├── workspace_connector.py  Constellation/workspace connector candidate
+│   └── context_bundler.py      Reinjection/context bundling candidate
+├── developer-pwa/           Human observability/review shell candidate
+├── srt1_platform/pwa/       Platform-served PWA shell candidate
+├── srt1-contracts/          Public contracts pending review
+├── srt1-skills/             Public skills pending review
+└── docs/recovery/           Recovery inventory, authority maps, and boundary plans
 ```
 
----
+## Canonical Source Caution
 
-## The "Two Dashboards" Rule
-There are currently multiple versions of the dashboard inside the repository. To avoid overlap, obey these strict resolutions:
+There are currently multiple dashboard/PWA surfaces. Do not move, delete, or consolidate them until the canonical source is approved. The PWA is a human observability/review surface, not a direct execution controller.
 
-* **Production Live Dashboard:** `srt1_dashboard.html` at the root directory. This contains live API fetching (e.g. `GET /seeds/active`), the real Repository Explorer, and Command Center Chat.
-* **Legacy Mock Dashboard:** `seed-reflection/dashboard.html` is **DEPRECATED** and serves purely as a mockup. 
+## Trust and Private Boundary
 
-*Note: The engine explicitly routes requests for `/dashboard.html` to `srt1_dashboard.html`.*
+Core may understand trust states such as signed/unsigned, verified/unverified, and lineage present/missing. Core does not ship private Seed Signature authority, private keys, SCIA memory implementation, SCIA security implementation, SION internals, private audit chain, or Enterprise backend.
 
----
+Public hooks and contracts must fail closed if private/Enterprise services are unavailable.
 
-## Build Instructions (PyPI Package)
+## Build Guidance
 
-We package SRT-1 as an installable background-running daemon.
+Before packaging or publishing:
 
-### 1. Build the Wheel
+1. Confirm no private implementation paths are staged.
+2. Confirm `memory/`, `scia_memory/`, `scia_security/`, private audit/signing files, generated runtime state, logs, caches, and scratch files are ignored or intentionally excluded.
+3. Confirm PWA changes are staged only after the canonical PWA source is approved.
+4. Confirm FileCell, manifest derivation, verification, and operational registry code is staged only after private dependencies have been removed or abstracted.
+5. Confirm docs describe Core as local continuity/alignment infrastructure, not as autonomous execution or private signing authority.
+
+## Build / Test / Package Commands
+
+Install standard build tooling:
+
 ```bash
-# Ensure standard build tools are present
 pip install build wheel
+```
 
-# Create the packaged .tar.gz and .whl in /dist
+Build the source distribution and wheel:
+
+```bash
 python -m build
 ```
 
-### 2. Output Validation
-Before deploying, confirm that `.gitignore` correctly filtered out `external_api/srt1_signature_client.py` to prevent IP leakage, and that `srt1_code_indexer/srt1_signature_client_community.py` is bundled in its place.
+Run the local engine against the current repo when the package or local scripts expose the engine command:
 
-### 3. Local Execution Run
-To start the engine locally over an existing codebase:
 ```bash
-python srt1_code_indexer_engine.py --repo_path ./
+srt1-engine --repo_path ./
 ```
-*The engine will start on Port 7483 and index the current working directory.*
+
+If working directly from source, use the repo's current local engine entrypoint only after confirming it belongs to public Core and does not import private signing, SCIA memory/security, SION, or private audit implementation.
+
+## Core-Only Validation Checks
+
+Before staging or publishing public Core artifacts:
+
+1. Run the repo's available test suite without downloading new dependencies unless explicitly approved.
+2. Confirm generated files, runtime state, caches, logs, local DBs, and scratch outputs are not staged.
+3. Confirm private paths remain excluded: `memory/`, `scia_memory/`, `scia_security/`, private audit/signing files, SION internals, and Enterprise backend files.
+4. Confirm public hooks fail closed when optional private/Enterprise integrations are unavailable.
+5. Confirm README, AGENTS, CLAUDE, BUILD, and canonical state docs describe trust awareness as metadata/vocabulary, not bundled private signing authority.
+
+## Package Boundary
+
+The first safe public package should preserve working Core behavior and documentation while excluding private implementations. Package contents should favor existing local capabilities over new systems, and every public Enterprise integration point must degrade safely when the private backend is absent.

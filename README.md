@@ -1,105 +1,84 @@
-# SRT-1 CORE
+﻿# SRT-1 CORE
 
-**Brain Over the Repo** — Anti-hallucination, architectural coherence, and cryptographic guardrails for AI-assisted software work.
+**SRT-1 is a repo-continuity and alignment partner for AI coding assistants.** It helps an assistant understand the project, avoid hallucination, prevent context bleed, preserve architectural coherence, follow the approved seed/build plan, and operate inside the correct local workcell.
 
-[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
-[![License: BSL 1.1](https://img.shields.io/badge/license-BSL_1.1-green.svg)](https://srt1.io)
-[![PyPI version](https://badge.fury.io/py/srt1-core.svg)](https://pypi.org/project/srt1-core/)
+SRT-1 CORE is local-first. Its public boundary is repo understanding, continuity, reflection, recall, reinjection, context isolation, verification, human co-creation, constellation awareness, and trust awareness. Private signing, private memory/security implementations, and Enterprise runtime systems are optional integrations outside public Core.
 
 ---
 
-## What Is SRT-1?
+## What Core Does
 
-SRT-1 solves the problem of AI code assistants hallucinating architecture or breaking dependencies. It locally scans your codebase, builds a deep Abstract Syntax Tree (AST) manifest, and uses that context to forcefully guide the AI. 
+SRT-1 CORE keeps an AI coding session anchored to the repository it is actually working in.
 
-The `srt1-core` package provides the **Memory Minimum Architecture**—a completely decoupled, local-first engine that runs entirely on your machine via SQLite, without pinging a cloud API.
+| Authority | Core responsibility |
+| --- | --- |
+| Repo Understanding | Index files, parse supported source, hash files, build symbol/dependency maps, and produce manifests. |
+| Continuity | Track seeds as continuity objects with active, pending, completed, terminated, and partial states. |
+| Reflection | Detect drift, doctrine conflicts, coherence risks, and architectural inconsistency. |
+| Recall | Serve relevant prior state without flooding the assistant with stale walkthroughs. |
+| Reinjection | Reinsert approved context through AGENTS.md, CLAUDE.md, Cursor context, MCP, or local APIs. |
+| Context Isolation | Keep work inside the correct local workcell through manifest-derived read/write boundaries and forbidden paths. |
+| Verification | Prepare and check proposed changes, diffs, post-execution evidence, and re-index events. |
+| Human Co-Creation | Provide dashboard/PWA surfaces for observation, review, approval, rejection, and status awareness. |
+| Constellation Awareness | Recognize independent SRT-1 engines across folders without merging their context by default. |
+| Trust Awareness | Understand signed/unsigned, verified/unverified, and lineage present/missing states. |
 
-### The "Drop-In" Sandbox (Zero Global State)
-
-Unlike massive IDE extensions or global CLI tools that muddy your entire system, SRT-1 is hermetically sealed. You drop SRT-1 into any folder, and it spins up its own engine on its own port. 
-
-- **One Folder, One Engine, One Port:** Each project folder gets its own SRT-1 engine running on a dedicated port, derived from the folder path. Drop SRT-1 into 5 different projects — you get 5 independent engines on 5 different ports, with zero collisions and zero configuration.
-- **Local Context Only:** The engine builds its `.srt1` memory cache purely inside the project boundary. Zero cross-contamination across your machine.
-- **The AI Handcuffs:** You aren't replacing your AI; you are dropping a constraint engine into your folder. Tell Cursor to use SRT-1, and the AI is instantly handcuffed to your deterministic, architectural rules.
-
-```
-── Your machine ────────────────────────────────────
-● auth-module/    → Engine on port 7483  · 12 files, 47 functions
-● payments/       → Engine on port 8192  · 8 files, 31 functions
-● frontend/       → Engine on port 9104  · 24 files, 89 functions
-● api-gateway/    → Engine on port 7821  · 6 files, 22 functions
-● admin-panel/    → Engine on port 8640  · 15 files, 53 functions
-
-Each engine: independent process, independent manifest, independent dashboard.
-```
-
-### The Workspace Connector (Pro)
-
-Modules don't exist in a vacuum. Auth calls payments. The gateway routes to both. The **Workspace Connector** acts as a parent orchestrator — it queries each running Sandbox engine on its port, collects their live manifests, and builds a unified cross-module dependency map. Zero re-indexing. It reads what's already running.
-
-### The Cryptographic Trust Layer
-
-Every action in the SRT-1 pipeline is cryptographically tied to the codebase using **Seed Signature**. From the moment the AST generates the code manifest, to the exact moment you approve a task dispatch, the engine signs and verifies the payload. This ensures an indisputable, immutable execution roadmap.
+Core does not autonomously control code execution. It prepares context, boundaries, proposals, and verification evidence for a human and an assistant to use deliberately.
 
 ---
 
-## The Local Developer Experience
+## Trust Boundary
 
-SRT-1 ships with a live **Developer Dashboard**, and a **Mobile PWA** — all served locally from the engine.
+Core may understand trust states such as:
 
-| Surface | URL | Purpose |
-|---------|-----|---------|
-| Developer Dashboard | `http://localhost:{port}/` | Live metrics, trust chain, repo explorer, audit trail |
-| Mobile PWA | `http://localhost:{port}/mobile` | Seed planting, task review, mobile companion |
-| API Status | `http://localhost:{port}/status` | JSON engine telemetry |
+- signed or unsigned
+- verified or unverified
+- lineage present or missing
+- approval present or missing
+- execution history present or missing
 
-### The Human-in-the-Loop Pipeline
+Core does **not** ship private Seed Signature authority, private keys, SCIA memory implementation, SCIA security implementation, SION internals, private audit chain, or Enterprise backend. Public hooks and contracts must fail closed when a private or Enterprise backend is unavailable.
 
-SRT-1 acts as a strict proxy between you and your code assistant (like Claude Code, Cursor, or Aider). 
+---
 
-1. **Plant a Seed:** You submit a task via the terminal, the dashboard, or the PWA.
-2. **Review Blueprint:** The system generates a blueprint of the intended changes.
-3. **Approve via Seed Signature:** You review the blueprint in the PWA. Once you click Approve, the payload is signed via **Seed Signature** and dispatched to your code assistant to execute.
-4. **Self-Heal:** If the AI makes a mistake, the AST detects the architectural drift and injects correction warnings into the AI's context files. The next time the AI reads its instructions, it sees the error.
+## Local Workcell Model
 
-### Real-Time Delivery: The MCP Server
+SRT-1 is designed around the local workcell: one repo, one engine, one local state boundary.
 
-Writing corrections to a file is useless if the AI never re-reads it. That's why SRT-1 ships with a **Model Context Protocol (MCP) server** — a live, bidirectional pipe between SRT-1 and your AI agent.
+- Each repo can maintain its own `.srt1` state, manifest, and dashboard/API surface.
+- FileCell is a local containment concept, not Enterprise-only.
+- Manifest-derived boundaries define allowed reads, allowed writes, forbidden paths, and re-index checkpoints.
+- Cross-project context is not shared unless explicitly approved through constellation coordination.
 
-When connected via MCP, SRT-1 doesn't wait for the AI to check a file. It **pushes** codebase intelligence directly into the AI's context on every interaction:
+---
 
-- **`srt1_get_context`** — AI calls this before making changes. Gets the full code map, risk tags, and warnings.
-- **`srt1_log_interaction`** — AI calls this after every action. Every 3 calls, SRT-1 fires a reflection checkpoint and pushes a coherence score + correction directives back into the conversation.
-- **`srt1_check_function`** — AI calls this before creating a function. SRT-1 tells it if the function already exists.
-- **`srt1_set_task`** — Plants the seed. Everything after this is measured for drift.
+## Human Surface
 
-#### Setup for Claude Desktop
-Add to `claude_desktop_config.json`:
-```json
-{
-  "mcpServers": {
-    "srt1": {
-      "command": "srt1-mcp",
-      "env": { "SRT1_REPO_PATH": "/path/to/your/project" }
-    }
-  }
-}
-```
+The dashboard and mobile PWA are human observability/review surfaces. They may display repo state, seeds, proposed blueprints, trust status, verification status, and continuity warnings. They are not direct controllers for autonomous code execution.
 
-#### Setup for Cursor
-Add to `.cursor/mcp.json` in your project:
-```json
-{
-  "mcpServers": {
-    "srt1": {
-      "command": "srt1-mcp",
-      "env": { "SRT1_REPO_PATH": "." }
-    }
-  }
-}
-```
+A typical Core flow is:
 
-Once connected, the AI is **forced** to call SRT-1 tools — and SRT-1 injects corrections directly into the conversation in real time. No file polling. No hoping the AI re-reads.
+1. Index the repo and generate/update the manifest.
+2. Plant or receive a seed.
+3. Build an aligned plan from current repo facts.
+4. Present the plan for human review.
+5. Serve bounded context to the assistant.
+6. Verify proposed or completed changes.
+7. Re-index accepted changes and update continuity state.
+
+---
+
+## Assistant Interface
+
+SRT-1 can serve context through local files and local tools:
+
+- `AGENTS.md`
+- `CLAUDE.md`
+- Cursor context files
+- MCP tools
+- local dashboard/API endpoints
+
+The assistant interface should reinforce the recovered authority model: observe before changing, prefer existing capability, avoid duplicate systems, and preserve continuity.
 
 ---
 
@@ -111,126 +90,111 @@ pip install srt1-core
 
 ## Quick Start
 
-### 1. Start the Engine
+Start a local SRT-1 engine over a project folder:
 
 ```bash
 srt1-engine --repo_path ./my_project
 ```
 
-The engine automatically:
-- Indexes your codebase (AST + file hashing)
-- Generates AI context files (`AGENTS.md`, `CLAUDE.md`, `.cursorrules`)
-- Starts the developer dashboard and API on a dynamically assigned port
-- Begins file watching — auto re-indexes on every change
+The engine should index the repo, maintain local manifest/context state, and expose local observability surfaces. The exact port may be assigned by the local engine.
 
-The terminal will print the exact port:
-```
-  ╔══════════════════════════════════════════════════════╗
-  ║               INDEXER IMMUNE SYSTEM IS LIVE         ║
-  ╚══════════════════════════════════════════════════════╝
+Example local endpoints:
 
-  Developer:  http://127.0.0.1:8368/dashboard
-  Consumer:   http://127.0.0.1:8368/consumer
-  Mobile:     http://127.0.0.1:8368/mobile
-  API:        http://127.0.0.1:8368/status
-```
+| Surface | Example URL | Purpose |
+| --- | --- | --- |
+| Dashboard | `http://localhost:{port}/dashboard` | Human observability and review surface |
+| Mobile PWA | `http://localhost:{port}/mobile` | Mobile review/status companion |
+| Status API | `http://localhost:{port}/status` | JSON engine telemetry |
 
-### 2. Connect Your AI
+Seed planting can be exposed through the local API when enabled:
 
-Point your AI assistant at the generated `AGENTS.md` or connect via MCP for real-time injection.
-
-### 3. Plant Seeds
-
-Submit tasks via the dashboard, mobile PWA, or API:
 ```bash
-curl -X POST http://localhost:8368/task -d '{"task": "Add user logout endpoint"}'
+curl -X POST http://localhost:{port}/task -H "Content-Type: application/json" -d "{\"task\":\"Add user logout endpoint\"}"
 ```
 
+Seed planting records intent and continuity state. It does not grant autonomous execution authority.
+
+## MCP Setup Examples
+
+Claude Desktop:
+
+```json
+{
+  "mcpServers": {
+    "srt1": {
+      "command": "srt1-mcp",
+      "env": {
+        "SRT1_REPO_PATH": "/path/to/your/project"
+      }
+    }
+  }
+}
+```
+
+Cursor:
+
+```json
+{
+  "mcpServers": {
+    "srt1": {
+      "command": "srt1-mcp",
+      "env": {
+        "SRT1_REPO_PATH": "."
+      }
+    }
+  }
+}
+```
+
+MCP tools should serve bounded repo context, continuity state, and verification evidence. Core may understand signed/unsigned, verified/unverified, and lineage present/missing trust states; private signing authority is optional/external and is not shipped in Core.
+
 ---
 
-## Pricing
+## Core / Pro / Enterprise Boundary
 
-SRT-1 is **source-available** under the Business Source License 1.1. The full single-folder engine is free forever.
+| Layer | Belongs here |
+| --- | --- |
+| Core | Local repo understanding, continuity, reflection, recall, reinjection, context isolation concepts, verification concepts, human observability shell, trust vocabulary. |
+| Pro | Workspace connector, constellation coordination, richer context bundling, local multi-folder awareness, public contracts that remain decoupled from private systems. |
+| Enterprise / Private | SCIA memory implementation, SCIA security implementation, private Seed Signature authority, private keys, SION internals, private audit/signing authority, team/cloud/SSO/Slack backend, Enterprise dashboards/processes that expose private flow. |
 
-| Tier | Price | What You Get |
-|------|-------|-------------|
-| **Free** | $0 | Full single-folder Sandbox engine. AST indexing, dashboard, trust chain, file watcher, seed tracking. 100% local. |
-| **Pro** | $9/month | Everything in Free + Workspace Connector (link up to 15 modules), Mobile PWA, MCP Server, Blueprint generation, Execution Bridge. |
-| **Enterprise** | $49/seat/month | Everything in Pro + Team sync, CTO admin dashboard, Knowledge Graph, SCIA Memory Orchestrator, SSO/SAML, audit exports, SLA support. Volume discounts available. |
-
----
-
-## The Two Products
-
-SRT-1 CORE contains two distinct products served from the same engine:
-
-### For Developers (Root Path `/`)
-The developer-facing platform — codebase indexing, trust chain, AI governance, blueprint generation. This is the engineering tool.
-
-### For Everyone — Seed Reflection (Path `/consumer/`)
-A consumer-facing conversation recovery product. Upload a ChatGPT JSON export or paste a Claude conversation, and get every abandoned idea back — prioritized and ready to pick up.
-
-**Live:** [seeds.srt1.io](https://seeds.srt1.io)
+Enterprise/private systems are optional integrations. Core must remain useful without them and must fail closed when they are unavailable.
 
 ---
 
-## The Unified Ecosystem
-
-`pip install srt1-core` provides the complete ecosystem:
-
-| Component | Description | CLI Tools |
-|-----------|-------------|-----------|
-| **Core Intelligence** | Local AST mapping, file hashing, curation, enforcement | `srt1-index` |
-| **Pro Execution** | Context Bundler, Execution Engine, Self-Healing | `srt1-bundle`, `srt1-execute`, `srt1-heal` |
-| **Platform & UI** | Live engine, Developer Dashboard, Mobile PWA | `srt1-engine`, `srt1-middleware` |
-| **MCP Server** | Real-time AI injection via Model Context Protocol | `srt1-mcp` |
-| **Workspace Connector** | Multi-folder orchestration (Pro) | `srt1-workspace` |
-
-## Architecture
+## Repository Map
 
 ```text
 SRT1-CORE/
-├── srt1_code_indexer/       → Code reflection, indexing engine, HTTP server
-│   └── engine.py            → The unified engine (index → analyze → serve → watch)
-├── srt1_pro/                → Bundling, execution, self-heal, reinjection
-├── srt1_platform/           → Middleware, Seed Queue, MCP server, execution bridge
-├── developer-pwa/           → Developer Homepage, Dashboard, Documentation
-│   ├── index.html           → Developer landing page
-│   ├── dashboard.html       → Live engine monitoring dashboard
-│   ├── workspace-demo.html  → Sandbox & Connector architecture page
-│   ├── contact.html         → Enterprise contact & volume pricing
-│   └── documentation.html   → API reference & integration guides
-├── packages/
-│   ├── scia_memory/         → Memory Orchestrator, frame persistence, Redis integration
-│   └── scia_security/       → Audit logging, execution graph tracking
-└── seed-reflection/         → Consumer product — conversation recovery
-    ├── index.html           → Consumer landing page
-    └── dashboard.html       → Consumer seed dashboard
+├── srt1_code_indexer/       repo understanding, AST/parser, hashing, manifest support
+├── srt1_platform/           local platform authorities, MCP/context tools, seed queue, tracing
+├── srt1_pro/                workspace connector, context bundling, constellation candidates
+├── developer-pwa/           dashboard/PWA shell pending canonical source approval
+├── srt1_platform/pwa/       platform-served PWA shell pending canonical source approval
+├── srt1-contracts/          public contracts and skill surfaces for review
+├── srt1-skills/             public skill definitions for review
+└── docs/recovery/           architecture recovery and boundary planning
 ```
 
+PWA sources are not moved until the canonical source is approved.
+
+---
+
 ## Requirements
+
 - Python 3.9+
-- Core indexing uses the Python standard library only.
-- SQLite (bundled with Python) for local persistence.
+- Core indexing uses the Python standard library where possible.
+- SQLite may be used for local persistence.
+- No private signing keys or private Enterprise services are required for public Core operation.
 
 ## License
 
 Business Source License 1.1 (BSL 1.1)
 
-The source code is available for reading, auditing, and non-production use. Production use requires a commercial license for teams and enterprises. Individual developer use on personal and Proprietary projects is permitted.
+The source code is available for reading, auditing, and permitted use under the project license. Production, team, and Enterprise use may require a commercial license.
 
-## Community
+## Author
 
-Join the **Seed Class Intelligence** Slack — get help, share your setup, request features, and connect with other developers building with SRT-1.
+William Darnell Jernigan IV - THE ORIGINAL SEED
 
-👉 [**Join Slack**](https://join.slack.com/t/seedclassinte-phn4203/shared_invite/zt-3wbucmj9i-RD1sfhXAAN1_3NuWaF8W2g)
-
----
-
-**Author:** William Darnell Jernigan IV — THE ORIGINAL SEED
-
-**Architecture:** Seed-Class Intelligence Architecture (SCIA)
-
-**Signed by:** SeedSignature
-
-© 2026 SRT-1 — [srt1.io](https://srt1.io)
+Architecture: Seed-Class Intelligence Architecture (SCIA)
