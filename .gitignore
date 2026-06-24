@@ -90,3 +90,14 @@ srt1_audit_delta.json
 *.bak
 scratch.html
 unknown_to_ast.py
+
+# -- LOCAL SCRATCH / PROBES (DO NOT TRACK IN CORE) --
+scratch/
+scratch_ledger_test/
+sion_output/
+
+# -- PRODUCT PACKAGING / MARKETING DRAFTS --
+# Keep these outside Core commits until product packaging is approved.
+docs/marketing/
+*_Marketing_*.webp
+*_Promo.webp
