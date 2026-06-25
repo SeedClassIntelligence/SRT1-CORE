@@ -1,28 +1,26 @@
 @echo off
-TITLE SRT-1 Master Launcher
+setlocal
+cd /d "%~dp0"
+TITLE SRT-1 Core Launcher
 color 0b
 echo ========================================================
-echo         SRT-1 Development Environment Launcher
+echo             SRT-1 Core Local Launcher
 echo ========================================================
 echo.
 
-echo Starting Real-Time Development Indexer...
-start cmd /k "TITLE SRT-1 Developer Indexer && python srt1_code_indexer\engine.py --repo_path ./"
+echo Starting SRT-1 Core Engine on http://127.0.0.1:7483 ...
+start "SRT-1 Core Engine (7483)" cmd /k "python -m srt1_code_indexer.engine --repo_path . --port 7483"
 
-echo Starting Consumer Auth/DB API Backend (Port 8000)...
-start cmd /k "TITLE SRT-1 Cloud API Backend (8000) && python -m srt1_backend.server"
-
-echo Starting Local Dashboards ^& Marketing Site (Port 8080)...
-cd "seed-reflection"
-start cmd /k "TITLE SRT-1 Websites (8080) && python -m http.server 8080"
+echo Starting packaged SRT-1 dashboard on http://127.0.0.1:8080 ...
+start "SRT-1 Dashboard (8080)" cmd /k "pushd ""%~dp0srt1_platform\pwa"" && python -m http.server 8080"
 
 echo.
 echo ========================================================
-echo SUCCESS! All three background services launched.
+echo SRT-1 Core started.
 echo.
-echo Marketing / UI: http://localhost:8080/home.html
-echo SaaS Backend:   http://localhost:8000/api/v1
-echo Core Engine:    Port auto-derived. Check engine terminal.
+echo Dashboard:   http://127.0.0.1:8080/dashboard.html
+echo Mobile PWA:  http://127.0.0.1:8080/mobile.html
+echo Core API:    http://127.0.0.1:7483/status
 echo ========================================================
 echo.
 pause
