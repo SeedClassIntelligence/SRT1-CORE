@@ -206,7 +206,7 @@ class SCIADispatchBridge:
                 "relevant_files": bp_result.get("relevant_files", 0),
                 "saved_to": bp_result.get("saved_to", ""),
             }
-
+            
         # Take a snapshot of current file hashes for completion detection
         if self._get_file_hashes:
             self._file_snapshots[seed_id] = dict(self._get_file_hashes())
@@ -244,7 +244,8 @@ class SCIADispatchBridge:
         if self._on_seed_dispatched:
             self._on_seed_dispatched(seed_id, results)
 
-        logger.info(f"🌿 Seed {seed_id} dispatched via {', '.join(results.keys())}")
+        logger.info(f"Seed {seed_id} dispatched via {', '.join(results.keys())}")
+
         return {
             "seed_id": seed_id,
             "dispatched": True,
@@ -588,6 +589,8 @@ class SCIADispatchBridge:
         logger.info(f"🌸 SEED BLOOMED: {seed_id} via {method}")
         logger.info(f"   Files modified: {len(files_modified)}")
         logger.info(f"   Summary: {summary}")
+        
+        dispatch_info = self._active_dispatches.get(seed_id, {})
 
         # Record completion
         completion_record = {
@@ -596,7 +599,7 @@ class SCIADispatchBridge:
             "files_modified": files_modified,
             "summary": summary,
             "detection_method": method,
-            "dispatch_info": self._active_dispatches.get(seed_id, {}),
+            "dispatch_info": dispatch_info,
         }
 
         # Save completion record
