@@ -43,8 +43,8 @@ import sys
 # characters (╔═╗ etc.). Reconfigure to UTF-8 so banners render correctly.
 if sys.platform == "win32":
     try:
-        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace", line_buffering=True)
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace", line_buffering=True)
     except Exception:
         pass  # Fallback: let Python handle it
 
@@ -59,7 +59,7 @@ import sqlite3
 import uuid
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from socketserver import ThreadingMixIn
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Any, Optional
 from urllib.parse import urlparse, parse_qs
 
@@ -99,6 +99,14 @@ except ImportError:
     SeedStage = None
     SCIADispatchBridge = None
 
+# ---- Shared LLM Intelligence Layer ----
+try:
+    from srt1_platform.intelligence_adapter import IntelligenceAdapter
+    from srt1_platform.llm_providers import TokenBudget
+except ImportError:
+    IntelligenceAdapter = None
+    TokenBudget = None
+
 try:
     from srt1_pro import execution_engine
 except ImportError:
@@ -118,6 +126,12 @@ try:
     from srt1_pro.completeness import SeedTreeValidator
 except ImportError:
     SeedTreeValidator = None
+
+# ---- Operational Registry (Phase B) ----
+try:
+    from srt1_platform.operational_registry import OperationalRegistry
+except ImportError:
+    OperationalRegistry = None
 
 logging.basicConfig(
     level=logging.WARNING,
@@ -175,6 +189,19 @@ class SRT1Engine:
         # Core SCIA IP
         self.srt_tool = SRT(reflection_interval=self.REFLECTION_INTERVAL)
 
+        # ---- Shared LLM Intelligence (SRT-1 Thinking Mode) ----
+        self.llm: Optional['IntelligenceAdapter'] = None
+        if IntelligenceAdapter:
+            try:
+                adapter = IntelligenceAdapter()
+                if adapter.is_available():
+                    self.llm = adapter
+                    logger.info(f"SRT-1 Intelligence Adapter: Active — providers: {adapter.get_available_providers()}")
+                else:
+                    logger.info("SRT-1 LLM: No providers configured — using deterministic analysis")
+            except Exception as e:
+                logger.warning(f"SRT-1 LLM: Init failed ({e}) — using deterministic analysis")
+
         # Codebase knowledge
         self.manifest: Dict[str, Any] = {}
         self.symbol_table: Dict[str, List[Dict]] = {}
@@ -184,7 +211,7 @@ class SRT1Engine:
         self.synopsis: str = ""
 
         # Session state
-        self.current_task = task
+        self.task = task
         self.task_seed_id: Optional[str] = None
         self.build_plan: Optional[Dict[str, Any]] = None
         self.operations: List[Dict] = []
@@ -288,7 +315,7 @@ class SRT1Engine:
     # -----------------------------------------------------------------
 
     def _log_event(self, category: str, message: str, data: Optional[Dict] = None) -> None:
-        """Record a real, timestamped engine event. Signed by SeedSignature."""
+        """Record a real, timestamped engine event. Signed by SeedSignature when configured."""
         event = {
             "timestamp": time.time(),
             "iso": datetime.now().isoformat(),
@@ -296,7 +323,7 @@ class SRT1Engine:
             "message": message,
             "data": data or {},
         }
-        # Sign every event via SeedSignature
+        # Optional external signing; Core continues if unavailable.
         if self.signing_client:
             sig = self.signing_client.sign(
                 {"category": category, "message": message, "ts": event["timestamp"]},
@@ -304,6 +331,7 @@ class SRT1Engine:
             )
             if "error" not in sig:
                 event["_provenance"] = sig
+        # In-memory event cache for dashboard read performance.
         self._event_log.append(event)
         # Cap at 500 events to prevent unbounded growth
         if len(self._event_log) > 500:
@@ -367,6 +395,11 @@ class SRT1Engine:
         else:
             print("         ✓ Context files generated.")
         self._log_event("context", "Generated AGENTS.md, CLAUDE.md, .cursorrules, copilot-instructions.md", {"files_written": 5})
+        # ── SCIA Event: context_docs_generated (canonical audit name) ──
+        self._log_event("context_docs_generated", "AI context files generated", {
+            "targets": ["AGENTS.md", "CLAUDE.md", ".cursorrules", "copilot-instructions.md"],
+            "workspace_root": self.repo_path,
+        })
 
         # Step 5: Generate build plan + plant task seed
         print(f"  [5/6] Generating build plan...")
@@ -384,7 +417,7 @@ class SRT1Engine:
             # Auto-derive task from the project's own intent
             auto_task = self.build_plan.get("intent", "")[:180]
             if auto_task:
-                self.current_task = auto_task
+                self.task = auto_task
                 print(f"         Auto-detected intent from project files.")
                 self._log_event("seed", f"Auto-genesis task derived: {auto_task[:80]}...")
 
@@ -412,7 +445,7 @@ class SRT1Engine:
         
         def derive_project_port(repo_path: str, base_port: int = 7483) -> int:
             """Derive a deterministic port from the repo path so each project has its own port."""
-            path_hash = hashlib.sha256(os.path.abspath(repo_path).encode()).hexdigest()
+            path_hash = hashlib.sha256(os.path.abspath(repo_path).lower().encode()).hexdigest()
             offset = int(path_hash[:8], 16) % 1000
             return base_port + offset
 
@@ -433,6 +466,43 @@ class SRT1Engine:
         # Print ready message
         self._print_ready()
         self._log_event("engine", f"Server ready on port {self.port}", {"port": self.port})
+
+        # ── Registry: Self-register + heartbeat ─────────────────────
+        self._registry = None
+        self._engine_id = None
+        if OperationalRegistry:
+            try:
+                self._registry = OperationalRegistry()
+                self._engine_id = OperationalRegistry.generate_engine_id(self.repo_path, self.port)
+                manifest_hash = self.manifest.get("integrity", {}).get("manifest_hash", "")
+                self._registry.register_engine(
+                    engine_id=self._engine_id,
+                    port=self.port,
+                    workspace_path=self.repo_path,
+                    manifest_hash=manifest_hash,
+                    workspace_name=os.path.basename(self.repo_path),
+                )
+                print(f"         \u2713 Registered in OperationalRegistry (ID: {self._engine_id[:16]}...)")
+                self._log_event("registry", f"Engine registered: {self._engine_id}", {"port": self.port})
+
+                # Start heartbeat daemon
+                def _heartbeat_loop():
+                    while True:
+                        time.sleep(15)
+                        try:
+                            mh = self.manifest.get("integrity", {}).get("manifest_hash", "")
+                            self._registry.heartbeat(self._engine_id, manifest_hash=mh)
+                        except Exception:
+                            pass
+
+                hb_thread = threading.Thread(target=_heartbeat_loop, daemon=True)
+                hb_thread.start()
+
+                # Register shutdown hook
+                import atexit
+                atexit.register(lambda: self._registry.deregister_engine(self._engine_id) if self._registry else None)
+            except Exception as e:
+                print(f"         \u26a0 Registry registration failed: {e}")
 
         # Open dashboard via the local server instead of file://
         dashboard_path = self._get_dashboard_path()
@@ -517,6 +587,15 @@ class SRT1Engine:
         """Run the full indexer pipeline."""
         with self._lock:
             try:
+                # ── SCIA Event: repo_index_started ─────────────────────────
+                import time as _time
+                _index_start_ts = _time.time()
+                _trigger = "startup" if not self.manifest else "file_watcher"
+                self._log_event("repo_index_started", "Repository indexing started", {
+                    "workspace_root": self.repo_path,
+                    "trigger": _trigger,
+                })
+
                 # Capture T-1 state for Delta Audit
                 state_t1 = {}
                 if self.manifest:
@@ -536,7 +615,7 @@ class SRT1Engine:
                 for entry in indexer.file_manifest:
                     self.file_hashes[entry["file_path"]] = entry["content_hash"]
                     
-                # Run Delta Audit if we have a T-1 state and Enterprise Platform is available
+                # Run optional delta audit if a T-1 state and integration are available.
                 if state_t1 and self.manifest:
                     try:
                         from srt1_platform.delta_auditor import SCIADeltaAuditor
@@ -551,11 +630,341 @@ class SRT1Engine:
                         with open(audit_path, "w", encoding="utf-8") as f:
                             json.dump(delta_report, f, indent=2)
                     except ImportError:
-                        # Enterprise logic missing; graceful degrade for Core tier.
+                        # Optional delta audit integration missing; Core continues.
                         pass
+
+                # ── SCIA Event: repo_index_completed ───────────────────────
+                _files_indexed = len(self.manifest.get("file_manifest", []))
+                _symbols_found = sum(len(s) for s in self.symbol_table.values())
+                _duration_ms = int((_time.time() - _index_start_ts) * 1000)
+                self._log_event("repo_index_completed", "Repository indexing completed", {
+                    "workspace_root": self.repo_path,
+                    "files_indexed": _files_indexed,
+                    "symbols_found": _symbols_found,
+                    "duration_ms": _duration_ms,
+                    "trigger": _trigger,
+                })
+
+                # ── Semantic Enrichment Layer ──────────────────────────────
+                # Applied AFTER deterministic indexing completes.
+                # If LLM is unavailable or fails, the deterministic manifest
+                # remains the source of structural truth — unmodified.
+                # All enrichment outputs are labeled as "semantic_enrichment"
+                # to distinguish them from deterministic authority.
+                import threading
+                threading.Thread(target=self._apply_semantic_enrichment, daemon=True).start()
                         
             except Exception as exc:
+                # ── SCIA Event: repo_index_failed ──────────────────────────
+                self._log_event("repo_index_failed", f"Repository indexing failed: {exc}", {
+                    "workspace_root": self.repo_path,
+                    "error": str(exc),
+                })
                 print(f"  [ERROR] Indexing failed: {exc}")
+
+
+    # ═══════════════════════════════════════════════════════════════════════
+    # SEMANTIC ENRICHMENT — Model-Assisted Understanding (Optional Layer)
+    # ═══════════════════════════════════════════════════════════════════════
+    #
+    # These methods use the IntelligenceAdapter to add model-assisted
+    # semantic understanding ON TOP of the deterministic AST manifest.
+    #
+    # Rules:
+    #   - All outputs are labeled "semantic_enrichment" (not authority)
+    #   - Deterministic manifest is NEVER modified — enrichments are additive
+    #   - If LLM is unavailable, indexing continues with zero degradation
+    #   - TokenBudget and AnalysisCache are respected
+    #   - No code generation, no proposals, no execution
+    # ═══════════════════════════════════════════════════════════════════════
+
+    def _apply_semantic_enrichment(self) -> None:
+        """Apply model-assisted semantic enrichment after deterministic indexing.
+        If IntelligenceAdapter is unavailable, this is a no-op."""
+        if not self.llm:
+            return
+
+        logger.info("SRT-1 Intelligence: Applying semantic enrichment layer...")
+        enrichment_results = {}
+
+        # 1. Enrich architectural roles
+        try:
+            role_enrichments = self._enrich_roles_semantic()
+            if role_enrichments:
+                enrichment_results["role_enrichments"] = role_enrichments
+                logger.info(f"  ✓ Role enrichment: {len(role_enrichments)} symbols enriched")
+        except Exception as e:
+            logger.warning(f"  ⚠ Role enrichment failed ({e}), using deterministic roles")
+
+        # 2. Detect semantic overlaps
+        try:
+            semantic_overlaps = self._detect_semantic_overlaps()
+            if semantic_overlaps:
+                enrichment_results["semantic_overlaps"] = semantic_overlaps
+                logger.info(f"  ✓ Semantic overlap detection: {len(semantic_overlaps)} groups found")
+        except Exception as e:
+            logger.warning(f"  ⚠ Semantic overlap detection failed ({e})")
+
+        # 3. Assess architectural coherence
+        try:
+            coherence = self._assess_coherence()
+            if coherence and coherence.get("coherence_score", 0) > 0:
+                enrichment_results["coherence_assessment"] = coherence
+                logger.info(f"  ✓ Coherence assessment: score={coherence.get('coherence_score', 0)}/100")
+        except Exception as e:
+            logger.warning(f"  ⚠ Coherence assessment failed ({e})")
+
+        # 4. Summarize key modules
+        try:
+            module_summaries = self._summarize_modules()
+            if module_summaries:
+                enrichment_results["module_summaries"] = module_summaries
+                logger.info(f"  ✓ Module summaries: {len(module_summaries)} modules summarized")
+        except Exception as e:
+            logger.warning(f"  ⚠ Module summarization failed ({e})")
+
+        # 5. Build context insight for current task
+        try:
+            if self.task:
+                context_insight = self._build_context_insight()
+                if context_insight:
+                    enrichment_results["context_insight"] = context_insight
+                    logger.info("  ✓ Context insight generated for current task")
+        except Exception as e:
+            logger.warning(f"  ⚠ Context insight failed ({e})")
+
+        # 6. Deep-parse non-Python files via LLM
+        # ── Phase D: Language Coverage Expansion ──
+        # Regex gives us symbol names. This step gives us real understanding.
+        try:
+            deep_count = 0
+            skip_exts = {'.py', '.md', '.json', '.yaml', '.yml', '.txt'}
+            for fpath, symbols in list(self.symbol_table.items()):
+                ext = os.path.splitext(fpath)[1].lower()
+                if ext in skip_exts:
+                    continue
+                # Read source for this file
+                full = os.path.join(self.repo_path, fpath)
+                try:
+                    with open(full, 'r', encoding='utf-8', errors='ignore') as fh:
+                        source = fh.read()
+                except Exception:
+                    continue
+                if not source.strip():
+                    continue
+                deep = self.llm.deep_analyze_source(source, fpath, ext, symbols)
+                if deep and deep.get("enriched_symbols"):
+                    # Merge deep analysis into existing symbols
+                    existing_names = {s.get("name") for s in symbols}
+                    for es in deep["enriched_symbols"]:
+                        if es.get("name") not in existing_names:
+                            symbols.append({
+                                "name": es["name"],
+                                "type": es.get("type", "function"),
+                                "line": es.get("line", 0),
+                                "reflection": {
+                                    "architectural_role": "GENERAL",
+                                    "purpose": es.get("purpose", ""),
+                                    "risk_profile": es.get("risk", ["LOW_RISK"]),
+                                },
+                                "dependencies": es.get("dependencies", []),
+                                "_source": "deep_analysis",
+                            })
+                    # Upgrade fidelity marker for this file
+                    deep_count += 1
+                    # Store per-file deep analysis metadata
+                    if "deep_analysis" not in enrichment_results:
+                        enrichment_results["deep_analysis"] = {}
+                    enrichment_results["deep_analysis"][fpath] = {
+                        "fidelity": "deep",
+                        "purpose": deep.get("architectural_purpose", ""),
+                        "risk_tags": deep.get("risk_tags", []),
+                        "missed_symbols": len(deep.get("missed_symbols", [])),
+                        "dependency_chains": len(deep.get("dependency_chains", [])),
+                    }
+            if deep_count:
+                logger.info(f"  ✓ Deep analysis: {deep_count} non-Python files enhanced")
+        except Exception as e:
+            logger.warning(f"  ⚠ Deep non-Python analysis failed ({e})")
+
+        # Store enrichments as a clearly labeled additive layer
+        if enrichment_results and self.manifest:
+            self.manifest["semantic_enrichment"] = {
+                "_meta": {
+                    "source": "IntelligenceAdapter",
+                    "authority": "semantic_enrichment",
+                    "note": "Model-assisted understanding. Not deterministic authority. "
+                            "Deterministic AST manifest is the source of structural truth.",
+                    "budget_status": self.llm.get_budget_status(),
+                },
+                **enrichment_results,
+            }
+            logger.info(f"SRT-1 Intelligence: Enrichment layer complete "
+                        f"({len(enrichment_results)} sections)")
+
+    def _enrich_roles_semantic(self) -> List[Dict]:
+        """Use IntelligenceAdapter.enrich_roles() to semantically validate
+        deterministic role assignments. Returns enrichment proposals only."""
+        if not self.symbol_table:
+            return []
+
+        # Collect a representative sample of symbols for enrichment
+        symbol_data = []
+        for fpath, symbols in list(self.symbol_table.items())[:15]:
+            for sym in symbols[:5]:
+                reflection = sym.get("reflection", {})
+                symbol_data.append({
+                    "name": sym["name"],
+                    "type": sym.get("type", "function"),
+                    "file": fpath,
+                    "docstring": sym.get("docstring_first_line", ""),
+                    "deterministic_role": reflection.get("architectural_role", "GENERAL"),
+                    "dependencies": sym.get("dependencies", [])[:5],
+                })
+
+        if not symbol_data:
+            return []
+
+        enrichments = self.llm.enrich_roles(symbol_data)
+
+        # Merge enrichments back as additive metadata (never overwrite deterministic)
+        enriched = []
+        for e in enrichments:
+            name = e.get("name", "")
+            semantic_role = e.get("role", "")
+            semantic_risk = e.get("risk", "")
+            if not name:
+                continue
+            # Find the symbol and add semantic enrichment alongside deterministic role
+            for fpath, symbols in self.symbol_table.items():
+                for sym in symbols:
+                    if sym["name"] == name:
+                        if "semantic_enrichment" not in sym:
+                            sym["semantic_enrichment"] = {}
+                        sym["semantic_enrichment"]["semantic_role"] = semantic_role
+                        sym["semantic_enrichment"]["semantic_risk"] = semantic_risk
+                        enriched.append({
+                            "name": name,
+                            "file": fpath,
+                            "deterministic_role": sym.get("reflection", {}).get("architectural_role", "GENERAL"),
+                            "semantic_role": semantic_role,
+                            "semantic_risk": semantic_risk,
+                        })
+                        break
+        return enriched
+
+    def _detect_semantic_overlaps(self) -> List[Dict]:
+        """Use IntelligenceAdapter.detect_semantic_overlaps() to find semantic
+        duplicates beyond pattern matching."""
+        if not self.symbol_table:
+            return []
+
+        functions = []
+        for fpath, symbols in self.symbol_table.items():
+            for sym in symbols:
+                if sym.get("type") == "function":
+                    functions.append({
+                        "name": sym["name"],
+                        "file": fpath,
+                        "docstring": sym.get("docstring_first_line", ""),
+                        "dependencies": sym.get("dependencies", [])[:5],
+                    })
+
+        if len(functions) < 2:
+            return []
+
+        overlaps = self.llm.detect_semantic_overlaps(functions)
+
+        # Add to curation report as semantic enrichment (not authoritative)
+        if overlaps and self.curation_report:
+            if "semantic_overlaps" not in self.curation_report:
+                self.curation_report["semantic_overlaps"] = []
+            for group in overlaps:
+                self.curation_report["semantic_overlaps"].append({
+                    "type": "semantic_overlap",
+                    "source": "semantic_enrichment",
+                    "group": group.get("group", []),
+                    "reason": group.get("reason", ""),
+                })
+        return overlaps
+
+    def _assess_coherence(self) -> Dict:
+        """Use IntelligenceAdapter.assess_coherence() to assess architectural health."""
+        if not self.manifest:
+            return {}
+
+        metadata = self.manifest.get("metadata", {})
+        summary = (
+            f"Repository: {metadata.get('repo_name', 'unknown')}\n"
+            f"Files: {metadata.get('total_files_scanned', 0)}\n"
+            f"Symbols: {metadata.get('total_symbols_indexed', 0)}\n"
+            f"Reflections: {metadata.get('total_reflections', 0)}\n"
+        )
+
+        # Add role distribution
+        roles = {}
+        for fpath, symbols in self.symbol_table.items():
+            for sym in symbols:
+                role = sym.get("reflection", {}).get("architectural_role", "GENERAL")
+                roles[role] = roles.get(role, 0) + 1
+        summary += f"Role distribution: {dict(sorted(roles.items(), key=lambda x: -x[1])[:8])}\n"
+
+        # Add curation summary
+        curation = self.curation_report or {}
+        summary += (
+            f"Duplicates: {len(curation.get('duplicate_files', []))}\n"
+            f"Overlaps: {len(curation.get('functional_overlaps', []))}\n"
+            f"Unused: {len(curation.get('unused_functions', []))}\n"
+        )
+
+        return self.llm.assess_coherence(summary)
+
+    def _summarize_modules(self) -> Dict[str, str]:
+        """Use IntelligenceAdapter.summarize_module() on key source modules."""
+        summaries = {}
+
+        # Identify key modules (largest symbol count, up to 5)
+        module_sizes = [
+            (fpath, len(symbols))
+            for fpath, symbols in self.symbol_table.items()
+        ]
+        module_sizes.sort(key=lambda x: -x[1])
+        key_modules = [fpath for fpath, _ in module_sizes[:5]]
+
+        for fpath in key_modules:
+            full_path = os.path.join(self.repo_path, fpath)
+            if not os.path.exists(full_path):
+                continue
+            try:
+                with open(full_path, "r", encoding="utf-8", errors="replace") as f:
+                    source = f.read()
+                summary = self.llm.summarize_module(source, module_name=fpath)
+                if summary:
+                    summaries[fpath] = summary
+            except Exception:
+                continue
+
+        return summaries
+
+    def _build_context_insight(self) -> str:
+        """Use IntelligenceAdapter.build_context_insight() to rank symbols
+        by semantic relevance to the current task."""
+        if not self.task or not self.symbol_table:
+            return ""
+
+        # Collect all symbols for relevance ranking
+        all_symbols = []
+        for fpath, symbols in self.symbol_table.items():
+            for sym in symbols:
+                all_symbols.append({
+                    "name": sym["name"],
+                    "type": sym.get("type", "function"),
+                    "file": fpath,
+                    "docstring": sym.get("docstring_first_line", ""),
+                    "role": sym.get("reflection", {}).get("architectural_role", "GENERAL"),
+                })
+
+        return self.llm.build_context_insight(all_symbols, self.task)
 
     def _build_call_graph(self) -> None:
         """Build cross-file call graph."""
@@ -588,10 +997,92 @@ class SRT1Engine:
 
     def _generate_synopsis(self) -> str:
         """
-        Generate a deterministic, semantic synopsis of the entire project
-        by extracting rules and definitions from Markdown files (AGENTS.md, README.md)
-        and combining them with the parsed AST data.
+        Generate a semantic synopsis of the entire project.
+
+        If an LLM is available, uses it for intelligent summarization.
+        Results are hash-cached — identical codebase state costs zero tokens.
+        Falls back to deterministic AST-based generation when no LLM is configured.
         """
+        # ---- LLM-Enhanced Synopsis (SRT-1 Thinking Mode) ----
+        if self.llm:
+            try:
+                return self._generate_synopsis_llm()
+            except Exception as e:
+                logger.warning(f"LLM synopsis failed ({e}), falling back to deterministic")
+
+        # ---- Deterministic Fallback (no LLM) ----
+        return self._generate_synopsis_deterministic()
+
+    def _generate_synopsis_llm(self) -> str:
+        """LLM-powered synopsis. Cached by codebase hash — repeats cost zero tokens."""
+        # Build compact stats for the LLM
+        total_files = len(self.manifest.get("file_manifest", []))
+        total_symbols = sum(len(s) for s in self.symbol_table.values())
+        total_chains = len(self.call_graph)
+        repo_name = os.path.basename(self.repo_path)
+
+        classes = []
+        functions = []
+        risk_counts: Dict[str, int] = {}
+        roles: Dict[str, int] = {}
+
+        for fpath, symbols in self.symbol_table.items():
+            for sym in symbols:
+                ref = sym.get("reflection", {})
+                role = ref.get("architectural_role", "GENERAL")
+                roles[role] = roles.get(role, 0) + 1
+                for r in ref.get("risk_profile", []):
+                    if r != "LOW_RISK":
+                        risk_counts[r] = risk_counts.get(r, 0) + 1
+                if sym["type"] == "class" and sym["name"] != "__init__":
+                    purpose = ref.get("purpose", "")
+                    if purpose and purpose != "No docstring provided.":
+                        classes.append(f"{sym['name']}: {purpose[:80]}")
+                elif sym["type"] == "function":
+                    functions.append(sym["name"])
+
+        # Overlaps / warnings
+        overlaps = self.curation_report.get("functional_overlaps", [])
+        overlap_desc = ""
+        if overlaps:
+            for ov in overlaps[:3]:
+                func = ov["instances"][0]["function"]
+                locs = [i["file"] for i in ov["instances"]]
+                overlap_desc += f"  - {func}() duplicated in: {', '.join(locs)}\n"
+
+        context = (
+            f"Repository: {repo_name}\n"
+            f"Files: {total_files}, Classes: {len(classes)}, "
+            f"Functions: {len(functions)}, Call chains: {total_chains}\n"
+            f"Top classes:\n" + "\n".join(f"  - {c}" for c in classes[:8]) + "\n"
+            f"Roles: {dict(sorted(roles.items(), key=lambda x: -x[1])[:5])}\n"
+            f"Risks: {dict(sorted(risk_counts.items(), key=lambda x: -x[1])[:5])}\n"
+            + (f"Duplications:\n{overlap_desc}" if overlap_desc else "")
+        )
+
+        response = self.llm.analyze(
+            prompt=(
+                "Generate a concise, semantic Project Synopsis for this codebase. "
+                "Start with a one-line architectural description. Then list Core Components "
+                "(top 5 classes with purpose), Risk Profile summary, and any warnings. "
+                "Use markdown with ## headers. Be precise — no filler."
+            ),
+            context=context,
+            max_tokens=1024,
+        )
+
+        if response.content and response.provider != "budget_exhausted":
+            # Wrap in synopsis header if LLM didn't include it
+            content = response.content.strip()
+            if not content.startswith("##"):
+                content = f"## 🧠 Project Synopsis\n\n{content}"
+            return content
+
+        # Budget exhausted — fall back
+        return self._generate_synopsis_deterministic()
+
+    def _generate_synopsis_deterministic(self) -> str:
+        """Original deterministic synopsis. Zero LLM tokens. Always available."""
         lines = []
         lines.append(f"## 🧠 Project Synopsis\n")
         
@@ -1343,6 +1834,21 @@ class SRT1Engine:
         return None
 
     def _task_keywords(self, task: str) -> List[str]:
+        """Extract keywords from task. Uses LLM intent classification when available."""
+        # LLM-enhanced: use classify_intent for semantic keyword extraction
+        if self.llm:
+            try:
+                intent = self.llm.classify_intent(task)
+                if intent.confidence > 0.4:
+                    kw = []
+                    kw.extend(w.lower() for w in intent.title.split() if len(w) > 2)
+                    kw.extend(d.lower() for d in intent.domains)
+                    kw.extend(w.lower() for w in intent.description.split() if len(w) > 3)
+                    return list(set(kw))[:20]
+            except Exception as e:
+                logger.warning(f"LLM intent classification failed ({e}), using deterministic")
+
+        # Deterministic fallback
         noise = {"a","an","the","to","in","on","at","for","of","and","or","is",
                  "it","my","i","we","do","that","this","with","from","into"}
         words = task.lower().replace(",", " ").replace(".", " ").split()
@@ -1558,12 +2064,45 @@ class SRT1Engine:
         with open(blueprint_path, "w", encoding="utf-8") as f:
             f.write(blueprint_text)
 
+        # ── FILECELL ASSIGNMENT ─────────────────────────────────────
+        filecell_manifest = None
+        try:
+            from srt1_platform.filecell import FileCellManifest
+            # Read scope: All relevant files found in the codebase scan
+            allowed_reads = [os.path.abspath(os.path.join(self.repo_path, f)) for f in relevant_files]
+            # Write scope: Only the top 3 most relevant files (to demonstrate strict separation)
+            # Dependencies fall into read scope but NOT write scope.
+            allowed_writes = [os.path.abspath(os.path.join(self.repo_path, s["file"])) for s in top_relevant[:3]]
+            
+            # Prevent self-modification or audit ledger tampering
+            forbidden = [os.path.abspath(os.path.join(self.repo_path, ".srt1"))]
+            
+            filecell_manifest = FileCellManifest.generate(
+                task_intent=seed,
+                allowed_reads=allowed_reads,
+                allowed_writes=allowed_writes,
+                forbidden_paths=forbidden
+            )
+            
+            # Emit immediate Seed Signature for allocation
+            if getattr(self, "signing_client", None):
+                try:
+                    self.signing_client.sign(
+                        content={"cell_id": filecell_manifest.cell_id, "intent": seed},
+                        phase="filecell_allocation"
+                    )
+                except Exception:
+                    pass
+        except ImportError:
+            pass
+
         return {
             "blueprint": blueprint_text,
             "seed": seed,
             "relevant_symbols": len(top_relevant),
             "relevant_files": len(relevant_files),
             "saved_to": blueprint_path,
+            "filecell_manifest": filecell_manifest
         }
 
     # -----------------------------------------------------------------
@@ -1600,7 +2139,7 @@ class SRT1Engine:
             operation=desc[:100],
             input_data={"files": files, "op": op_num},
             output_data={"logged": True},
-            metadata={"context": " ".join(self._task_keywords(self.current_task or ""))},
+            metadata={"context": " ".join(self._task_keywords(self.task or ""))},
         )
 
         result: Dict[str, Any] = {"op_number": op_num, "logged": True, "injection": None}
@@ -1647,7 +2186,7 @@ class SRT1Engine:
             "=" * 60,
             "SRT-1 REFLECTION CHECKPOINT — LIVE INJECTION",
             "=" * 60, "",
-            f"ACTIVE TASK: {self.current_task}",
+            f"ACTIVE TASK: {self.task}",
             f"COHERENCE: {checkpoint.coherence_status.value} ({checkpoint.coherence_score:.0%})",
             f"OPERATIONS: {len(self.operations)}", "",
         ]
@@ -1683,8 +2222,8 @@ class SRT1Engine:
                 "status": checkpoint.coherence_status.value,
             },
             "task_reminder": {
-                "task": self.current_task,
-                "message": f"REMINDER: Your task is: '{self.current_task}'. Stay focused.",
+                "task": self.task,
+                "message": f"REMINDER: Your task is: '{self.task}'. Stay focused.",
             },
             "codebase_context": relevant,
             "warnings": warnings,
@@ -1953,7 +2492,7 @@ class SRT1Engine:
                     return True  # Auth not configured
                     
                 ui_routes = [
-                    "/dashboard", "/consumer", "/admin", "/mobile", 
+                    "/dashboard", "/consumer", "/admin", "/mobile", "/observatory", "/constellation",
                     "/auth.html", "/index.html", "/comparison.html", "/documentation.html",
                     "/assets/", "/js/", "/sw.js", "/manifest.json", "/download"
                 ]
@@ -1991,7 +2530,43 @@ class SRT1Engine:
                 if not self._check_auth(path):
                     return
 
-                if path == "/api/v1/users/me":
+                if path == "/language-coverage":
+                    coverage = engine.manifest.get("language_coverage", {})
+                    return self._json({
+                        "coverage": coverage,
+                        "total_languages": len(coverage),
+                        "structurally_parsed": [ext for ext, data in coverage.items() if data.get("symbols", 0) > 0],
+                        "scan_only": [ext for ext, data in coverage.items() if data.get("symbols", 0) == 0],
+                    })
+
+                elif path == "/llm-status":
+                    if engine.llm:
+                        return self._json({
+                            "available": engine.llm.is_available(),
+                            "providers": engine.llm.get_available_providers(),
+                            "budget": engine.llm.get_budget_status(),
+                        })
+                    else:
+                        return self._json({"available": False, "providers": [], "budget": None})
+
+                elif path == "/engine-info":
+                    uptime = (datetime.now() - engine.session_start).total_seconds()
+                    manifest_hash = engine.manifest.get("integrity", {}).get("manifest_hash", "")
+                    return self._json({
+                        "engine_id": getattr(engine, '_engine_id', None),
+                        "port": engine.port,
+                        "workspace_path": engine.repo_path,
+                        "workspace_name": os.path.basename(engine.repo_path),
+                        "manifest_hash": manifest_hash,
+                        "uptime_seconds": round(uptime, 1),
+                        "files_indexed": len(engine.manifest.get("file_manifest", [])),
+                        "total_symbols": sum(len(s) for s in engine.symbol_table.values()),
+                        "task": engine.task,
+                        "status": "RUNNING",
+                        "language_coverage": engine.manifest.get("language_coverage", {}),
+                    })
+
+                elif path == "/api/v1/users/me":
                     user_id = self._authenticate_cloud()
                     if not user_id:
                         return self._json({"error": "Unauthorized"}, 401)
@@ -2035,7 +2610,7 @@ class SRT1Engine:
 
                     # Coherence snapshot
                     coherence = {"score": 1.0, "status": "ALIGNED"}
-                    if engine.current_task and engine.srt_tool._seeds:
+                    if engine.task and engine.srt_tool._seeds:
                         cp = engine.srt_tool.force_reflection()
                         coherence = {"score": cp.coherence_score, "status": cp.coherence_status.value}
 
@@ -2072,7 +2647,7 @@ class SRT1Engine:
                             "bloomed": seed_stats.get("bloomed", 0),
                             "wilted": seed_stats.get("wilted", 0),
                         },
-                        "task": engine.current_task,
+                        "task": engine.task,
                         "enforcement": engine.srt_tool.get_compliance_stats(),
                     })
 
@@ -2095,12 +2670,12 @@ class SRT1Engine:
                     ov_count = len(engine.curation_report.get("functional_overlaps", []))
                     
                     cp = None
-                    if engine.current_task and engine.srt_tool._seeds:
+                    if engine.task and engine.srt_tool._seeds:
                         cp = engine.srt_tool.force_reflection()
                     
                     self._json({
                         "repo_name": os.path.basename(engine.repo_path),
-                        "task": engine.current_task,
+                        "task": engine.task,
                         "coherence_score": cp.coherence_score if cp else 1.0,
                         "coherence_status": cp.coherence_status.value if cp else "ALIGNED",
                         "operations": len(engine.operations),
@@ -2112,7 +2687,7 @@ class SRT1Engine:
 
                 elif path == "/status":
                     coherence = None
-                    if engine.current_task and engine.srt_tool._seeds:
+                    if engine.task and engine.srt_tool._seeds:
                         cp = engine.srt_tool.force_reflection()
                         if engine.analytics:
                             engine.analytics.record_coherence_snapshot(
@@ -2137,7 +2712,7 @@ class SRT1Engine:
                         "product": "SRT-1 v2.0",
                         "repo": os.path.basename(engine.repo_path),
                         "uptime_seconds": (datetime.now() - engine.session_start).total_seconds(),
-                        "task": engine.current_task,
+                        "task": engine.task,
                         "operations_logged": len(engine.operations),
                         "injections_fired": len(engine.injections),
                         "codebase_files": len(engine.manifest.get("file_manifest", [])),
@@ -2168,7 +2743,33 @@ class SRT1Engine:
                             ],
                         },
                         "build_plan": engine.build_plan,
-                        "events_recent": engine._event_log[-20:],
+                        # File tree for dashboard canonical view
+                        "file_tree": [
+                            {
+                                "path": entry.get("file_path", ""),
+                                "ext": entry.get("extension", ""),
+                                "fidelity": (
+                                    "ast" if entry.get("extension") == ".py"
+                                    else "deep" if entry.get("file_path", "") in
+                                        (engine.manifest.get("semantic_enrichment", {})
+                                         .get("deep_analysis", {}))
+                                    else "structural"
+                                ),
+                                "symbols": len(engine.symbol_table.get(entry.get("file_path", ""), []))
+                            }
+                            for entry in engine.manifest.get("file_manifest", [])
+                        ],
+                        # Language coverage breakdown
+                        "language_coverage": {
+                            ext: {
+                                "parser": "ast" if ext == ".py" else "regex",
+                                "fidelity": "full" if ext == ".py" else "structural",
+                                "files": sum(1 for e in engine.manifest.get("file_manifest", []) if e.get("extension") == ext),
+                                "symbols": sum(len(engine.symbol_table.get(e.get("file_path", ""), [])) for e in engine.manifest.get("file_manifest", []) if e.get("extension") == ext)
+                            }
+                            for ext in set(e.get("extension", "") for e in engine.manifest.get("file_manifest", []))
+                        },
+                        "events_recent": [], # Handled by /events directly now
                     }
                     # Sign the status attestation via SeedSignature
                     if engine.signing_client:
@@ -2183,11 +2784,12 @@ class SRT1Engine:
                     self._json(status_resp)
 
                 elif path == "/events":
-                    # Full event log — real timestamped engine events
+                    # Full event log from the in-memory Core event cache.
                     from urllib.parse import parse_qs as _pq
                     _qp = _pq(urlparse(self.path).query)
                     category = _qp.get("category", [None])[0]
                     limit = int(_qp.get("limit", ["100"])[0])
+                    
                     events = engine._event_log
                     if category:
                         events = [e for e in events if e["category"] == category]
@@ -2205,7 +2807,7 @@ class SRT1Engine:
                         } for s in syms]
 
                     self._json({
-                        "task": {"description": engine.current_task, "ops": len(engine.operations)},
+                        "task": {"description": engine.task, "ops": len(engine.operations)},
                         "codebase": {
                             "repo_name": os.path.basename(engine.repo_path),
                             "total_files": len(engine.manifest.get("file_manifest", [])),
@@ -2268,7 +2870,7 @@ class SRT1Engine:
                         auth_status = "enabled" if token_count > 0 else "no_tokens"
 
                     coherence_score = 1.0
-                    if engine.current_task and engine.srt_tool._seeds:
+                    if engine.task and engine.srt_tool._seeds:
                         cp = engine.srt_tool.force_reflection()
                         coherence_score = cp.coherence_score
 
@@ -2294,6 +2896,9 @@ class SRT1Engine:
                     if dp and os.path.exists(dp):
                         self.send_response(200)
                         self.send_header("Content-Type", "text/html")
+                        self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
+                        self.send_header("Pragma", "no-cache")
+                        self.send_header("Expires", "0")
                         self.end_headers()
                         with open(dp, "rb") as f:
                             self.wfile.write(f.read())
@@ -2520,6 +3125,268 @@ class SRT1Engine:
                     tokens = engine.auth.list_tokens()
                     self._json({"tokens": tokens})
 
+                # ── Continuity Observatory Endpoints (GET-only, detective-only) ──
+
+                elif path == "/api/continuity":
+                    # Compute canonical document freshness and stabilization posture.
+                    # This endpoint reports divergence. It does not fix divergence.
+                    import time as _time
+                    STALENESS_THRESHOLD_HOURS = 24
+                    canonical_docs = [
+                        "SRT1_CURRENT_STATE.md",
+                        "SRT1_DECISIONS.md",
+                        "SRT1_FRONTIER.md",
+                        "SRT1_CONTEXT_INDEX.md",
+                        "SRT1_CONSTITUTION.md",
+                    ]
+                    documents = []
+                    for doc_name in canonical_docs:
+                        doc_path = os.path.join(engine.repo_path, doc_name)
+                        if os.path.exists(doc_path):
+                            try:
+                                mtime = os.path.getmtime(doc_path)
+                                age_hours = (_time.time() - mtime) / 3600
+                                if age_hours < STALENESS_THRESHOLD_HOURS:
+                                    freshness = "FRESH"
+                                else:
+                                    freshness = "STALE"
+                                from datetime import datetime as _dt
+                                last_mod = _dt.fromtimestamp(mtime).strftime("%Y-%m-%d %H:%M")
+                                if age_hours < 1:
+                                    age_display = f"{int(age_hours * 60)}m ago"
+                                elif age_hours < 24:
+                                    age_display = f"{age_hours:.1f}h ago"
+                                else:
+                                    age_display = f"{age_hours / 24:.1f}d ago"
+                                documents.append({
+                                    "name": doc_name,
+                                    "freshness": freshness,
+                                    "last_modified": last_mod,
+                                    "age_hours": round(age_hours, 2),
+                                    "age_display": age_display,
+                                })
+                            except OSError:
+                                documents.append({
+                                    "name": doc_name,
+                                    "freshness": "DEGRADED",
+                                    "last_modified": None,
+                                    "age_hours": None,
+                                    "age_display": "read error",
+                                })
+                        else:
+                            documents.append({
+                                "name": doc_name,
+                                "freshness": "DEGRADED",
+                                "last_modified": None,
+                                "age_hours": None,
+                                "age_display": "missing",
+                            })
+
+                    # Compute overall freshness
+                    states = [d["freshness"] for d in documents]
+                    if all(s == "FRESH" for s in states):
+                        overall = "FRESH"
+                    elif any(s == "DEGRADED" for s in states):
+                        overall = "DEGRADED"
+                    elif any(s == "STALE" for s in states):
+                        overall = "STALE"
+                    else:
+                        overall = "UNKNOWN"
+
+                    # Read constitution version if available
+                    const_ver = "?"
+                    const_path = os.path.join(engine.repo_path, "SRT1_CONSTITUTION.md")
+                    if os.path.exists(const_path):
+                        try:
+                            with open(const_path, "r", encoding="utf-8") as cf:
+                                for line in cf:
+                                    if "CONSTITUTION_VERSION" in line:
+                                        const_ver = line.split("**")[-2].strip() if "**" in line else line.split(":")[-1].strip()
+                                        break
+                        except Exception:
+                            pass
+
+                    # Stabilization posture (read from canonical state)
+                    posture = []
+                    stab_phase = "UNKNOWN"
+                    state_path = os.path.join(engine.repo_path, "SRT1_CURRENT_STATE.md")
+                    if os.path.exists(state_path):
+                        try:
+                            with open(state_path, "r", encoding="utf-8") as sf:
+                                for line in sf:
+                                    line = line.strip()
+                                    if line.startswith("- **") and ":**" in line:
+                                        parts = line.split(":**")
+                                        if len(parts) == 2:
+                                            label = parts[0].replace("- **", "").strip()
+                                            value = parts[1].strip().rstrip(".")
+                                            posture.append({"label": label, "value": value})
+                                            if "Plateau" in label and "ACTIVE" in value:
+                                                stab_phase = "ACTIVE"
+                        except Exception:
+                            pass
+
+                    consistency_checks = []
+
+                    self._json({
+                        "freshness_state": overall,
+                        "stabilization_phase": stab_phase,
+                        "constitution_version": const_ver,
+                        "data_source": "engine/canonical_docs",
+                        "last_checked": _dt.now().isoformat(),
+                        "documents": documents,
+                        "posture": posture,
+                        "consistency_checks": consistency_checks,
+                    })
+
+                # ── Workspace Constellation Endpoints ──
+
+                elif path == "/api/constellation":
+                    # NOTE: This is the backbone of the Constellation view.
+                    # It reads the shared OperationalRegistry (~/.srt1/registry.json)
+                    # to discover ALL running SRT-1 engines across the machine,
+                    # then queries each one's /status endpoint for live metrics.
+                    # This is what enables the "network of sandboxes" visualization.
+                    import urllib.request
+                    
+                    constellation_data = {
+                        "this_engine": {
+                            "engine_id": getattr(engine, '_engine_id', None),
+                            "port": engine.port,
+                            "workspace": engine.repo_path,
+                            "workspace_name": os.path.basename(engine.repo_path),
+                        },
+                        "engines": [],
+                        "dependencies": {},
+                        "cross_module_calls": [],
+                        "summary": {},
+                    }
+
+                    # 1. Read OperationalRegistry for all known engines
+                    if OperationalRegistry:
+                        try:
+                            registry = OperationalRegistry()
+                            all_data = registry.get_all_engines()
+                            now = datetime.now(timezone.utc) if hasattr(datetime, 'now') else datetime.utcnow()
+                            
+                            for eid, entry in all_data.get("engines", {}).items():
+                                engine_info = {
+                                    "engine_id": eid,
+                                    "port": entry.get("port"),
+                                    "workspace_path": entry.get("workspace_path", ""),
+                                    "workspace_name": entry.get("workspace_name", ""),
+                                    "status": entry.get("status", "UNKNOWN"),
+                                    "manifest_hash": entry.get("manifest_hash", "")[:16],
+                                    "registered_at": entry.get("registered_at"),
+                                    "last_heartbeat": entry.get("last_heartbeat"),
+                                    "pid": entry.get("pid"),
+                                    # Live metrics — populated below if engine is reachable
+                                    "live": None,
+                                }
+
+                                # 2. Query each RUNNING engine's /status for live data
+                                # NOTE: This is cross-engine HTTP — each sandbox is truly
+                                # independent and only talks via localhost HTTP. No filesystem coupling.
+                                if entry.get("status") == "RUNNING" and entry.get("port"):
+                                    try:
+                                        status_url = f"http://127.0.0.1:{entry['port']}/status"
+                                        req = urllib.request.Request(status_url, method="GET")
+                                        req.add_header("User-Agent", "SRT1-Constellation/1.0")
+                                        with urllib.request.urlopen(req, timeout=2) as resp:
+                                            if resp.status == 200:
+                                                live_data = json.loads(resp.read().decode())
+                                                engine_info["live"] = {
+                                                    # NOTE: /status uses codebase_files, codebase_symbols
+                                                    # and enforcement.health.duplicates for violations
+                                                    "files": live_data.get("codebase_files", 0),
+                                                    "symbols": live_data.get("codebase_symbols", 0),
+                                                    "violations": live_data.get("enforcement", {}).get("health", {}).get("duplicates", 0) if isinstance(live_data.get("enforcement"), dict) else 0,
+                                                    "coherence": live_data.get("coherence", {}).get("label", "?") if isinstance(live_data.get("coherence"), dict) else str(live_data.get("coherence", "?")),
+                                                }
+                                    except Exception:
+                                        # Engine registered but not responding — mark as stale
+                                        engine_info["status"] = "STALE"
+                                
+                                constellation_data["engines"].append(engine_info)
+                        except Exception as e:
+                            constellation_data["registry_error"] = str(e)
+
+                    # 3. Read workspace connector report for dependency edges
+                    # NOTE: This file is generated by running:
+                    #   python -m srt1_pro.workspace_connector --root .
+                    # It contains the cross-module import map.
+                    ws_report_path = os.path.join(engine.repo_path, ".srt1", "workspace_report.json")
+                    if os.path.exists(ws_report_path):
+                        try:
+                            with open(ws_report_path, "r", encoding="utf-8") as wf:
+                                ws_data = json.load(wf)
+                                constellation_data["dependencies"] = ws_data.get("dependencies", {})
+                                constellation_data["cross_module_calls"] = ws_data.get("cross_module_calls", [])
+                                constellation_data["workspace_name"] = ws_data.get("workspace", "")
+                        except Exception:
+                            pass
+
+                    # 4. Summary stats
+                    engines = constellation_data["engines"]
+                    running = [e for e in engines if e["status"] == "RUNNING"]
+                    constellation_data["summary"] = {
+                        "total_engines": len(engines),
+                        "running_engines": len(running),
+                        "total_files": sum((e.get("live") or {}).get("files", 0) for e in running),
+                        "total_symbols": sum((e.get("live") or {}).get("symbols", 0) for e in running),
+                        "cross_module_deps": len(constellation_data.get("cross_module_calls", [])),
+                        "has_workspace_config": os.path.exists(ws_report_path),
+                    }
+
+                    self._json(constellation_data)
+
+                elif path == "/constellation":
+                    # Workspace Constellation — the command center for all engines
+                    # NOTE: This is Level 2 in the navigation hierarchy.
+                    # It sits above the per-module dashboard and below any
+                    # future full-system supervisory view.
+                    script_dir = os.path.dirname(os.path.abspath(__file__))
+                    core_dir = os.path.dirname(script_dir)
+                    candidates = [
+                        os.path.join(core_dir, "srt1_platform", "pwa", "constellation.html"),
+                        os.path.join(engine.repo_path, "srt1_platform", "pwa", "constellation.html"),
+                    ]
+                    const_path = None
+                    for c in candidates:
+                        if os.path.exists(c):
+                            const_path = c
+                            break
+                    if const_path:
+                        self.send_response(200)
+                        self.send_header("Content-Type", "text/html")
+                        self.end_headers()
+                        with open(const_path, "rb") as f:
+                            self.wfile.write(f.read())
+                    else:
+                        self._json({"error": "Workspace Constellation not found"}, 404)
+
+                elif path == "/observatory":
+                    # Continuity Observatory — separate page from dashboard
+                    script_dir = os.path.dirname(os.path.abspath(__file__))
+                    core_dir = os.path.dirname(script_dir)
+                    candidates = [
+                        os.path.join(core_dir, "srt1_platform", "pwa", "observatory.html"),
+                        os.path.join(engine.repo_path, "srt1_platform", "pwa", "observatory.html"),
+                    ]
+                    obs_path = None
+                    for c in candidates:
+                        if os.path.exists(c):
+                            obs_path = c
+                            break
+                    if obs_path:
+                        self.send_response(200)
+                        self.send_header("Content-Type", "text/html")
+                        self.end_headers()
+                        with open(obs_path, "rb") as f:
+                            self.wfile.write(f.read())
+                    else:
+                        self._json({"error": "Continuity Observatory not found"}, 404)
+
                 else:
                     import posixpath
                     from urllib.parse import unquote
@@ -2581,7 +3448,8 @@ class SRT1Engine:
                             "endpoints": {
                                 "GET": [
                                     "/status", "/context", "/synopsis", "/manifest",
-                                    "/dashboard", "/consumer", "/admin", "/health",
+                                    "/dashboard", "/consumer", "/admin", "/health", "/observatory",
+                                    "/constellation", "/api/constellation",
                                     "/admin/stats", "/activity", "/trust-status",
                                     "/manifest.json", "/sw.js",
                                     "/templates", "/templates/<id>", "/templates/search?q=<query>",
@@ -2717,7 +3585,7 @@ class SRT1Engine:
                         auto_dispatch=auto_dispatch,
                         template_id=template_id,
                     )
-                    engine.current_task = task
+                    engine.task = task
                     threading.Thread(target=engine._generate_context_files, daemon=True).start()
                     response = engine._build_task_response(
                         task=task,
@@ -2839,8 +3707,8 @@ class SRT1Engine:
                         self._json({"error": f"Recovery failed: {str(exc)}"}, 500)
 
                 elif path == "/reset":
-                    old = engine.current_task
-                    engine.current_task = None
+                    old = engine.task
+                    engine.task = None
                     engine.task_seed_id = None
                     engine.operations = []
                     engine.injections = []
@@ -2879,7 +3747,7 @@ class SRT1Engine:
                     )
 
                     # Set as current task (lightweight)
-                    engine.current_task = intent
+                    engine.task = intent
 
                     # Dispatch blueprint generation in background (non-blocking)
                     auto_dispatch = body.get("auto_dispatch", True)
@@ -3126,12 +3994,14 @@ class SRT1Engine:
         print("  ║               INDEXER IMMUNE SYSTEM IS LIVE         ║")
         print("  ╚══════════════════════════════════════════════════════╝")
         print()
-        print(f"  Developer:  http://127.0.0.1:{self.port}/dashboard")
-        print(f"  Consumer:   http://127.0.0.1:{self.port}/consumer")
-        print(f"  Admin:      http://127.0.0.1:{self.port}/admin")
-        print(f"  Mobile:     http://127.0.0.1:{self.port}/mobile")
-        print(f"  API:        http://127.0.0.1:{self.port}/status")
-        print(f"  Seeds:      http://127.0.0.1:{self.port}/seeds")
+        print(f"  Constellation: http://127.0.0.1:{self.port}/constellation")
+        print(f"  Developer:     http://127.0.0.1:{self.port}/dashboard")
+        print(f"  Observatory:   http://127.0.0.1:{self.port}/observatory")
+        print(f"  Consumer:      http://127.0.0.1:{self.port}/consumer")
+        print(f"  Admin:         http://127.0.0.1:{self.port}/admin")
+        print(f"  Mobile:        http://127.0.0.1:{self.port}/mobile")
+        print(f"  API:           http://127.0.0.1:{self.port}/status")
+        print(f"  Seeds:         http://127.0.0.1:{self.port}/seeds")
         print()
         print("  AI context files generated:")
         print("    ✓ CLAUDE.md          → Claude Code / Antigravity")
