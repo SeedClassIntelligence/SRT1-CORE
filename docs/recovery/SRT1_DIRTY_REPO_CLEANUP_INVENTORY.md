@@ -2,11 +2,10 @@
 
 Date: 2026-06-24
 
-This document captures the current dirty state of the SRT1 working tree after the
-Continuity, Recall/Reinjection, Workcell, Repo Understanding, Constellation,
-Reflection, engine orchestration, and execution bridge cleanup checkpoints.
-
-No files were moved, deleted, staged, or committed as part of this inventory.
+This document captures the dirty-repo cleanup path that brought SRT1 Core back to
+a clean public working tree after the Continuity, Recall/Reinjection, Workcell,
+Repo Understanding, Constellation, Reflection, engine orchestration, execution
+bridge, tracing, launcher, and governance-draft quarantine checkpoints.
 
 ## Cleanup Objective
 
@@ -36,19 +35,25 @@ SRT1 Core should not contain:
 - scratch probes
 - duplicated dashboard authority
 
-## Current Dirty Summary
+## Current Clean Summary
 
-The current working tree contains:
+The current public Core working tree contains:
 
-- 5 tracked changed files
-- 6 untracked files
-- no staged files at inventory time
-- one local permission warning reading `.pytest_cache/`
+- 0 tracked changed files
+- 0 staged files
+- 0 untracked public Core files
+- ignored local/deferred drafts preserved on disk
+- one local permission warning may still appear when reading `.pytest_cache/`
 
 Recent clean checkpoints:
 
 | Commit | Purpose |
 | --- | --- |
+| `924d7bb` | Deferred private/SION governance drafts quarantined |
+| `3df755c` | Core local setup simplified |
+| `93f2f0f` | Pro remediation wording normalized |
+| `8c9aee1` | Tracing kept Core-safe |
+| `f658bf6` | Dirty repo cleanup map updated |
 | `a39699d` | Execution bridge kept Core-safe, without private governance ownership |
 | `e1b239b` | Core engine orchestration isolated |
 | `9f62c7d` | Detective doctrine and taxonomy scanners |
@@ -58,7 +63,30 @@ Recent clean checkpoints:
 | `dac5028` | Repo understanding parser coverage |
 | `60df130` | Packaged Core PWA source selected |
 
-## Cleanup Buckets
+## Completed Cleanup Queue
+
+| Cleanup area | Result | Commit |
+| --- | --- | --- |
+| Local/generated ignores | Runtime, scratch, local copies, generated manifests, DBs, and marketing drafts ignored. | `91c1da8` |
+| Private package removal | `packages/scia_memory/*` and `packages/scia_security/*` removed from public Core. | `4c325d9` |
+| PWA canonical source | `srt1_platform/pwa/` selected as packaged Core PWA source; `developer-pwa/` treated as local prototype copy. | `60df130` |
+| Recovery docs | Root recovery doctrine consolidated under `docs/recovery/`. | `3664555` |
+| Skills/contracts | Public Core skills/contracts map added. | `29dceb9` |
+| Repo Understanding | Parser/indexer coverage recovered and tested. | `dac5028`, `307f08b`, `d11d8f8` |
+| Constellation/registry | Local operational registry added. | `f56988f` |
+| Reflection/detective scans | Doctrine/taxonomy scanners added. | `9f62c7d` |
+| Engine orchestration | Core-safe orchestration isolated without staging private/SION paths. | `e1b239b` |
+| Execution bridge | Bridge kept Core-safe and decoupled from private governance ownership. | `a39699d` |
+| Tracing | Trace metadata preserved without private audit-ledger wiring. | `8c9aee1` |
+| Pro wording | “Self-healing” language normalized to governed remediation. | `93f2f0f` |
+| Setup | Root installer, launcher, and `srt1.bat` made Core-only and easy to run. | `3df755c` |
+| Deferred drafts | Private/SION audit/governance drafts ignored and preserved locally. | `924d7bb` |
+
+## Historical Cleanup Buckets
+
+The following buckets are preserved as the original cleanup evidence. They do
+not describe the current working tree; the current clean state and ignored
+residue are summarized above and below.
 
 ### KEEP / CORE
 
@@ -179,7 +207,11 @@ should not be committed blindly.
 | `PRODUCT_ARCHITECTURE.md` | deleted | May contain stale or valuable product architecture. | Review from HEAD; archive valuable sections if needed. |
 | `SRT1_ENFORCEMENT_MODE.md` | deleted | May contain enforcement doctrine. | Review for private/SION language before deletion/archive. |
 
-## Engine Cleanup Warning
+## Historical Engine Cleanup Warning
+
+This warning is preserved from the dirty-state audit. The broad engine split was
+completed in `e1b239b` by staging only Core-safe orchestration and leaving
+private/SION/auth/cloud/Enterprise-adjacent paths out of the public checkpoint.
 
 `srt1_code_indexer/engine.py` is the main high-risk dirty file.
 
@@ -325,39 +357,37 @@ recover: consolidate srt1 core product structure
 3. Marketing assets may stay outside Core until product packaging.
 4. Recovery docs should live under `docs/recovery/` before commit when they are preserved.
 5. Scratch should be ignored by default. Selected scripts may be promoted later into tests/tools only after review.
-6. PWA canonical source remains undecided. Current working assumption for review: `srt1_platform/pwa/` is the likely packaged public Core PWA, while `developer-pwa/` is likely a development/prototype surface.
+6. PWA canonical source is `srt1_platform/pwa/`. `developer-pwa/` remains a local/prototype copy outside public Core commits.
 7. SION is spelled `SION`.
 8. SION is a deferred first-party assistant/executor integration. It may later work inside approved sandboxes/workcells or delegate to other agents, but it is not active current SRT1 Core runtime.
 9. Current public Core cleanup should focus on SRT1 process/product and should not wire SION as an execution or governance owner.
 
-## Current Remaining Dirty Set
+## Current Ignored / Deferred Residue
 
-As of the latest cleanup checkpoint, the remaining dirty set is:
+As of the latest cleanup checkpoint, the public Core working tree is clean. The
+following ignored local/deferred files remain preserved on disk:
 
 | Path | Status | Current read |
 | --- | --- | --- |
-| `.cursorrules` | modified | Generated assistant context drift; do not stage until context-file policy pass. |
-| `START_SRT1.bat` | modified | Launcher target changed from `seed-reflection` to `developer-pwa`; hold until launch/package decision. |
-| `srt1_platform/tracing_system.py` | modified | Mixed Core-safe `cell_id` trace metadata with private audit-ledger coupling; split before commit. |
-| `srt1_pro/__init__.py` | modified | Product wording change only; review with Pro packaging language. |
-| `srt1_pro/self_heal.py` | modified | Bulk wording change from self-healing to automated state correction; review for casing and autonomy claims. |
-| `Install-SRT1.ps1` | untracked | Installer candidate with Enterprise/local path examples; review before public Core commit. |
-| `scia_ui_system_skill_v_1.md` | untracked | Product/UI doctrine candidate; likely archive or docs/product source, not runtime source. |
-| `srt1.bat` | untracked | Local launcher points to `SRT1-ENTERPRISE`; keep out of public Core. |
-| `srt1_platform/audit_ledger.py` | untracked | Private audit/signing implementation candidate; do not publish as Core implementation. |
-| `srt1_platform/consistency_auditor.py` | untracked | Detective Reflection candidate, but currently auto-imports private audit ledger and mentions SION; needs Core-safe reduction before commit. |
-| `srt1_platform/governance_monitor.py` | untracked | Private/SION/audit-ledger monitor candidate; defer or archive outside public Core. |
+| `srt1_platform/audit_ledger.py` | ignored | Private audit/signing implementation candidate. Preserve locally or move to private repo; do not publish as public Core implementation. |
+| `srt1_platform/governance_monitor.py` | ignored | Private/SION/audit-ledger governance monitor candidate. Preserve for later private/SION work. |
+| `srt1_platform/consistency_auditor.py` | ignored | Valuable detective Reflection idea, but current draft imports private audit ledger and mentions SION. Rewrite Core-safe before promotion. |
+| `scia_ui_system_skill_v_1.md` | ignored | Product/UI doctrine with Enterprise/SION surface guidance. Preserve as product doctrine or private archive candidate. |
+| `scratch/` | ignored | Local probes and experiment scripts. Promote selected scripts only after review. |
+| `scratch_ledger_test/` | ignored | Local ledger test output. Keep local/generated. |
+| `.pytest_cache/` | ignored | Local test cache; may show permission warning on this machine. |
 
 ## Recommended Next Action
 
-Proceed with the reduced cleanup queue:
+Proceed from cleanup into product verification:
 
 ```text
-1. Tracing split: preserve only Core-safe trace metadata if compatible; keep audit-ledger wiring out.
-2. Launcher/package pass: decide whether `Install-SRT1.ps1`, `START_SRT1.bat`, and `srt1.bat` are public Core assets or local/private launchers.
-3. Pro wording pass: clean `self_heal.py`/`__init__.py` language without changing behavior.
-4. Private/SION deferral: keep `audit_ledger.py`, `governance_monitor.py`, and SION-specific runtime monitoring outside public Core implementation.
-5. Context-file pass: regenerate or restore `.cursorrules` only after the standing instruction/context policy is finalized.
+1. Run full targeted Core smoke tests.
+2. Verify package metadata and entry points.
+3. Verify `Install-SRT1.ps1`, `START_SRT1.bat`, and `srt1.bat` on a clean path.
+4. Boundary scan tracked public Core files for private/SION implementation leakage.
+5. If clean, prepare push/PR plan for public Core.
 ```
 
-Do not delete files yet. Continue reducing one focused checkpoint at a time.
+Do not delete ignored drafts yet. They are preserved local material, not public
+Core source.
