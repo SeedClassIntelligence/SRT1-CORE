@@ -6,13 +6,13 @@ Key Symbols: HealAction, SCIARemediationEngine, main, __init__, to_dict ... and 
 
 Extracted Purposes:
   - HealAction: A single remediation action with full audit metadata.
-  - SCIARemediationEngine: Governed self-healing engine for the SRT-1 codebase.
+  - SCIARemediationEngine: Governed remediation engine for the SRT-1 codebase.
   - _load_manifest: Load the Code Manifest.
   ...
 """
 #!/usr/bin/env python3
 """
-SRT-1 Self-Healing Engine - Governed Codebase Remediation
+SRT-1 Remediation Engine - Governed Codebase Remediation
 FILE: srt1_self_heal.py
 SRT-1 TAG: SELF_HEALING :: GOVERNED_REMEDIATION
 SCIA VERSION: 4.0.0
@@ -96,11 +96,11 @@ class HealAction:
             "error": self.error,
         }
 # ==========================================================================
-# SELF-HEALING ENGINE
+# REMEDIATION ENGINE
 # ==========================================================================
 class SCIARemediationEngine:
     """
-    Governed self-healing engine for the SRT-1 codebase.
+    Governed remediation engine for the SRT-1 codebase.
     Reads the manifest, identifies actionable issues, plans remediation
     actions, executes them within governance boundaries, and produces
     a complete audit trail.
@@ -144,7 +144,7 @@ class SCIARemediationEngine:
         Returns a diagnosis report with all planned actions.
         """
         print()
-        print("--- [SRT-1 Self-Healing] Diagnosing ---")
+        print("--- [SRT-1 Remediation] Diagnosing ---")
         print(f"    Session: {self.session_id}")
         print(f"    Mode:    {'DRY RUN' if self.dry_run else 'LIVE'}")
         print()
@@ -407,7 +407,7 @@ class SCIARemediationEngine:
         """
         if not self.actions:
             self.diagnose()
-        print("--- [SRT-1 Self-Healing] Executing ---")
+        print("--- [SRT-1 Remediation] Executing ---")
         executed = 0
         skipped = 0
         failed = 0
@@ -479,7 +479,7 @@ class SCIARemediationEngine:
         # Save audit log
         self._save_audit_log(report)
         print()
-        print(f"--- [SRT-1 Self-Healing] Complete ---")
+        print(f"--- [SRT-1 Remediation] Complete ---")
         print(f"    Executed: {executed}  Skipped: {skipped}  Failed: {failed}")
         if needs_reindex and not self.dry_run:
             print(f"    Manifest re-indexed and trust chain rebuilt.")
@@ -752,7 +752,7 @@ class SCIARemediationEngine:
         """Print a human-readable summary of the heal session."""
         print()
         print("=" * 60)
-        print("  SRT-1 SELF-HEALING REPORT")
+        print("  SRT-1 REMEDIATION REPORT")
         print("=" * 60)
         print(f"  Session:  {report['session_id']}")
         print(f"  Mode:     {'DRY RUN' if report['dry_run'] else 'LIVE'}")
@@ -779,7 +779,7 @@ class SCIARemediationEngine:
 # ==========================================================================
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="SRT-1 Self-Healing Engine - Governed Codebase Remediation",
+        description="SRT-1 Remediation Engine - Governed Codebase Remediation",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
             "Examples:\n"

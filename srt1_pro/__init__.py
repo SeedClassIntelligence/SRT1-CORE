@@ -1,7 +1,7 @@
 """
 SRT-1 Pro — Intelligence Layer
 
-Context bundling, governed execution, self-healing.
+Context bundling, governed execution, remediation.
 Requires a valid SRT-1 Pro or Enterprise license.
 
     from srt1_pro import SCIAContextBundler, SCIAExecutionEngine, SCIARemediationEngine
