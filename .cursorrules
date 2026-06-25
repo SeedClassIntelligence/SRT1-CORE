@@ -2403,7 +2403,7 @@ ACTION REQUIRED:
   - Role: TRACING_AUDIT
 
 **`SCIARemediationEngine`** (class, line 101) ⚠️ `WRITES_TO_DB, AUTH_SENSITIVE, FILE_IO`
-  - Governed self-healing engine for the SRT-1 codebase.
+  - Governed remediation engine for the SRT-1 codebase.
   - Role: TRACING_AUDIT
   - Calls: `abspath`, `join`, `strftime`, `now`, `hexdigest`, `sha256`, `encode`, `str`
 

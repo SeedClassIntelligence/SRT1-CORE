@@ -28,6 +28,7 @@ test_repo/
 __pycache__/
 *.pyc
 *.egg-info/
+.pytest_cache/
 dist/
 build/
 *.whl
@@ -111,3 +112,12 @@ developer-pwa/
 PHASE_*_WALKTHROUGH.md
 SRT1_CONSTITUTION.md
 docs/SRT1_Code_Indexer_Complete_Reference.docx
+scia_ui_system_skill_v_1.md
+
+# -- DEFERRED PRIVATE / SION GOVERNANCE DRAFTS --
+# These drafts are valuable, but they currently include private audit/signing,
+# SION execution, or Enterprise governance assumptions. Promote only after a
+# Core-safe rewrite or private-repo placement decision.
+srt1_platform/audit_ledger.py
+srt1_platform/governance_monitor.py
+srt1_platform/consistency_auditor.py
