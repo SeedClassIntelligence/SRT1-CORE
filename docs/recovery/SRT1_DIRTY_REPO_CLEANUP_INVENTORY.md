@@ -3,7 +3,8 @@
 Date: 2026-06-24
 
 This document captures the current dirty state of the SRT1 working tree after the
-Continuity, Recall/Reinjection, and Workcell recovery checkpoints.
+Continuity, Recall/Reinjection, Workcell, Repo Understanding, Constellation,
+Reflection, engine orchestration, and execution bridge cleanup checkpoints.
 
 No files were moved, deleted, staged, or committed as part of this inventory.
 
@@ -39,8 +40,8 @@ SRT1 Core should not contain:
 
 The current working tree contains:
 
-- 53 tracked changed/deleted files
-- 212 dirty/untracked status entries reported by `git status --short -uall`
+- 5 tracked changed files
+- 6 untracked files
 - no staged files at inventory time
 - one local permission warning reading `.pytest_cache/`
 
@@ -48,11 +49,14 @@ Recent clean checkpoints:
 
 | Commit | Purpose |
 | --- | --- |
-| `fd47bec` | Workcell boundary primitives and tests |
-| `a55d55a` | Continuity identity and Recall/Reinjection handoff |
-| `462bc86` | Authority dependency architecture |
-| `4d63029` | Core authority docs and public boundary |
-| `e7d07d1` | Recovery inventory and boundary plan |
+| `a39699d` | Execution bridge kept Core-safe, without private governance ownership |
+| `e1b239b` | Core engine orchestration isolated |
+| `9f62c7d` | Detective doctrine and taxonomy scanners |
+| `f56988f` | Local operational registry |
+| `d11d8f8` | Core understanding intelligence adapter |
+| `307f08b` | Workspace connector parser coverage |
+| `dac5028` | Repo understanding parser coverage |
+| `60df130` | Packaged Core PWA source selected |
 
 ## Cleanup Buckets
 
@@ -63,19 +67,9 @@ commits.
 
 | Path or group | Status | Reason | Recommended action |
 | --- | --- | --- | --- |
-| `srt1_code_indexer/indexer.py` | modified | Repo Understanding implementation. | Review and commit only Core-safe hunks. |
-| `srt1_code_indexer/language_parsers.py` | untracked | Parser/AST support for Repo Understanding. | Review, test, then commit if Core-safe. |
 | `srt1_platform/tracing_system.py` | modified | Reflection/coherence candidate. | Review for private coupling before commit. |
-| `srt1_platform/execution_bridge.py` | modified | Assistant/work execution boundary candidate. | Review for autonomous execution and private coupling. |
 | `srt1_platform/consistency_auditor.py` | untracked | Reflection/consistency candidate. | Review and test before commit. |
-| `srt1_platform/doctrine_scanner.py` | untracked | Reflection/doctrine candidate. | Review and test before commit. |
 | `srt1_platform/governance_monitor.py` | untracked | Reflection/governance candidate. | Review for Core-safe vocabulary. |
-| `srt1_platform/taxonomy_validator.py` | untracked | Validation/typing candidate. | Review before commit. |
-| `srt1_platform/llm_adapter.py` | untracked | Optional adapter candidate. | Keep only if local, optional, and fail-closed. |
-| `srt1_platform/llm_providers.py` | untracked | Optional local/provider abstraction candidate. | Review for dependency and secret exposure. |
-| `srt1_platform/intelligence_adapter.py` | untracked | Repo intelligence/semantic enrichment candidate. | Review for external/private coupling. |
-| `srt1_pro/workspace_connector.py` | modified | Constellation/workspace awareness candidate. | Review and isolate as Constellation batch. |
-| `srt1_platform/operational_registry.py` | untracked | Constellation registry candidate. | Review and test before commit. |
 | `srt1.bat` | untracked | Local launcher candidate. | Review path assumptions before commit. |
 | `Install-SRT1.ps1` | untracked | Public installer candidate. | Review for local paths/private refs before commit. |
 
@@ -85,17 +79,9 @@ These may belong in Core, but need founder/product decision before staging.
 
 | Path or group | Status | Reason | Recommended action |
 | --- | --- | --- | --- |
-| `srt1_code_indexer/engine.py` | modified | Large mixed orchestration file with Core, Constellation, PWA, auth/cloud, SION/audit/private-adjacent changes. | Never stage whole. Split by hunk after audit. |
-| `srt1_platform/__init__.py` | modified | Public package exports may expose new modules. | Review after module decisions. |
 | `srt1_pro/__init__.py` | modified | Public package exports may expose Pro/Core boundary. | Review after module decisions. |
 | `.cursorrules` | modified | Assistant context policy. | Review after docs/context boundary decision. |
 | `START_SRT1.bat` | modified | Local launcher behavior. | Review with installer/launch batch. |
-| `SRT1_AUTHORITY_CONTRACTS.md` | untracked | Valuable architecture doctrine. | Move or commit under `docs/recovery/` if Core-safe. |
-| `SRT1_AUTHORITY_RUNTIME_CLASSIFICATION.md` | untracked | Valuable architecture doctrine. | Move or commit under `docs/recovery/` if Core-safe. |
-| `SRT1_STATE_OWNERSHIP.md` | untracked | Valuable architecture doctrine. | Move or commit under `docs/recovery/` if Core-safe. |
-| `SRT1_CONSTITUTION.md` | untracked | Potential product doctrine. | Review for public language/private claims. |
-| `PHASE_*_WALKTHROUGH.md` | untracked | Recovery/build narrative. | Archive, docs, or omit from Core. |
-| `docs/SRT1_Code_Indexer_Complete_Reference.docx` | untracked | Large reference artifact. | Review whether source docs should be Markdown instead. |
 | `scia_ui_system_skill_v_1.md` | untracked | UI/system skill candidate. | Review for Core relevance. |
 
 ### PWA / DASHBOARD DUPLICATION
@@ -131,6 +117,7 @@ public SRT1 Core.
 | `seed-reflection/` | local ignored directory | Proprietary/private-adjacent area. | Keep outside public Core. |
 | `SRT1-CORE/` | local ignored nested checkout/copy | Nested repo/checkouts should not be tracked here. | Keep ignored or remove locally later. |
 | `sion_output/` | local runtime/private-adjacent output | Generated output with SION naming. | Ignore/archive locally; do not stage. |
+| `srt1_platform/audit_ledger.py` | untracked | Private audit/signing implementation candidate. | Keep out of public Core unless reduced to public trust metadata only. |
 
 ### GENERATED / LOCAL IGNORE
 
@@ -339,14 +326,38 @@ recover: consolidate srt1 core product structure
 4. Recovery docs should live under `docs/recovery/` before commit when they are preserved.
 5. Scratch should be ignored by default. Selected scripts may be promoted later into tests/tools only after review.
 6. PWA canonical source remains undecided. Current working assumption for review: `srt1_platform/pwa/` is the likely packaged public Core PWA, while `developer-pwa/` is likely a development/prototype surface.
+7. SION is spelled `SION`.
+8. SION is a deferred first-party assistant/executor integration. It may later work inside approved sandboxes/workcells or delegate to other agents, but it is not active current SRT1 Core runtime.
+9. Current public Core cleanup should focus on SRT1 process/product and should not wire SION as an execution or governance owner.
+
+## Current Remaining Dirty Set
+
+As of the latest cleanup checkpoint, the remaining dirty set is:
+
+| Path | Status | Current read |
+| --- | --- | --- |
+| `.cursorrules` | modified | Generated assistant context drift; do not stage until context-file policy pass. |
+| `START_SRT1.bat` | modified | Launcher target changed from `seed-reflection` to `developer-pwa`; hold until launch/package decision. |
+| `srt1_platform/tracing_system.py` | modified | Mixed Core-safe `cell_id` trace metadata with private audit-ledger coupling; split before commit. |
+| `srt1_pro/__init__.py` | modified | Product wording change only; review with Pro packaging language. |
+| `srt1_pro/self_heal.py` | modified | Bulk wording change from self-healing to automated state correction; review for casing and autonomy claims. |
+| `Install-SRT1.ps1` | untracked | Installer candidate with Enterprise/local path examples; review before public Core commit. |
+| `scia_ui_system_skill_v_1.md` | untracked | Product/UI doctrine candidate; likely archive or docs/product source, not runtime source. |
+| `srt1.bat` | untracked | Local launcher points to `SRT1-ENTERPRISE`; keep out of public Core. |
+| `srt1_platform/audit_ledger.py` | untracked | Private audit/signing implementation candidate; do not publish as Core implementation. |
+| `srt1_platform/consistency_auditor.py` | untracked | Detective Reflection candidate, but currently auto-imports private audit ledger and mentions SION; needs Core-safe reduction before commit. |
+| `srt1_platform/governance_monitor.py` | untracked | Private/SION/audit-ledger monitor candidate; defer or archive outside public Core. |
 
 ## Recommended Next Action
 
-Proceed with Batch B:
+Proceed with the reduced cleanup queue:
 
 ```text
-Ignore and Local Artifact Cleanup
+1. Tracing split: preserve only Core-safe trace metadata if compatible; keep audit-ledger wiring out.
+2. Launcher/package pass: decide whether `Install-SRT1.ps1`, `START_SRT1.bat`, and `srt1.bat` are public Core assets or local/private launchers.
+3. Pro wording pass: clean `self_heal.py`/`__init__.py` language without changing behavior.
+4. Private/SION deferral: keep `audit_ledger.py`, `governance_monitor.py`, and SION-specific runtime monitoring outside public Core implementation.
+5. Context-file pass: regenerate or restore `.cursorrules` only after the standing instruction/context policy is finalized.
 ```
 
-Do not delete files yet. First tighten ignore rules and produce a reduced
-`git status` view. Then move to private boundary cleanup.
+Do not delete files yet. Continue reducing one focused checkpoint at a time.
