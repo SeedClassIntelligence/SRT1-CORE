@@ -150,6 +150,7 @@ class ExecutionGraphNode:
     result: Optional[Dict[str, Any]] = None
     parent_step_id: Optional[str] = None
     duration_ms: Optional[int] = None
+    cell_id: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -162,6 +163,7 @@ class ExecutionGraphNode:
             "result": self.result,
             "parent_step_id": self.parent_step_id,
             "duration_ms": self.duration_ms,
+            "cell_id": self.cell_id,
         }
 
 
@@ -688,7 +690,8 @@ class ExecutionGraphTracker:
 
     def add_validation_step(self, graph_id: str, criterion_name: str,
                              llm_provider: str,
-                             parent_step_id: Optional[str] = None) -> str:
+                             parent_step_id: Optional[str] = None,
+                             cell_id: Optional[str] = None) -> str:
         """Add a validation step to an execution graph."""
         if graph_id not in self._graphs:
             raise ValueError(f"Graph {graph_id} not found")
@@ -702,6 +705,7 @@ class ExecutionGraphTracker:
             llm_provider=llm_provider,
             started_at=datetime.now().isoformat(),
             parent_step_id=parent_step_id,
+            cell_id=cell_id,
         )
 
         self._graphs[graph_id].steps.append(step)
