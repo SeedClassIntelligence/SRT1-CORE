@@ -1,8 +1,9 @@
 """
-SRT-1 Platform — Full Development Governance
+SRT-1 Platform - Local Governance and Integration Surface
 
-Live middleware, seed queue, mobile access, execution bridge, audit trails.
-Requires a valid SRT-1 Enterprise license.
+Live middleware, seed queue, mobile access, execution bridge, tracing, and
+optional understanding intelligence. Private/Enterprise systems integrate
+through bounded hooks and must fail closed when unavailable.
 
     from srt1_platform import SCIALiveEngine, SCIASeedQueue, SCIADispatchBridge
 """
@@ -29,6 +30,8 @@ from srt1_platform.seed_queue import SCIASeedQueue
 from srt1_platform.execution_bridge import SCIADispatchBridge
 from srt1_platform.tracing_system import SRT1TracingSystem
 from srt1_platform.remote_auth import SCIARemoteAuth
+from srt1_platform.intelligence_adapter import IntelligenceAdapter
+from srt1_platform.llm_providers import TokenBudget, AnalysisCache, LLMResponse
 
 # Backward-compatible aliases
 SRT1LiveEngine = SCIALiveEngine
@@ -36,10 +39,11 @@ SRT1SeedQueue = SCIASeedQueue
 SRT1ExecutionBridge = SCIADispatchBridge
 SRT1RemoteAuth = SCIARemoteAuth
 
-__version__ = "2.1.0"
+__version__ = "2.2.0"
 __all__ = [
     "SCIALiveEngine", "SCIASeedQueue", "SCIADispatchBridge",
     "SRT1TracingSystem", "SCIARemoteAuth",
+    "IntelligenceAdapter", "TokenBudget", "AnalysisCache", "LLMResponse",
     # Backward-compatible aliases
     "SRT1LiveEngine", "SRT1SeedQueue", "SRT1ExecutionBridge", "SRT1RemoteAuth",
 ]
