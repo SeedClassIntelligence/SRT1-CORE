@@ -116,12 +116,12 @@ class ProvenanceRecord:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Authority Client — calls out to the private signing service
+# Authority Client — calls out to an external authority service
 # ─────────────────────────────────────────────────────────────────────────────
 
 class AuthorityClient:
     """
-    Integration client for the private signing authority service.
+    Integration client for an external signing authority service.
 
     SRT-1 uses this to:
         1. sign()      — Request a provenance signature for content

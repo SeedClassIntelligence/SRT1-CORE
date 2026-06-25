@@ -275,13 +275,14 @@ class SRT1Engine:
         except ImportError:
             self.authority = None
 
-        # ---- SCIA Signing Client (calls SeedSignature service) ----
+        # ---- Optional external authority hook ----
         self.signing_client = None
         try:
-            from scia_security.signing_client import SigningServiceClient
-            self.signing_client = SigningServiceClient()
+            from srt1_code_indexer.authority_client import AuthorityClient
+            _authority = AuthorityClient()
+            self.signing_client = _authority if _authority.is_available else None
         except ImportError:
-            pass  # scia_security not installed — Core runs standalone
+            pass
 
         # ---- Seed Queue ----
         self.seed_queue: Optional[SCIASeedQueue] = None

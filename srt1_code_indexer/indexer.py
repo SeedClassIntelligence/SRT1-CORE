@@ -754,21 +754,22 @@ class SRT1CodeIndexer:
             'timestamp': datetime.now().isoformat(),
         }
 
-        # Sign the manifest via SeedSignature if the signing client is available
+        # Attach provenance only when an external authority is configured.
+        # Public Core does not import or ship the private signing implementation.
         try:
-            from scia_security.signing_client import SigningServiceClient
-            _signer = SigningServiceClient()
-            sig = _signer.sign(
-                {"manifest_hash": integrity_hash,
-                 "files": len(self.file_manifest),
-                 "symbols": sum(len(s) for s in self.symbol_table.values())},
-                phase="manifest_generation"
-            )
-            if "error" not in sig:
-                self.code_manifest['integrity']['_provenance'] = sig
-                print('        ✓ Manifest signed by SeedSignature authority')
+            from srt1_code_indexer.authority_client import AuthorityClient
+            _authority = AuthorityClient()
+            if _authority.is_available:
+                sig = _authority.sign(
+                    {"manifest_hash": integrity_hash,
+                     "files": len(self.file_manifest),
+                     "symbols": sum(len(s) for s in self.symbol_table.values())},
+                    phase="manifest_generation"
+                )
+                self.code_manifest['integrity']['_provenance'] = sig.to_dict()
+                print('        Manifest provenance attached by external authority')
         except ImportError:
-            pass  # scia_security not installed — standalone mode
+            pass
 
         # Write to disk
         manifest_path = os.path.join(self.repo_path, 'srt1_code_manifest.json')

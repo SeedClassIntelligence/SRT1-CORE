@@ -93,7 +93,7 @@ pip install srt1-core
 Start a local SRT-1 engine over a project folder:
 
 ```bash
-srt1-engine --repo_path ./my_project
+srt1-index --repo_path ./my_project
 ```
 
 The engine should index the repo, maintain local manifest/context state, and expose local observability surfaces. The exact port may be assigned by the local engine.

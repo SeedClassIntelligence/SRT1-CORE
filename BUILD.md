@@ -68,7 +68,7 @@ python -m build
 Run the local engine against the current repo when the package or local scripts expose the engine command:
 
 ```bash
-srt1-engine --repo_path ./
+srt1-index --repo_path ./
 ```
 
 If working directly from source, use the repo's current local engine entrypoint only after confirming it belongs to public Core and does not import private signing, SCIA memory/security, SION, or private audit implementation.

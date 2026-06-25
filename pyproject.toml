@@ -38,6 +38,7 @@ Slack = "https://join.slack.com/t/seedclassinte-phn4203/shared_invite/zt-3wbucmj
 
 [project.scripts]
 srt1-index = "srt1_code_indexer.engine:main"
+srt1-engine = "srt1_code_indexer.engine:main"
 srt1-code-indexer = "srt1_code_indexer.engine:main"
 srt1-bundle = "srt1_pro.context_bundler:main"
 srt1-execute = "srt1_pro.execution_engine:main"
