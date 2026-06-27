@@ -169,14 +169,17 @@ SRT1-CORE/
 ├── srt1_code_indexer/       repo understanding, AST/parser, hashing, manifest support
 ├── srt1_platform/           local platform authorities, MCP/context tools, seed queue, tracing
 ├── srt1_pro/                workspace connector, context bundling, constellation candidates
-├── developer-pwa/           dashboard/PWA shell pending canonical source approval
-├── srt1_platform/pwa/       platform-served PWA shell pending canonical source approval
+├── srt1_platform/pwa/       canonical public Core PWA and dashboard shell
+├── developer-pwa/           legacy/prototype PWA source; non-canonical until archive/sync decision
 ├── srt1-contracts/          public contracts and skill surfaces for review
 ├── srt1-skills/             public skill definitions for review
 └── docs/recovery/           architecture recovery and boundary planning
 ```
 
-PWA sources are not moved until the canonical source is approved.
+The canonical public Core PWA source is `srt1_platform/pwa/`. The
+`developer-pwa/` tree is preserved for prototype review only and must not be
+treated as the shipping product surface unless it is rebuilt from the canonical
+source or explicitly approved for a future packaging role.
 
 ---
 
