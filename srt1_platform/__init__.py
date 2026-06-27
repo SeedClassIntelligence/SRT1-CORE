@@ -29,9 +29,13 @@ from srt1_platform.middleware import SCIALiveEngine
 from srt1_platform.seed_queue import SCIASeedQueue
 from srt1_platform.execution_bridge import SCIADispatchBridge
 from srt1_platform.tracing_system import SRT1TracingSystem
-from srt1_platform.remote_auth import SCIARemoteAuth
 from srt1_platform.intelligence_adapter import IntelligenceAdapter
 from srt1_platform.llm_providers import TokenBudget, AnalysisCache, LLMResponse
+
+try:
+    from srt1_platform.remote_auth import SCIARemoteAuth
+except ImportError:
+    SCIARemoteAuth = None
 
 # Backward-compatible aliases
 SRT1LiveEngine = SCIALiveEngine

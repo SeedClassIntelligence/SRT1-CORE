@@ -1,6 +1,13 @@
 include LICENSE
-include README_PYPI.md
 include pyproject.toml
 recursive-include srt1_code_indexer *.py
 recursive-include srt1_pro *.py
-recursive-include srt1_platform *.py *.html *.js *.css *.json *.png *.svg
+recursive-include srt1_platform *.py *.html *.js *.css *.json
+exclude srt1_platform/audit_ledger.py
+exclude srt1_platform/delta_auditor.py
+exclude srt1_platform/governance_monitor.py
+exclude srt1_platform/proxy_engine.py
+exclude srt1_platform/remote_auth.py
+exclude srt1_platform/srt1_sion_cli.py
+exclude srt1_pro/execution_engine.py
+exclude srt1_pro/self_heal.py

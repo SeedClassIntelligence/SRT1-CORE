@@ -25,11 +25,19 @@ except ModuleNotFoundError:
     pass  # validate_license not present during development / source installs
 
 from srt1_pro.context_bundler import SCIAContextBundler
-from srt1_pro.execution_engine import SCIAExecutionEngine
-from srt1_pro.self_heal import SCIARemediationEngine
 from srt1_pro.seed_templates import SeedTemplate, SeedTemplateRegistry, get_registry
 from srt1_pro.analytics import AnalyticsEngine
 from srt1_pro.completeness import SeedTreeValidator, CompletenessReport
+
+try:
+    from srt1_pro.execution_engine import SCIAExecutionEngine
+except ImportError:
+    SCIAExecutionEngine = None
+
+try:
+    from srt1_pro.self_heal import SCIARemediationEngine
+except ImportError:
+    SCIARemediationEngine = None
 
 # Backward-compatible aliases
 SRT1ContextBundler = SCIAContextBundler
