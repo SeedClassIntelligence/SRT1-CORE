@@ -1735,7 +1735,7 @@ async function loadStatus() {
           let sigHtml = '';
           if (ev._provenance) {
             const sigId = ev._provenance.signature ? ev._provenance.signature.substring(0,16) : 'Verified';
-            sigHtml = `<div style="font-family:var(--mono);font-size:10px;color:var(--purple);margin-top:4px;display:flex;align-items:center;gap:4px;"><span style="font-size:12px;">🔏</span> Signed by SeedSignature: ${sigId}...</div>`;
+            sigHtml = `<div style="font-family:var(--mono);font-size:10px;color:var(--purple);margin-top:4px;display:flex;align-items:center;gap:4px;"><span style="font-size:12px;">🔏</span> External signature: ${sigId}...</div>`;
           }
           return `<div class="activity-item">
             <div class="activity-time">${timeStr}</div>

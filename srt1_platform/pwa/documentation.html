@@ -389,7 +389,7 @@
     <a href="#mobile" class="sidebar-link">Mobile PWA</a>
     <div class="sidebar-section">Deep Dive</div>
     <a href="#context-injection" class="sidebar-link">AI Context Injection</a>
-    <a href="#signing" class="sidebar-link">Signing (SeedSignature)</a>
+    <a href="#signing" class="sidebar-link">External Signing</a>
     <a href="#scia-packages" class="sidebar-link">SCIA Packages</a>
     <a href="#engine-api" class="sidebar-link">Engine API</a>
   </nav>
@@ -428,8 +428,8 @@
         <p>How AGENTS.md and CLAUDE.md give AI complete repo comprehension.</p>
       </a>
       <a href="#signing" class="doc-card" style="color:inherit">
-        <h3>🔏 Signing (SeedSignature)</h3>
-        <p>Cryptographic provenance via the signing authority.</p>
+        <h3>🔏 External Signing</h3>
+        <p>Core tracks trust states; external signing can add provenance when configured.</p>
       </a>
       <a href="#scia-packages" class="doc-card" style="color:inherit">
         <h3>📦 SCIA Packages</h3>
@@ -462,7 +462,7 @@
         <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">Context documents</td><td style="padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan)">context_generation</td><td style="padding:8px 12px;color:var(--text3)">After AGENTS.md is written</td></tr>
         <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">Violation resolutions</td><td style="padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan)">enforcement_resolve</td><td style="padding:8px 12px;color:var(--text3)">When developer resolves a block</td></tr>
         <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">Violation overrides</td><td style="padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan)">enforcement_override</td><td style="padding:8px 12px;color:var(--text3)">When developer overrides with justification (signed)</td></tr>
-        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">Consumer reflections</td><td style="padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan)">consumer_reflection</td><td style="padding:8px 12px;color:var(--text3)">Every Seed Reflections output</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">External reflection records</td><td style="padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan)">external_reflection</td><td style="padding:8px 12px;color:var(--text3)">Every Seed Reflections output</td></tr>
       </tbody>
     </table>
     </div>
@@ -536,7 +536,7 @@
         <th style="text-align:left;padding:10px 12px;color:var(--text);font-weight:700">Returns</th>
       </tr></thead>
       <tbody>
-        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan)">GET /status</td><td style="padding:8px 12px">Full engine state: manifest summary, trust chain, enforcement stats, uptime</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan)">GET /status</td><td style="padding:8px 12px">Core engine state: manifest summary, trust metadata, enforcement stats, uptime</td></tr>
         <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan)">GET /manifest</td><td style="padding:8px 12px">Complete code manifest JSON</td></tr>
         <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan)">GET /seeds</td><td style="padding:8px 12px">All seeds in the queue with lifecycle stage</td></tr>
         <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan)">GET /enforcement</td><td style="padding:8px 12px">Active blocks, compliance scorecard, violation history</td></tr>

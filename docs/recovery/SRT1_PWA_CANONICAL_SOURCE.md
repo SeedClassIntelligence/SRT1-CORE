@@ -81,3 +81,21 @@ The next PWA pass should review UI copy and API calls for:
 - no hard dependency on Enterprise backend
 - no private implementation examples
 - no autonomous execution-controller posture
+
+## 2026-06-26 Cleanup Status
+
+The canonical active PWA source remains `srt1_platform/pwa/`.
+
+The active PWA source has begun Core-boundary cleanup for:
+
+- SION as planned/inactive, not active Core execution
+- Seed Signature as external signing authority, not bundled Core implementation
+- Slack/team/cloud as Enterprise/private integrations
+- dashboard and marketing copy that previously implied autonomous execution,
+  self-healing, active private signing, or hard Enterprise dependency
+
+`developer-pwa/` is still a tracked legacy/prototype source tree. It is not the
+canonical public Core PWA and still contains stale product, consumer, signing,
+Enterprise, and SION language. It should be handled in a separate cleanup batch:
+either archive/defer it explicitly or rebuild it from the canonical
+`srt1_platform/pwa/` source after product packaging is approved.

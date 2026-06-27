@@ -213,7 +213,7 @@
     <a href="#pricing">Pricing</a>
     <a href="comparison.html">Compare</a>
     <a href="documentation.html">Documentation</a>
-    <a href="https://join.slack.com/t/seedclassinte-phn4203/shared_invite/zt-3wbucmj9i-RD1sfhXAAN1_3NuWaF8W2g" target="_blank" style="color:var(--cyan);">💬 Slack</a>
+    <a href="documentation.html" style="color:var(--cyan);">Docs</a>
   </div>
 </header>
 
@@ -221,7 +221,7 @@
 <section class="hero">
   <div class="hero-badge">SCIA v4.0 — 7-Stage Intelligence Pipeline</div>
   <h1>Your AI finally understands<br><span>your entire codebase.</span></h1>
-  <p class="hero-sub">AI memory isn't enough. SRT-1 gives you cryptographic provenance over your intellectual contributions. We index your codebase, tag risk, and build a cryptographically signed Trust Chain — proving your team's ownership over everything your AI generates.</p>
+  <p class="hero-sub">AI memory is not enough. SRT-1 gives you local repo intelligence, continuity, workcell boundaries, verification, and trust-aware context for AI coding assistants. External Seed Signature authority can add signed provenance when configured.</p>
   <div class="hero-install" id="install">
     <code>pip install srt1-core</code>
     <div style="display:flex; gap:8px;">
@@ -534,8 +534,8 @@
       </div>
       <div class="fcard">
         <div class="fcard-icon">🛡️</div>
-        <h3>Self-Healing Engine</h3>
-        <p>Detects duplicate functions, stale files, and missing docstrings. Auto-proposes governed remediations with full audit trail.</p>
+        <h3>Verification & Recovery Guidance</h3>
+        <p>Detects duplicate functions, stale files, and missing docstrings. Surfaces governed recovery suggestions for human review without autonomous remediation in Core.</p>
       </div>
       <div class="fcard">
         <div class="fcard-icon">📱</div>
@@ -549,8 +549,8 @@
       </div>
       <div class="fcard" style="border-color: rgba(57, 208, 216, 0.3); background: rgba(57, 208, 216, 0.02);">
         <div class="fcard-icon">🏠</div>
-        <h3 style="color: var(--cyan)">100% Local Execution</h3>
-        <p>SRT-1 runs entirely on your own system. No proprietary cloud backends. No VC-funded tracking. The AST indexing and SQLite database live exclusively on your machine.</p>
+        <h3 style="color: var(--cyan)">Local-First Core</h3>
+        <p>SRT-1 Core runs against your local repository. AST indexing, continuity state, and dashboard telemetry remain local unless you explicitly connect optional external services.</p>
       </div>
       <div class="fcard" style="border-color: rgba(63, 185, 80, 0.3); background: rgba(63, 185, 80, 0.02);">
         <div class="fcard-icon">🔏</div>
@@ -846,7 +846,7 @@ manifest = indexer.<span class="fn">index_repository</span>()
 <section class="pricing" id="pricing">
   <div class="eyebrow">Plans</div>
   <h2 class="section-h2">Protect your code. <span>Scale when ready.</span></h2>
-  <p style="font-size:16px;color:var(--text3);max-width:520px;margin:0 auto;line-height:1.7">The full engine runs free on your machine. Upgrade when you need multi-module orchestration or team sync.</p>
+  <p style="font-size:16px;color:var(--text3);max-width:520px;margin:0 auto;line-height:1.7">Core runs locally on your machine. Upgrade when you need richer constellation coordination, packaging, or organization-level integrations.</p>
 
   <div class="pricing-grid">
 
@@ -861,14 +861,14 @@ manifest = indexer.<span class="fn">index_repository</span>()
         <li>Live developer dashboard (PWA)</li>
         <li>File watcher — auto re-index on change</li>
         <li>Basic enforcement (duplicate detection)</li>
-        <li>Cryptographic trust chain (SeedSignature)</li>
+        <li>Trust state vocabulary and manifest lineage</li>
         <li>Seed lifecycle tracking</li>
         <li>100% local — zero network calls</li>
         <li class="dim">Workspace connector (multi-module)</li>
         <li class="dim">Mobile companion</li>
         <li class="dim">MCP Server integration</li>
         <li class="dim">Blueprint generation</li>
-        <li class="dim">Team sync</li>
+        <li class="dim">Organization integrations</li>
       </ul>
       <a href="https://pypi.org/project/srt1-core/" target="_blank" class="pcard-btn" id="btn-free-download">⬇ View on PyPI — pip install srt1-core</a>
     </div>
@@ -888,7 +888,7 @@ manifest = indexer.<span class="fn">index_repository</span>()
         <li>Advanced enforcement rulesets</li>
         <li>PDF &amp; Markdown compliance exports</li>
         <li>Priority engine updates</li>
-        <li class="dim">Team sync (cross-developer)</li>
+        <li class="dim">Organization integrations (cross-developer)</li>
         <li class="dim">CTO admin dashboard</li>
         <li class="dim">Knowledge Graph</li>
       </ul>
@@ -903,12 +903,12 @@ manifest = indexer.<span class="fn">index_repository</span>()
       <ul class="pcard-features">
         <li>Everything in Pro</li>
         <li>Team folder sync — connect developers across machines</li>
-        <li>CTO admin dashboard (God Wheel)</li>
-        <li>Knowledge Graph &amp; semantic retrieval</li>
-        <li>SCIA Memory Orchestrator</li>
+        <li>Admin observability dashboard</li>
+        <li>Knowledge graph and semantic retrieval integrations</li>
+        <li>External memory/security integrations</li>
         <li>Recall system — historical context retrieval</li>
-        <li>SSO / SAML authentication</li>
-        <li>Audit trail exports (compliance-ready)</li>
+        <li>Private identity integrations</li>
+        <li>External audit/signing exports when configured</li>
         <li>SLA support &amp; dedicated onboarding</li>
       </ul>
       <a href="contact.html" class="pcard-btn" id="btn-enterprise-contact">Contact Sales — Custom Volume Pricing</a>
@@ -924,7 +924,7 @@ manifest = indexer.<span class="fn">index_repository</span>()
     <h2 style="font-size:clamp(22px,3vw,34px);font-weight:900;letter-spacing:-1px;margin-bottom:16px">Your code never leaves your machine.</h2>
     <p style="font-size:15px;color:var(--text2);line-height:1.7;margin-bottom:24px">SRT-1 is built to protect the developer — the Original Seed — and their creations. The engine runs entirely local. Anonymous telemetry is opt-in only, and every payload is logged to your dashboard in real-time. If the engine ever transmits anything beyond what's disclosed, it flags itself as a violation.</p>
     <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;font-size:13px;color:var(--text3)">
-      <span>✓ Zero outbound calls in Free tier</span>
+      <span>✓ Local-first Core operation</span>
       <span>✓ Source Available — read every line</span>
       <span>✓ Self-enforcing transparency</span>
       <span>✓ BSL 1.1 Licensed</span>
