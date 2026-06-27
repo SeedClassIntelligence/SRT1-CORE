@@ -528,13 +528,80 @@ class TaskResponseIdentityTests(unittest.TestCase):
             ).to_reinjection_dict()
 
             with patch.object(engine, "_build_recall_packets", return_value=[packet]):
-                engine._generate_context_files()
+                result = engine._generate_context_files()
 
             state = json.loads((Path(repo) / ".srt1" / "reinjector_state.json").read_text(encoding="utf-8"))
 
         recall_state = [p for p in state if p["mode"] == "recall"][0]
         self.assertEqual(recall_state["queue_seed_id"], "seed_0001_queue")
         self.assertEqual(recall_state["source_type"], "manifest")
+        self.assertEqual(result["status"], "updated")
+        self.assertIn("AGENTS.md", result["files_written"])
+
+    def test_engine_generate_context_files_reports_skipped_when_agents_zone_missing(self):
+        with tempfile.TemporaryDirectory() as repo:
+            Path(repo, "AGENTS.md").write_text("plain instructions only\n", encoding="utf-8")
+            engine = engine_module.SRT1Engine.__new__(engine_module.SRT1Engine)
+            engine.repo_path = repo
+            engine.task = "truthful context result"
+            engine.port = 7483
+            engine.signing_client = None
+            engine.symbol_table = {}
+            engine.synopsis = ""
+            engine._collect_warnings = lambda: []
+
+            with patch.object(engine, "_build_recall_packets", return_value=[]), \
+                    patch("srt1_pro.reinjector.SCIAReinjector.inject_packets", return_value=False):
+                result = engine._generate_context_files()
+
+        self.assertEqual(result["status"], "skipped")
+        self.assertEqual(result["files_written"], [])
+        self.assertEqual(result["reason"], "AGENTS.md JIT block not found")
+
+    def test_recall_response_returns_packet_shape_with_queue_identity(self):
+        with tempfile.TemporaryDirectory() as repo:
+            engine = engine_module.SRT1Engine.__new__(engine_module.SRT1Engine)
+            engine.task = "Recall API response"
+            engine.task_seed_id = "srt_anchor_api"
+            engine.seed_queue = engine_module.SCIASeedQueue(
+                queue_dir=str(Path(repo) / ".srt1" / "seeds")
+            )
+            seed = engine.seed_queue.plant("Recall API response")
+            engine.seed_queue.set_srt_anchor(seed.seed_id, "srt_anchor_api")
+            packet = RecallPacket.create(
+                queue_seed_id=seed.seed_id,
+                srt_anchor_id="srt_anchor_api",
+                source_type="manifest",
+                source_id="symbol:Recall",
+                content="Recall API packet",
+                relevance_score=0.8,
+                freshness_state="fresh",
+            ).to_dict()
+
+            with patch.object(engine, "_build_recall_packets", return_value=[packet]):
+                response = engine._build_recall_response("legacy_seed", limit=1)
+
+        self.assertEqual(response["seed_id"], seed.seed_id)
+        self.assertEqual(response["queue_seed_id"], seed.seed_id)
+        self.assertEqual(response["srt_anchor_id"], "srt_anchor_api")
+        self.assertEqual(response["count"], 1)
+        self.assertEqual(response["recalls"][0]["source_type"], "manifest")
+        self.assertEqual(response["freshness_state"], "fresh")
+
+    def test_recall_response_fails_closed_with_degraded_packet(self):
+        engine = engine_module.SRT1Engine.__new__(engine_module.SRT1Engine)
+        engine.task = None
+        engine.task_seed_id = None
+        engine.seed_queue = None
+
+        with patch.object(engine, "_build_recall_packets", return_value=[]):
+            response = engine._build_recall_response("seed_missing", limit=3)
+
+        self.assertEqual(response["seed_id"], "seed_missing")
+        self.assertEqual(response["queue_seed_id"], "seed_missing")
+        self.assertEqual(response["freshness_state"], "degraded")
+        self.assertEqual(response["recalls"][0]["source_type"], "recall_unavailable")
+        self.assertEqual(response["recalls"][0]["trust_state"]["signature"], "unsigned")
 
     def test_completion_by_srt_anchor_updates_canonical_queue_seed(self):
         with tempfile.TemporaryDirectory() as repo:

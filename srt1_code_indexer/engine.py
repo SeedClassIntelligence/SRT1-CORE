@@ -388,17 +388,29 @@ class SRT1Engine:
         # Step 4: Generate AI context files (with timeout to prevent server hang)
         print("  [4/6] Generating AI context files...")
         import threading
-        ctx_thread = threading.Thread(target=self._generate_context_files, daemon=True)
+        context_result: Dict[str, Any] = {"status": "pending", "files_written": []}
+
+        def _context_worker() -> None:
+            context_result.update(self._generate_context_files())
+
+        ctx_thread = threading.Thread(target=_context_worker, daemon=True)
         ctx_thread.start()
         ctx_thread.join(timeout=30)
         if ctx_thread.is_alive():
             print("         ⚠ Context generation still running in background (server will start anyway)")
+            context_result.update({"status": "background", "files_written": []})
+        elif context_result.get("files_written"):
+            written = ", ".join(context_result["files_written"])
+            print(f"         ✓ Context files updated: {written}")
         else:
-            print("         ✓ Context files generated.")
-        self._log_event("context", "Generated AGENTS.md, CLAUDE.md, .cursorrules, copilot-instructions.md", {"files_written": 5})
+            print(f"         ⚠ Context generation skipped: {context_result.get('reason', 'no files written')}")
+        self._last_context_generation = dict(context_result)
+        self._log_event("context", "Context generation completed", context_result)
         # ── SCIA Event: context_docs_generated (canonical audit name) ──
-        self._log_event("context_docs_generated", "AI context files generated", {
-            "targets": ["AGENTS.md", "CLAUDE.md", ".cursorrules", "copilot-instructions.md"],
+        self._log_event("context_docs_generated", "Assistant context generation checked", {
+            "targets": context_result.get("files_written", []),
+            "status": context_result.get("status"),
+            "reason": context_result.get("reason"),
             "workspace_root": self.repo_path,
         })
 
@@ -1498,8 +1510,51 @@ class SRT1Engine:
         packets.extend(self._build_manifest_recall_candidates(limit=limit))
         return packets
 
-    def _generate_context_files(self) -> None:
+    def _build_recall_response(self, seed_id: str, limit: int = 3) -> Dict[str, Any]:
+        """Build the public Core recall API response without owning private memory."""
+        identity = self._get_recall_identity()
+        queue_seed_id = identity.get("queue_seed_id") or seed_id
+        packets = self._build_recall_packets(limit=limit)
+        if not packets:
+            try:
+                from srt1_platform.recall_packet import RecallPacket
+
+                packets = [
+                    RecallPacket.degraded(
+                        queue_seed_id=queue_seed_id,
+                        srt_anchor_id=identity.get("srt_anchor_id"),
+                        reason="No local manifest candidates or external recall packets available.",
+                    ).to_dict()
+                ]
+            except Exception:
+                packets = []
+
+        visible_packets = packets[:limit]
+        return {
+            "seed_id": queue_seed_id,
+            "queue_seed_id": queue_seed_id,
+            "srt_anchor_id": identity.get("srt_anchor_id"),
+            "recalls": visible_packets,
+            "count": len(visible_packets),
+            "freshness_state": (
+                "degraded"
+                if visible_packets and visible_packets[0].get("freshness_state") == "degraded"
+                else "fresh"
+            ),
+            "trust_state": {
+                "signature": "unsigned",
+                "verification": "unverified",
+                "lineage": "missing",
+            },
+        }
+
+    def _generate_context_files(self) -> Dict[str, Any]:
         """Inject JIT Context directly into the AGENTS.md master document via Reinjector."""
+        result: Dict[str, Any] = {
+            "status": "skipped",
+            "files_written": [],
+            "reason": None,
+        }
         try:
             # Safely import the new reinjection middleware
             from srt1_pro.reinjector import SCIAReinjector
@@ -1535,6 +1590,8 @@ class SRT1Engine:
             
             if success:
                 print("         ✓ AGENTS.md proactively updated (Segmented Mode)")
+                result["status"] = "updated"
+                result["files_written"].append("AGENTS.md")
                 
                 # Append the dynamic codebase map quietly to the bottom of the file
                 # so the agent still knows what functions exist
@@ -1562,8 +1619,10 @@ class SRT1Engine:
                     print(f"         ⚠ Failed to append codebase map: {e}")
             else:
                 print("         ⚠ AGENTS.md JIT block not found. Skipping reinjection.")
+                result["reason"] = "AGENTS.md JIT block not found"
         except ImportError:
             print("         ⚠ srt1_pro.reinjector not found. Skipping dynamic reinjection.")
+            result["reason"] = "srt1_pro.reinjector unavailable"
 
         # Attach optional external trust provenance when configured.
         if self.signing_client:
@@ -1575,6 +1634,7 @@ class SRT1Engine:
             )
             if "error" not in sig:
                 print("         ✓ Reinjection event signed by authority")
+        return result
 
     def _write(self, directory: str, filename: str, content: str) -> None:
         path = os.path.join(directory, filename)
@@ -2821,6 +2881,18 @@ class SRT1Engine:
                 elif path == "/manifest":
                     self._json(engine.manifest)
 
+                elif path.startswith("/api/v1/memory/recall/"):
+                    from urllib.parse import parse_qs as _pq
+
+                    seed_id = path.rsplit("/", 1)[-1]
+                    query = _pq(urlparse(self.path).query)
+                    try:
+                        limit = int(query.get("limit", ["3"])[0])
+                    except (TypeError, ValueError):
+                        limit = 3
+
+                    self._json(engine._build_recall_response(seed_id, limit=limit))
+
                 # NOTE: /admin/stats handler consolidated above (line ~1668). Dead duplicate removed.
 
                 elif path == "/activity":
@@ -3970,7 +4042,7 @@ class SRT1Engine:
         print()
         print("  ╔══════════════════════════════════════════════════════╗")
         print("  ║           SRT-1 Code Indexer v2.0                   ║")
-        print("  ║   The Autonomous Codebase Immune System (SCIA)       ║")
+        print("  ║   Repo Continuity and Alignment for AI Assistants    ║")
         print("  ╚══════════════════════════════════════════════════════╝")
         print()
         print(f"  Target: {self.repo_path}")
@@ -3989,10 +4061,10 @@ class SRT1Engine:
                 if clean.strip():
                     print(f"  {clean}")
             print("  ────────────────────────────────────────────────────")
-            print()
+        print()
 
         print("  ╔══════════════════════════════════════════════════════╗")
-        print("  ║               INDEXER IMMUNE SYSTEM IS LIVE         ║")
+        print("  ║                 SRT-1 CORE ENGINE IS LIVE           ║")
         print("  ╚══════════════════════════════════════════════════════╝")
         print()
         print(f"  Constellation: http://127.0.0.1:{self.port}/constellation")
@@ -4004,11 +4076,14 @@ class SRT1Engine:
         print(f"  API:           http://127.0.0.1:{self.port}/status")
         print(f"  Seeds:         http://127.0.0.1:{self.port}/seeds")
         print()
-        print("  AI context files generated:")
-        print("    ✓ CLAUDE.md          → Claude Code / Antigravity")
-        print("    ✓ .cursorrules       → Cursor")
-        print("    ✓ AGENTS.md          → Generic AI agents")
-        print("    ✓ copilot-instructions.md → GitHub Copilot")
+        context_result = getattr(self, "_last_context_generation", {})
+        written = context_result.get("files_written") or []
+        print("  Assistant context:")
+        if written:
+            for filename in written:
+                print(f"    ✓ {filename}")
+        else:
+            print(f"    ○ No assistant files updated ({context_result.get('reason', 'no writable context target')})")
         print()
         print("  Core Runtime:")
         print(f"    {'✓' if self.auth else '○'} Auth Surface        {'(enabled)' if self.auth else '(optional / unavailable)'}")
