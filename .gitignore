@@ -1,10 +1,10 @@
-# ── SECRETS (NEVER COMMIT) ──
+# SECRETS - NEVER COMMIT
 .env
 *.env
 .env.*
 !.env.example
 
-# ── SRT-1 IP Protection ──
+# SRT-1 IP PROTECTION
 # The Seed Signature authority is PRIVATE. Never push to any public repo.
 # These rules protect against accidental commits of mock services.
 **/srt1_signature_client*.py
@@ -12,19 +12,19 @@ private_core_v2/
 SRT1-ENTERPRISE/
 SRT1-CORE/
 
-# ── Legacy / stale directories ──
+# LEGACY / STALE DIRECTORIES
 srt1_code_indexer_pkg/
 test_repo/
 
-# ── Runtime state (local only) ──
+# RUNTIME STATE - LOCAL ONLY
 .srt1/
 
-# ── Nuitka build artifacts ──
+# NUITKA BUILD ARTIFACTS
 *.pyd
 *.pyi
 *.build/
 
-# ── Python ──
+# PYTHON
 __pycache__/
 *.pyc
 *.egg-info/
@@ -35,36 +35,36 @@ build/
 *.tar.gz
 *.spec
 
-# ── Runtime outputs (never commit) ──
+# RUNTIME OUTPUTS - NEVER COMMIT
 *_execution_result.json
 *_context_bundle.json
 *_code_manifest.json
 *_prompt_*.txt
 bundle_prompt.txt
 
-# ── MCP configs (may contain local paths) ──
+# MCP CONFIGS - MAY CONTAIN LOCAL PATHS
 mcp_configs/
 
-# ── Misc ──
+# MISC
 dummy_app.py
 test_venv/
 
-# ── Backend secrets & storage ──
+# BACKEND SECRETS AND STORAGE
 srt1_backend/.env
 srt1_backend/storage/
 
-# ── Database ──
+# DATABASE
 *.db
 
-# ── IDE ──
+# IDE
 .vscode/
 .idea/
 
-# ── OS ──
+# OS
 Thumbs.db
 .DS_Store
 
-# ── PROPRIETARY IP (DO NOT TRACK) ──
+# PROPRIETARY IP - DO NOT TRACK
 srt1_backend/
 SEED GRAPH/
 srt1_dashboard.html
