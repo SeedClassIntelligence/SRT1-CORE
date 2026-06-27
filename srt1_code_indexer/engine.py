@@ -6,7 +6,7 @@ Key Symbols: hash_password, generate_session_token, init_db, SRT1Engine, main ..
 
 Extracted Purposes:
   - SRT1Engine: The unified SRT-1 engine. Indexes, injects, watches, serves.
-  - _log_event: Record a real, timestamped engine event. Signed by SeedSignature.
+  - _log_event: Record a real, timestamped engine event. External signing is optional.
   - start: Run the full SRT-1 pipeline: index → analyze → inject → serve → watch.
   ...
 """
@@ -316,7 +316,7 @@ class SRT1Engine:
     # -----------------------------------------------------------------
 
     def _log_event(self, category: str, message: str, data: Optional[Dict] = None) -> None:
-        """Record a real, timestamped engine event. Signed by SeedSignature when configured."""
+        """Record a real, timestamped engine event. External signing is optional."""
         event = {
             "timestamp": time.time(),
             "iso": datetime.now().isoformat(),
@@ -536,7 +536,7 @@ class SRT1Engine:
             "engine_version": "SRT-1 v2.0",
         }
 
-        # Sign the trust bootstrap via SeedSignature if available
+        # Attach optional external trust provenance when configured.
         if self.signing_client:
             sig = self.signing_client.sign(trust_entry, phase="bootstrap")
             if "error" not in sig:
@@ -565,7 +565,7 @@ class SRT1Engine:
                     reason=f"Function '{func}()' duplicated in: {', '.join(locs)}",
                     resolution=f"Remove duplicate or consolidate into canonical location",
                 )
-                # Sign the enforcement event via SeedSignature
+                # Attach optional external trust provenance when configured.
                 if self.signing_client:
                     sig = self.signing_client.sign(event.to_dict(), phase="enforcement")
                     if "error" not in sig:
@@ -1565,7 +1565,7 @@ class SRT1Engine:
         except ImportError:
             print("         ⚠ srt1_pro.reinjector not found. Skipping dynamic reinjection.")
 
-        # Sign the injection via SeedSignature
+        # Attach optional external trust provenance when configured.
         if self.signing_client:
             import hashlib as _hl
             content_hash = _hl.sha256(("REINJECT_" + str(self.task)).encode()).hexdigest()
@@ -2772,7 +2772,7 @@ class SRT1Engine:
                         },
                         "events_recent": [], # Handled by /events directly now
                     }
-                    # Sign the status attestation via SeedSignature
+                    # Attach optional external trust provenance when configured.
                     if engine.signing_client:
                         sig = engine.signing_client.sign(
                             {"violations": enforcement.get("enforcements_issued", 0),
@@ -3489,7 +3489,7 @@ class SRT1Engine:
                     return
 
                 if path == "/enforcement/override":
-                    pass # SION bypasses auth to use cryptographic overrides
+                    pass # Preserve legacy override route behavior.
                 elif not self._check_auth(path):
                     return
 
@@ -3593,7 +3593,7 @@ class SRT1Engine:
                         queue_seed_id=queue_seed_id,
                         auto_dispatch=auto_dispatch,
                     )
-                    # Sign the task dispatch via SeedSignature
+                    # Attach optional external trust provenance when configured.
                     if engine.signing_client:
                         try:
                             sig = engine.signing_client.sign(
@@ -3603,7 +3603,7 @@ class SRT1Engine:
                             if sig:
                                 response["_provenance"] = sig.to_dict() if hasattr(sig, "to_dict") else str(sig)
                         except Exception as e:
-                            logger.error(f"Seed Signature failed: {e}")
+                            logger.error(f"External signing failed: {e}")
                     self._json(response)
 
                 elif path == "/operation":
@@ -3628,7 +3628,7 @@ class SRT1Engine:
                             "event_id": event_id,
                             "compliance": engine.srt_tool.get_compliance_stats(),
                         }
-                        # Sign the resolution via SeedSignature
+                        # Attach optional external trust provenance when configured.
                         if engine.signing_client:
                             sig = engine.signing_client.sign(
                                 {"event_id": event_id, "action": "resolve"},
@@ -3663,7 +3663,7 @@ class SRT1Engine:
                             "warning": "Override does NOT erase the violation. It remains in history.",
                             "compliance": engine.srt_tool.get_compliance_stats(),
                         }
-                        # Sign the override via SeedSignature
+                        # Attach optional external trust provenance when configured.
                         if engine.signing_client:
                             sig = engine.signing_client.sign(
                                 {"event_id": event_id, "action": "override",
@@ -4010,15 +4010,14 @@ class SRT1Engine:
         print("    ✓ AGENTS.md          → Generic AI agents")
         print("    ✓ copilot-instructions.md → GitHub Copilot")
         print()
-        print("  Mobile-Ready Infrastructure:")
-        print(f"    {'✓' if self.auth else '○'} Remote Auth         {'(enabled)' if self.auth else '(import srt1_remote_auth to enable)'}")
-        print(f"    {'✓' if self.seed_queue else '○'} Seed Queue          {'(active)' if self.seed_queue else '(import srt1_seed_queue to enable)'}")
-        print(f"    {'✓' if self.bridge else '○'} Execution Bridge    {'(monitoring)' if self.bridge else '(import srt1_execution_bridge to enable)'}")
+        print("  Core Runtime:")
+        print(f"    {'✓' if self.auth else '○'} Auth Surface        {'(enabled)' if self.auth else '(optional / unavailable)'}")
+        print(f"    {'✓' if self.seed_queue else '○'} Seed Queue          {'(active)' if self.seed_queue else '(legacy fallback)'}")
+        print(f"    {'✓' if self.bridge else '○'} Execution Bridge    {'(optional / connected)' if self.bridge else '(inactive)'}")
         print()
         print("  File watcher active. Changes auto-regenerate everything.")
         print()
-        print("  Community:  https://join.slack.com/t/seedclassinte-phn4203")
-        print("  Signed by:  SeedSignature — Seed Class Intelligence")
+        print("  Trust:      Core records trust state; external signing is optional.")
         print()
         print("  Press Ctrl+C to stop.")
         print()
