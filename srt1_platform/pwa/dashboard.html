@@ -1196,6 +1196,7 @@ const API = (window.location.port && window.location.port !== '8080' && window.l
   ? window.location.origin
   : (localStorage.getItem('srt1_engine_origin') || 'http://127.0.0.1:8475');
 let manifest = null;
+let manifestLoaded = false;
 let currentTab = 'files';
 
 // Navigate to a page using engine routes or static file paths depending on context
@@ -1469,6 +1470,7 @@ async function loadManifest() {
   try {
     const r = await fetch(API + '/manifest');
     manifest = await r.json();
+    manifestLoaded = true;
     const repoName = manifest.metadata?.repo_name || 'Unknown';
     document.getElementById('repoName').textContent = repoName;
     
@@ -1570,6 +1572,66 @@ async function loadManifest() {
     document.getElementById('statSymbolsSub').textContent = 'Start: python srt1_code_indexer_engine.py';
     document.getElementById('statReflectionsSub').textContent = `${API} not responding`;
     document.getElementById('statTrustSub').textContent = 'Engine offline';
+  }
+}
+
+async function loadDashboardSummary() {
+  try {
+    const r = await fetch(API + '/dashboard-summary');
+    const summary = await r.json();
+    const repoName = summary.repo || 'Unknown';
+    const files = summary.files_indexed || 0;
+    const syms = summary.symbols_indexed || 0;
+    const refs = summary.reflections || 0;
+    const dups = summary.duplicate_files || 0;
+    const overlaps = summary.functional_overlaps || 0;
+    const unused = summary.unused_functions || 0;
+    const enforcement = summary.enforcement || {};
+    const trust = summary.trust || {};
+    const sig = summary.manifest_hash ? summary.manifest_hash.substring(0, 16) : 'N/A';
+
+    document.getElementById('repoName').textContent = repoName;
+    if (repoName !== 'Unknown') {
+      document.getElementById('mainDashboardTitle').textContent = repoName + " Dashboard";
+      document.getElementById('mainDashboardSubtitle').textContent = "Repo continuity, code intelligence, assistant alignment, and human review";
+    }
+
+    document.getElementById('statFiles').textContent = files.toLocaleString();
+    document.getElementById('statFilesSub').textContent = `${dups} duplicate${dups!==1?'s':''} detected`;
+    document.getElementById('statSymbols').textContent = syms.toLocaleString();
+    document.getElementById('statSymbolsSub').textContent = `Across ${files} source files`;
+
+    const activeBlocks = enforcement.active_blocks || 0;
+    document.getElementById('statReflections').textContent = activeBlocks.toLocaleString();
+    document.getElementById('statReflectionsSub').textContent = `${overlaps} overlap${overlaps!==1?'s':''} · ${unused} unused functions`;
+
+    const trustEl = document.getElementById('statTrust');
+    const verified = trust.verification === 'verified';
+    trustEl.textContent = verified ? 'LOCAL OK' : 'UNVERIFIED';
+    trustEl.style.color = verified ? 'var(--green)' : 'var(--amber)';
+    trustEl.style.fontSize = '22px';
+    document.getElementById('statTrustSub').textContent =
+      `trust: ${trust.signature || 'unsigned'} · lineage: ${trust.lineage || 'missing'} · manifest: ${summary.manifest_freshness || 'unknown'}`;
+
+    const repoStats = document.getElementById('repoStats');
+    if (repoStats) {
+      repoStats.innerHTML = `
+        <span><strong>${files}</strong> files</span>
+        <span><strong>${syms}</strong> symbols</span>
+        <span><strong>${refs}</strong> reflections</span>
+        <span><strong>${dups}</strong> duplicates</span>
+        <span><strong>${overlaps}</strong> overlaps</span>
+        <span style="color:var(--purple);font-family:var(--mono);font-size:11px;">${sig}</span>
+        <button onclick="loadManifest()" class="download-btn" style="font-size:11px;padding:4px 10px;margin-left:auto;">Load repo intelligence</button>
+      `;
+    }
+
+    const tabContent = document.getElementById('tabContent');
+    if (tabContent && !manifestLoaded) {
+      tabContent.innerHTML = '<div style="padding:32px;text-align:center;color:var(--text3);font-size:13px;border:1px dashed var(--border);border-radius:10px;">Repo intelligence is ready. Load it when you need file, symbol, role, risk, curation, or dependency details.</div>';
+    }
+  } catch(e) {
+    document.getElementById('repoStats').innerHTML = `<span style="color:var(--red);">Could not load dashboard summary. Is the SRT-1 engine running at ${API}?</span>`;
   }
 }
 
@@ -2678,12 +2740,12 @@ function organizePanels() {
 // Move panels into their correct tab panes FIRST.
 organizePanels();
 // Then start loading data from engine
-loadManifest();
+loadDashboardSummary();
 loadStatus();
 loadSeedQueue();
 loadSavedKeys();
 // Refresh every 30 seconds
-setInterval(loadManifest, 30000);
+setInterval(loadDashboardSummary, 30000);
 setInterval(loadStatus, 30000);
 setInterval(loadSeedQueue, 30000);
 // Update blueprint preview after status loads

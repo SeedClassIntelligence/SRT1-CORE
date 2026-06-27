@@ -2699,6 +2699,39 @@ class SRT1Engine:
                         "language_coverage": engine.manifest.get("language_coverage", {}),
                     })
 
+                elif path == "/dashboard-summary":
+                    metadata = engine.manifest.get("metadata", {})
+                    enforcement = engine.srt_tool.get_compliance_stats()
+                    curation = engine.curation_report or {}
+                    manifest_hash = engine.manifest.get("integrity", {}).get("manifest_hash", "")
+                    files = engine.manifest.get("file_manifest", [])
+                    symbol_count = sum(len(s) for s in engine.symbol_table.values())
+
+                    self._json({
+                        "repo": os.path.basename(engine.repo_path),
+                        "product": "SRT-1 v2.0",
+                        "manifest_hash": manifest_hash,
+                        "manifest_freshness": "fresh" if manifest_hash else "unknown",
+                        "files_indexed": metadata.get("total_files_scanned", len(files)),
+                        "symbols_indexed": metadata.get("total_symbols_indexed", symbol_count),
+                        "reflections": metadata.get("total_reflections", 0),
+                        "duplicate_files": len(curation.get("duplicate_files", [])),
+                        "functional_overlaps": len(curation.get("functional_overlaps", [])),
+                        "unused_functions": len(curation.get("unused_functions", [])),
+                        "trust": {
+                            "signature": "signed" if engine.signing_client else "unsigned",
+                            "verification": "verified" if engine._trust_integrity else "unverified",
+                            "lineage": "present" if engine._trust_chain else "missing",
+                        },
+                        "enforcement": {
+                            "mode": enforcement.get("mode", "unknown"),
+                            "active_blocks": enforcement.get("active_blocks", 0),
+                            "violations_total": enforcement.get("enforcements_issued", 0),
+                        },
+                        "seed_queue": engine.seed_queue.get_stats() if engine.seed_queue else None,
+                        "active_seed": engine._get_active_seed_identity(),
+                    })
+
                 elif path == "/api/v1/users/me":
                     user_id = self._authenticate_cloud()
                     if not user_id:
