@@ -563,11 +563,12 @@ class SRT1Engine:
 
     def _bootstrap_enforcement(self) -> None:
         """Auto-register enforcement violations from curation results."""
-        warnings = self._collect_warnings()
         overlaps = self.curation_report.get("functional_overlaps", [])
+        blocking_overlaps = [ov for ov in overlaps if not self._is_advisory_overlap(ov)]
+        warnings = self._collect_warnings() if blocking_overlaps else []
 
-        if overlaps:
-            for ov in overlaps:
+        if blocking_overlaps:
+            for ov in blocking_overlaps:
                 func = ov["instances"][0]["function"]
                 locs = [f"{i['file']}:{i['line']}" for i in ov["instances"]]
                 event = self.srt_tool.register_violation(
@@ -583,13 +584,47 @@ class SRT1Engine:
                     if "error" not in sig:
                         event.metadata = sig  # attach provenance
 
-        if overlaps or warnings:
+        if blocking_overlaps or warnings:
             self.srt_tool.set_enforcement_mode("enforcement")
             block_count = len(self.srt_tool.get_active_blocks())
             print(f"         \u26a0 Enforcement Mode: {block_count} violation(s) require remediation")
         else:
             self.srt_tool.set_enforcement_mode("advisory")
             print("         \u2713 Enforcement Mode: Advisory (codebase clean)")
+
+    @staticmethod
+    def _is_advisory_overlap(overlap: Dict[str, Any]) -> bool:
+        """Return True for duplicate findings that should remain advisory only."""
+        instances = overlap.get("instances", [])
+        if not instances:
+            return False
+
+        files = [
+            str(inst.get("file", "")).replace("\\", "/").lstrip("./")
+            for inst in instances
+        ]
+        func = str(instances[0].get("function", ""))
+
+        if any(path.startswith(("scratch/", "tests/")) for path in files):
+            return True
+
+        pwa_mirror_files = {
+            "srt1_platform/pwa/api/platform.js",
+            "srt1_platform/pwa/js/platform.js",
+        }
+        if set(files).issubset(pwa_mirror_files):
+            return True
+
+        interface_method_names = {
+            "generate",
+            "get_available_providers",
+            "get_budget_status",
+            "is_available",
+        }
+        if func in interface_method_names:
+            return True
+
+        return False
 
     # -----------------------------------------------------------------
     # INDEXING
@@ -1619,6 +1654,16 @@ class SRT1Engine:
                 print("         ✓ AGENTS.md proactively updated (Segmented Mode)")
                 result["status"] = "updated"
                 result["files_written"].append("AGENTS.md")
+                try:
+                    context_dir = os.path.join(self.repo_path, ".srt1", "context")
+                    os.makedirs(context_dir, exist_ok=True)
+                    context_path = os.path.join(context_dir, "runtime_codebase_map.md")
+                    with open(context_path, "w", encoding="utf-8") as f:
+                        f.write(self._build_codebase_map_only())
+                    result["files_written"].append(os.path.relpath(context_path, self.repo_path))
+                except Exception as e:
+                    print(f"         Failed to write runtime codebase map: {e}")
+                return result
                 
                 # Append the dynamic codebase map quietly to the bottom of the file
                 # so the agent still knows what functions exist

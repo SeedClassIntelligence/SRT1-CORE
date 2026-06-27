@@ -1,4 +1,5 @@
 import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -516,7 +517,7 @@ class TaskResponseIdentityTests(unittest.TestCase):
             engine.port = 7483
             engine.signing_client = None
             engine.symbol_table = {}
-            engine.synopsis = ""
+            engine.synopsis = "Runtime map synopsis"
             engine._collect_warnings = lambda: []
             packet = RecallPacket.create(
                 queue_seed_id="seed_0001_queue",
@@ -531,12 +532,20 @@ class TaskResponseIdentityTests(unittest.TestCase):
                 result = engine._generate_context_files()
 
             state = json.loads((Path(repo) / ".srt1" / "reinjector_state.json").read_text(encoding="utf-8"))
+            agents_text = (Path(repo) / "AGENTS.md").read_text(encoding="utf-8")
+            runtime_map = Path(repo) / ".srt1" / "context" / "runtime_codebase_map.md"
+            runtime_map_exists = runtime_map.exists()
+            runtime_map_text = runtime_map.read_text(encoding="utf-8") if runtime_map_exists else ""
 
         recall_state = [p for p in state if p["mode"] == "recall"][0]
         self.assertEqual(recall_state["queue_seed_id"], "seed_0001_queue")
         self.assertEqual(recall_state["source_type"], "manifest")
         self.assertEqual(result["status"], "updated")
         self.assertIn("AGENTS.md", result["files_written"])
+        self.assertIn(os.path.join(".srt1", "context", "runtime_codebase_map.md"), result["files_written"])
+        self.assertNotIn("Runtime Codebase Map", agents_text)
+        self.assertTrue(runtime_map_exists)
+        self.assertIn("Runtime map synopsis", runtime_map_text)
 
     def test_engine_generate_context_files_reports_skipped_when_agents_zone_missing(self):
         with tempfile.TemporaryDirectory() as repo:

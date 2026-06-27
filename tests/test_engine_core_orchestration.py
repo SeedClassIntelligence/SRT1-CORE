@@ -92,6 +92,58 @@ class EngineCoreOrchestrationTests(unittest.TestCase):
             "service",
         )
 
+    def test_bootstrap_enforcement_treats_non_product_duplicates_as_advisory(self):
+        engine = engine_module.SRT1Engine.__new__(engine_module.SRT1Engine)
+        engine.signing_client = None
+        engine.srt_tool = engine_module.SRT(reflection_interval=3)
+        engine.curation_report = {
+            "functional_overlaps": [
+                {
+                    "instances": [
+                        {"function": "read", "file": "scratch/test_a.py", "line": 1},
+                        {"function": "read", "file": "tests/test_b.py", "line": 2},
+                    ]
+                },
+                {
+                    "instances": [
+                        {"function": "_isDemoMode", "file": "srt1_platform/pwa/api/platform.js", "line": 88},
+                        {"function": "_isDemoMode", "file": "srt1_platform/pwa/js/platform.js", "line": 87},
+                    ]
+                },
+                {
+                    "instances": [
+                        {"function": "is_available", "file": "srt1_platform/intelligence_adapter.py", "line": 92},
+                        {"function": "is_available", "file": "srt1_platform/llm_providers.py", "line": 149},
+                    ]
+                }
+            ]
+        }
+
+        engine._bootstrap_enforcement()
+
+        self.assertEqual(engine.srt_tool._enforcement_mode, "advisory")
+        self.assertEqual(engine.srt_tool.get_active_blocks(), [])
+
+    def test_bootstrap_enforcement_blocks_source_duplicates(self):
+        engine = engine_module.SRT1Engine.__new__(engine_module.SRT1Engine)
+        engine.signing_client = None
+        engine.srt_tool = engine_module.SRT(reflection_interval=3)
+        engine.curation_report = {
+            "functional_overlaps": [
+                {
+                    "instances": [
+                        {"function": "run", "file": "srt1_platform/a.py", "line": 1},
+                        {"function": "run", "file": "srt1_platform/b.py", "line": 2},
+                    ]
+                }
+            ]
+        }
+
+        engine._bootstrap_enforcement()
+
+        self.assertEqual(engine.srt_tool._enforcement_mode, "enforcement")
+        self.assertEqual(len(engine.srt_tool.get_active_blocks()), 1)
+
 
 if __name__ == "__main__":
     unittest.main()
