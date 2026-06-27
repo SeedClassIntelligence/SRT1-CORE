@@ -1426,8 +1426,19 @@ class SRT1Engine:
             return identity.get("queue_seed_id") or identity.get("seed_id")
         return self.task_seed_id
 
-    def _get_recall_identity(self) -> Dict[str, Optional[str]]:
+    def _get_recall_identity(self, seed_id: Optional[str] = None) -> Dict[str, Optional[str]]:
         """Return recall identity with queue seed as canonical when present."""
+        if seed_id and getattr(self, "seed_queue", None):
+            queue_seed_id = self._resolve_queue_seed_id(seed_id)
+            if queue_seed_id:
+                seed = self.seed_queue.get_seed(queue_seed_id)
+                if seed:
+                    return {
+                        "queue_seed_id": queue_seed_id,
+                        "srt_anchor_id": seed.get("srt_anchor_id"),
+                        "manifest_hash": seed.get("manifest_hash"),
+                    }
+
         identity = self._get_active_seed_identity()
         if identity:
             queue_seed_id = identity.get("queue_seed_id") or identity.get("seed_id")
@@ -1480,11 +1491,18 @@ class SRT1Engine:
 
         return []
 
-    def _build_manifest_recall_candidates(self, limit: int = 5) -> List[Dict[str, Any]]:
+    def _build_manifest_recall_candidates(
+        self,
+        limit: int = 5,
+        seed_id: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
         """Build local manifest recall candidates as packet-shaped data."""
-        identity = self._get_recall_identity()
+        identity = self._get_recall_identity(seed_id=seed_id)
         queue_seed_id = identity.get("queue_seed_id")
         if not queue_seed_id or not self.task:
+            return []
+
+        if not getattr(self, "repo_path", None):
             return []
 
         manifest_path = os.path.join(self.repo_path, "srt1_code_manifest.json")
@@ -1510,11 +1528,20 @@ class SRT1Engine:
         packets.extend(self._build_manifest_recall_candidates(limit=limit))
         return packets
 
-    def _build_recall_response(self, seed_id: str, limit: int = 3) -> Dict[str, Any]:
+    def _build_recall_response(
+        self,
+        seed_id: str,
+        limit: int = 3,
+        include_external: bool = False,
+    ) -> Dict[str, Any]:
         """Build the public Core recall API response without owning private memory."""
-        identity = self._get_recall_identity()
+        identity = self._get_recall_identity(seed_id=seed_id)
         queue_seed_id = identity.get("queue_seed_id") or seed_id
-        packets = self._build_recall_packets(limit=limit)
+        packets = (
+            self._build_recall_packets(limit=limit)
+            if include_external
+            else self._build_manifest_recall_candidates(limit=limit, seed_id=seed_id)
+        )
         if not packets:
             try:
                 from srt1_platform.recall_packet import RecallPacket

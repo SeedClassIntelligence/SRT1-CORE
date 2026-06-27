@@ -578,7 +578,7 @@ class TaskResponseIdentityTests(unittest.TestCase):
                 freshness_state="fresh",
             ).to_dict()
 
-            with patch.object(engine, "_build_recall_packets", return_value=[packet]):
+            with patch.object(engine, "_build_manifest_recall_candidates", return_value=[packet]):
                 response = engine._build_recall_response("legacy_seed", limit=1)
 
         self.assertEqual(response["seed_id"], seed.seed_id)
@@ -602,6 +602,41 @@ class TaskResponseIdentityTests(unittest.TestCase):
         self.assertEqual(response["freshness_state"], "degraded")
         self.assertEqual(response["recalls"][0]["source_type"], "recall_unavailable")
         self.assertEqual(response["recalls"][0]["trust_state"]["signature"], "unsigned")
+
+    def test_recall_response_does_not_call_external_memory_by_default(self):
+        engine = engine_module.SRT1Engine.__new__(engine_module.SRT1Engine)
+        engine.task = None
+        engine.task_seed_id = "queue_public_api"
+        engine.seed_queue = None
+
+        with patch.object(engine, "_fetch_recall_reflections", side_effect=AssertionError), \
+                patch.object(engine, "_build_manifest_recall_candidates", return_value=[]):
+            response = engine._build_recall_response("queue_public_api", limit=1)
+
+        self.assertEqual(response["seed_id"], "queue_public_api")
+        self.assertEqual(response["freshness_state"], "degraded")
+
+    def test_recall_response_honors_requested_queue_seed(self):
+        with tempfile.TemporaryDirectory() as repo:
+            engine = engine_module.SRT1Engine.__new__(engine_module.SRT1Engine)
+            engine.task = "Recall requested seed"
+            engine.task_seed_id = "srt_anchor_latest"
+            engine.repo_path = repo
+            engine.seed_queue = engine_module.SCIASeedQueue(
+                queue_dir=str(Path(repo) / ".srt1" / "seeds")
+            )
+            first = engine.seed_queue.plant("Original active seed")
+            engine.seed_queue.set_srt_anchor(first.seed_id, "srt_anchor_first")
+            requested = engine.seed_queue.plant("Requested seed")
+            engine.seed_queue.set_srt_anchor(requested.seed_id, "srt_anchor_requested")
+
+            with patch.object(engine, "_build_manifest_recall_candidates", return_value=[]):
+                response = engine._build_recall_response(requested.seed_id, limit=1)
+
+        self.assertEqual(response["seed_id"], requested.seed_id)
+        self.assertEqual(response["queue_seed_id"], requested.seed_id)
+        self.assertEqual(response["srt_anchor_id"], "srt_anchor_requested")
+        self.assertEqual(response["recalls"][0]["queue_seed_id"], requested.seed_id)
 
     def test_completion_by_srt_anchor_updates_canonical_queue_seed(self):
         with tempfile.TemporaryDirectory() as repo:
