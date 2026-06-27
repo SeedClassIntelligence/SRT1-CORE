@@ -462,7 +462,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
   <!-- AI-Agnostic indicator -->
   <div style="padding:12px 24px;border-top:1px solid var(--border);margin-top:auto;">
     <div style="font-size:10px;color:var(--text4);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">AI-Agnostic</div>
-    <div style="font-size:11px;color:var(--text3);line-height:1.5;font-style:italic;">Works with any AI.<br>Cursor · Claude · Copilot · SION</div>
+    <div style="font-size:11px;color:var(--text3);line-height:1.5;font-style:italic;">Works with external AI assistants.<br>Cursor · Claude · Copilot<br><span style="color:var(--amber);">SION planned / inactive</span></div>
   </div>
 
   <div class="sidebar-footer">
@@ -470,7 +470,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
       <div class="sidebar-avatar">W</div>
       <div class="sidebar-user-info">
         <div class="name">William Jernigan</div>
-        <div class="tier" style="color: var(--cyan); border-color: rgba(62,207,142,0.3); background: rgba(62,207,142,0.1);">SEED SIGNATURE VERIFIED</div>
+        <div class="tier" style="color: var(--cyan); border-color: rgba(62,207,142,0.3); background: rgba(62,207,142,0.1);">TRUST AWARENESS LOCAL</div>
       </div>
     </div>
   </div>
@@ -482,10 +482,10 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
   <div class="page-header" style="display:flex; justify-content:space-between; align-items:flex-start;">
     <div>
       <h1 id="mainDashboardTitle">Dashboard</h1>
-      <p id="mainDashboardSubtitle">Code Indexer — Seed-Class Intelligence Architecture v4.0</p>
+      <p id="mainDashboardSubtitle">Repo continuity, alignment, recall, reinjection, verification, and human review cockpit</p>
     </div>
-    <a href="http://localhost:8099/consumer-dashboard.html" style="display:inline-flex;align-items:center;padding:8px 16px;background:var(--bg3);border:1px solid var(--border2);color:var(--text);border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;transition:all 0.15s;">
-      Open Consumer Pipeline →
+    <a href="/observatory" onclick="event.preventDefault();navPage('observatory')" style="display:inline-flex;align-items:center;padding:8px 16px;background:var(--bg3);border:1px solid var(--border2);color:var(--text);border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;transition:all 0.15s;">
+      Open Observatory
     </a>
   </div>
 
@@ -590,29 +590,29 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
     <!-- VERIFICATION -->
     <div class="panel" id="manage-verify" style="scroll-margin-top: 80px;">
       <div class="panel-header">
-        <div class="panel-title">System Verification <span class="info-icon" data-tooltip="SRT-1's self-diagnostic heartbeat monitor. Tracks real-time integrity of the crypto Trust Chain, Memory Seed queues, digital signatures, and the auto-healing middleware.">?</span></div>
-        <div class="panel-badge">15/15 PASS</div>
+        <div class="panel-title">System Verification <span class="info-icon" data-tooltip="Core-safe readiness surface. Shows implemented local capabilities, degraded optional integrations, and private services that are intentionally external.">?</span></div>
+        <div class="panel-badge info">CORE READY</div>
       </div>
       <div class="verify-grid">
         <div class="verify-item pass"><div class="verify-icon">✓</div><div class="verify-label">Core Imports</div></div>
         <div class="verify-item pass"><div class="verify-icon">✓</div><div class="verify-label">Indexer</div></div>
-        <div class="verify-item pass"><div class="verify-icon">✓</div><div class="verify-label">Trust Chain</div></div>
-        <div class="verify-item pass"><div class="verify-icon">✓</div><div class="verify-label">Signatures</div></div>
+        <div class="verify-item pass"><div class="verify-icon">✓</div><div class="verify-label">Manifest Hash</div></div>
+        <div class="verify-item pass"><div class="verify-icon">✓</div><div class="verify-label">Trust Vocabulary</div></div>
         <div class="verify-item pass"><div class="verify-icon">✓</div><div class="verify-label">File Integrity</div></div>
         <div class="verify-item pass"><div class="verify-icon">✓</div><div class="verify-label">Symbols</div></div>
         <div class="verify-item pass"><div class="verify-icon">✓</div><div class="verify-label">Reflections</div></div>
         <div class="verify-item pass"><div class="verify-icon">✓</div><div class="verify-label">Risk Scoping</div></div>
         <div class="verify-item pass"><div class="verify-icon">✓</div><div class="verify-label">Bundler</div></div>
-        <div class="verify-item pass"><div class="verify-icon">✓</div><div class="verify-label">Executor</div></div>
-        <div class="verify-item pass"><div class="verify-icon">✓</div><div class="verify-label">Self-Heal</div></div>
+        <div class="verify-item pass"><div class="verify-icon">✓</div><div class="verify-label">Recall Packets</div></div>
+        <div class="verify-item pass"><div class="verify-icon">✓</div><div class="verify-label">Reinjection</div></div>
         <div class="verify-item pass"><div class="verify-icon">✓</div><div class="verify-label">Seed Queue</div></div>
-        <div class="verify-item pass"><div class="verify-icon">✓</div><div class="verify-label">Middleware</div></div>
-        <div class="verify-item pass"><div class="verify-icon">✓</div><div class="verify-label">Remote Auth</div></div>
-        <div class="verify-item pass"><div class="verify-icon">✓</div><div class="verify-label">Mobile PWA</div></div>
+        <div class="verify-item pass"><div class="verify-icon">✓</div><div class="verify-label">Workcell Contract</div></div>
+        <div class="verify-item pass"><div class="verify-icon">✓</div><div class="verify-label">MCP Surface</div></div>
+        <div class="verify-item pass"><div class="verify-icon">✓</div><div class="verify-label">Mobile PWA Shell</div></div>
       </div>
-      <div style="margin-top:16px;padding:12px 16px;background:var(--green-bg);border:1px solid var(--green-border);border-radius:8px;font-size:13px;display:flex;align-items:center;gap:8px;">
-        <span style="color:var(--green);font-weight:700;">ALL SYSTEMS OPERATIONAL</span>
-        <span style="color:var(--text3);font-size:11px;margin-left:auto;">Last verified: 4 min ago</span>
+      <div style="margin-top:16px;padding:12px 16px;background:var(--amber-bg);border:1px solid var(--amber-border);border-radius:8px;font-size:13px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="color:var(--amber);font-weight:700;">CORE LOCAL SURFACE ACTIVE</span>
+        <span style="color:var(--text3);font-size:11px;margin-left:auto;">Private signing, SION execution, Slack/team backend, and Enterprise services are external / inactive unless connected.</span>
       </div>
     </div>
   </div>
@@ -667,7 +667,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
       <!-- Upgrade License CTA (shown for free-tier users) -->
       <div id="licenseUpgrade" style="margin-top:16px;padding:16px;background:linear-gradient(135deg,rgba(88,166,255,.06),rgba(57,208,216,.04));border:1px solid rgba(88,166,255,.2);border-radius:10px;">
         <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:6px;">Unlock Pro Features</div>
-        <div style="font-size:12px;color:var(--text3);line-height:1.6;margin-bottom:12px;">Upgrade to Pro for multi-module workspace connector, mobile companion, MCP integration, and blueprint generation.</div>
+        <div style="font-size:12px;color:var(--text3);line-height:1.6;margin-bottom:12px;">Upgrade to Pro for richer local constellation coordination, multi-workspace observability, and advanced packaging. Core remains local-first and usable without Enterprise services.</div>
         <a href="https://srt-1.lemonsqueezy.com/checkout/buy/3c7b5b89-fe57-4f36-a664-59d7b69aa04f" class="lemonsqueezy-button" style="display:block;text-align:center;padding:10px;border-radius:8px;font-weight:700;font-size:13px;background:var(--blue,#58a6ff);color:#000;border:none;cursor:pointer;text-decoration:none;">Upgrade to Pro — $9/mo</a>
       </div>
     </div>
@@ -675,11 +675,11 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
     <!-- DOWNLOADS -->
     <div class="panel" id="manage-downloads" style="scroll-margin-top: 80px;">
       <div class="panel-header">
-        <div class="panel-title">Ecosystem Installation <span class="info-icon" data-tooltip="SRT-1 ships as a single compiled wheel containing the Indexer, Pro Execution layer, and the Platform Middleware. You no longer need to download multiple packages.">?</span></div>
+        <div class="panel-title">Ecosystem Installation <span class="info-icon" data-tooltip="SRT-1 Core installs the public local repo-continuity toolset. Pro/Enterprise and private signing integrations are separate boundaries.">?</span></div>
         <div class="panel-badge info">v2.3.0</div>
       </div>
       <div style="font-size:13px;color:var(--text2);margin-bottom:16px;">
-        The SRT-1 Core engine is enterprise-grade. By adopting the new <strong>Seed Signature</strong> industry standard, all AI-generated logic, code execution, and architectural changes are cryptographically signed—ensuring that every modification is transparently attributed back to you as the original seed.
+        SRT-1 Core is a local repo-continuity and alignment cockpit. Core understands trust states such as signed/unsigned, verified/unverified, and lineage present/missing. Seed Signature can sign across developer, Pro, and Enterprise tiers when the external signing authority is configured; private keys and signing services do not ship in public Core.
       </div>
       <div class="download-list">
         <div class="download-item">
@@ -703,10 +703,10 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
             <div class="download-icon info">◎</div>
             <div>
               <div class="download-name">Mobile PWA Dashboard</div>
-              <div class="download-version">http://localhost:8475/mobile</div>
+              <div class="download-version">/mobile on the active engine port</div>
             </div>
           </div>
-          <button class="download-btn" onclick="window.open('http://localhost:8475/mobile', '_blank')">Open</button>
+          <button class="download-btn" onclick="window.open(window.location.origin + '/mobile', '_blank')">Open</button>
         </div>
       </div>
       <div style="margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--border);">
@@ -822,8 +822,8 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
   <!-- These panels need to be in the overview pane but were defined after settings -->
   <!-- AI CONNECTION — Shows which AI is connected to this module -->
   <!-- NOTE: Phase 2 addition. This is the EXECUTE section of the workflow.
-       Works with ANY AI: detects .cursorrules, AGENTS.md, CLAUDE.md, MCP connections.
-       SION is just one option — the Enterprise governed executor. -->
+       Works with external AI assistants by generating bounded context files and MCP surfaces.
+       SION is planned and inactive in the current Core dashboard. -->
   <div class="panel" id="ai-connection" style="margin-bottom:32px;scroll-margin-top: 80px;">
     <div class="panel-header">
       <div class="panel-title">AI Connection <span class="info-icon" data-tooltip="Shows which AI code assistant is connected to this module and what context SRT-1 is injecting.">?</span></div>
@@ -876,7 +876,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
           <div id="aiActiveTask" style="font-family:var(--mono);font-size:13px;color:var(--text);line-height:1.5;">Loading from engine...</div>
         </div>
         <div style="padding:14px;background:var(--bg);border:1px solid var(--border);border-radius:8px;">
-          <div style="font-size:12px;color:var(--text3);margin-bottom:6px;">MCP SERVER</div>
+          <div style="font-size:12px;color:var(--text3);margin-bottom:6px;">MCP SURFACE</div>
           <div id="aiMcpStatus" style="font-family:var(--mono);font-size:13px;color:var(--text3);">Available for Claude Desktop / Cursor</div>
           <div style="font-size:11px;color:var(--text4);margin-top:4px;">Tools: srt1_get_context, srt1_set_task, srt1_log_interaction</div>
         </div>
@@ -884,6 +884,74 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
           <div style="font-size:12px;color:var(--text3);margin-bottom:6px;">DRIFT STATUS</div>
           <div id="aiDriftStatus" style="font-family:var(--mono);font-size:13px;color:var(--green);">No drift detected</div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AUTHORITY TRUTH SURFACE - recovered SRT-1 organs made visible -->
+  <div class="grid-2" id="authority-surface" style="margin-bottom:32px;scroll-margin-top:80px;">
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">Recall Packets <span class="info-icon" data-tooltip="Recall retrieves packet-shaped context. Reinjection consumes packets but does not own retrieval.">?</span></div>
+        <div class="panel-badge info">CORE CONTRACT</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:12px;">
+        <div style="padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;">
+          <div style="color:var(--text3);margin-bottom:4px;">Canonical identity</div>
+          <div style="font-family:var(--mono);color:var(--cyan);">queue_seed_id</div>
+        </div>
+        <div style="padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;">
+          <div style="color:var(--text3);margin-bottom:4px;">Reflection anchor</div>
+          <div style="font-family:var(--mono);color:var(--text2);">srt_anchor_id</div>
+        </div>
+        <div style="padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;">
+          <div style="color:var(--text3);margin-bottom:4px;">Freshness</div>
+          <div style="font-family:var(--mono);color:var(--amber);">fresh / stale / degraded / unknown</div>
+        </div>
+        <div style="padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;">
+          <div style="color:var(--text3);margin-bottom:4px;">Trust</div>
+          <div style="font-family:var(--mono);color:var(--amber);">signed / unsigned / verified / unverified</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">Workcell Boundary <span class="info-icon" data-tooltip="Local containment boundary for reads, writes, context, and verification. FileCell is not Enterprise-only.">?</span></div>
+        <div class="panel-badge info">LOCAL CONTAINMENT</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;font-size:13px;color:var(--text2);">
+        <div style="padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;"><strong style="color:var(--text);">Allowed reads:</strong> derived from manifest/workcell scope.</div>
+        <div style="padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;"><strong style="color:var(--text);">Allowed writes:</strong> require proposal, review, and verification path.</div>
+        <div style="padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;"><strong style="color:var(--text);">Forbidden paths:</strong> fail closed before context or mutation.</div>
+        <div style="padding:10px 12px;background:var(--amber-bg);border:1px solid var(--amber-border);border-radius:8px;color:var(--amber);">No direct dashboard code mutation. No cross-project bleed.</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">Verification Lifecycle <span class="info-icon" data-tooltip="Verification owns evidence and verdicts. Continuity records final lifecycle state after verification/human acceptance.">?</span></div>
+        <div class="panel-badge info">EVIDENCE FIRST</div>
+      </div>
+      <div style="font-family:var(--mono);font-size:12px;line-height:1.9;color:var(--text2);background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px;">
+        proposed_completion<br>
+        -> verification_result<br>
+        -> awaiting_review<br>
+        -> human_accept / return_for_revision<br>
+        -> completed / returned / partial
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">Constellation & Private Integrations <span class="info-icon" data-tooltip="Constellation is independent engine federation. Private integrations remain external and must fail closed when unavailable.">?</span></div>
+        <div class="panel-badge warn">BOUNDARIED</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;font-size:13px;">
+        <div style="padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text2);"><strong style="color:var(--cyan);">Constellation:</strong> independent SRT-1 engine awareness; no shared context by default.</div>
+        <div style="padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text2);"><strong style="color:var(--amber);">SION:</strong> planned in-house assistant; inactive in current Core runtime.</div>
+        <div style="padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text2);"><strong style="color:var(--amber);">Slack/team/cloud:</strong> Enterprise/private integration; not active in public Core dashboard.</div>
+        <div style="padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text2);"><strong style="color:var(--amber);">Seed Signature:</strong> external signing authority can sign across tiers when configured.</div>
       </div>
     </div>
   </div>
@@ -904,12 +972,11 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
     </div>
   </div>
 
-  <!-- BLUEPRINT PREVIEW — Shows what the AI will see / what SION generated -->
-  <!-- NOTE: Phase 4 addition. In BYOAI mode, shows the context bundle.
-       In SION mode, shows the generated execution blueprint with approve/reject. -->
+  <!-- BLUEPRINT PREVIEW - Shows what the AI will see and what humans can review. -->
+  <!-- NOTE: In Core, this is a context/plan review surface. SION execution is planned and inactive. -->
   <div class="panel" id="blueprint-preview" style="margin-bottom:24px;scroll-margin-top:80px;">
     <div class="panel-header">
-      <div class="panel-title">Blueprint Preview <span class="info-icon" data-tooltip="In BYOAI mode: shows the context bundle SRT-1 will inject into your AI. In SION mode: shows the generated execution plan with file diffs for approval.">?</span></div>
+      <div class="panel-title">Blueprint Preview <span class="info-icon" data-tooltip="Core review surface for generated context, seed direction, and proposed work. Approval records human intent; it does not directly mutate code.">?</span></div>
       <div class="panel-badge" id="blueprintBadge" style="color:var(--text3);border-color:var(--border2);background:var(--bg3);">AWAITING SEED</div>
     </div>
     <div id="blueprintContent">
@@ -918,16 +985,15 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
         <div style="font-size:24px;margin-bottom:12px;opacity:0.3;color:var(--text4);">◇</div>
         <div style="font-size:14px;color:var(--text3);margin-bottom:8px;">No blueprint generated yet</div>
         <div style="font-size:12px;color:var(--text4);line-height:1.6;max-width:400px;margin:0 auto;">
-          Plant a seed above to generate a blueprint. In <strong style="color:var(--cyan);">BYOAI mode</strong>,
-          this shows the context bundle your AI receives. In <strong style="color:var(--purple);">SION mode</strong>,
-          this shows the execution plan with file diffs for your approval.
+          Plant a seed above to generate a context/blueprint preview. Core shows what your assistant receives and what the human can review.
+          SION execution is planned and inactive in this dashboard.
         </div>
       </div>
     </div>
-    <!-- Approve/Reject buttons (hidden until blueprint is generated, SION mode only) -->
+    <!-- Approve/Reject buttons: human review only; no direct code mutation in Core. -->
     <div id="blueprintActions" style="display:none;margin-top:16px;padding-top:16px;border-top:1px solid var(--border);display:flex;gap:12px;">
       <button id="btnApproveBlueprint" onclick="approveBlueprint()" style="flex:1;padding:12px;background:var(--green-bg);border:1px solid var(--green-border);color:var(--green);font-weight:700;font-size:14px;border-radius:8px;cursor:pointer;font-family:var(--sans);transition:all 0.2s;">
-        ✓ Approve & Sign
+        Approve Review
       </button>
       <button id="btnRejectBlueprint" onclick="rejectBlueprint()" style="flex:1;padding:12px;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.2);color:var(--red);font-weight:700;font-size:14px;border-radius:8px;cursor:pointer;font-family:var(--sans);transition:all 0.2s;">
         ✗ Reject
@@ -949,7 +1015,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
   <!-- ACTIVITY -->
   <div class="panel" id="analytics-activity" style="margin-bottom:32px;scroll-margin-top: 80px;">
     <div class="panel-header">
-      <div class="panel-title">Recent Activity <span class="info-icon" data-tooltip="A tamper-evident audit ledger. Immutably logs when the engine re-indexes code, tracks AI reflection chains, and records every time a complex seed successfully executes on disk.">?</span></div>
+      <div class="panel-title">Recent Activity <span class="info-icon" data-tooltip="Local activity feed for indexing, context generation, seed state, reflection, and verification events. Private audit ledgers and signing chains are external integrations.">?</span></div>
       <div class="panel-badge info" id="activityBadge">live</div>
     </div>
     <div class="activity-list" id="activityList">
@@ -1126,7 +1192,9 @@ function renderMarkdown(text) {
   return html;
 }
 
-const API = (window.location.port && window.location.port !== '8080' && window.location.port !== '8000') ? window.location.origin : 'http://127.0.0.1:8475';
+const API = (window.location.port && window.location.port !== '8080' && window.location.port !== '8000')
+  ? window.location.origin
+  : (localStorage.getItem('srt1_engine_origin') || 'http://127.0.0.1:8475');
 let manifest = null;
 let currentTab = 'files';
 
@@ -1455,11 +1523,11 @@ async function loadManifest() {
     try { status = await (await fetch(API + '/status')).json(); } catch(e) {}
     const trusted = status && (status.watcher === 'active' || status.watcher === 'running') && (status.bridge === 'active' || status.bridge === 'running');
     const trustEl = document.getElementById('statTrust');
-    trustEl.textContent = trusted ? 'VERIFIED' : 'UNVERIFIED';
+    trustEl.textContent = trusted ? 'LOCAL OK' : 'UNVERIFIED';
     trustEl.style.color = trusted ? 'var(--green)' : 'var(--amber)';
     trustEl.style.fontSize = '22px';
     document.getElementById('statTrustSub').textContent = trusted
-      ? `Watcher active · Bridge active · ${status?.auth === 'disabled' ? 'Auth open' : 'Auth enabled'}`
+      ? `signed: external · lineage: manifest hash · ${status?.auth === 'disabled' ? 'auth open' : 'auth enabled'}`
       : 'Engine status unknown';
 
     // Set Risk Profile & Coherence for video demonstration
@@ -1486,7 +1554,7 @@ async function loadManifest() {
 
     showTab(currentTab);
   } catch(e) {
-    document.getElementById('repoStats').innerHTML = '<span style="color:var(--red);">Could not load manifest. Is the middleware running on port 8475?</span>';
+    document.getElementById('repoStats').innerHTML = `<span style="color:var(--red);">Could not load manifest. Is the SRT-1 engine running at ${API}?</span>`;
     // Show graceful offline state in stat cards
     ['statFiles','statSymbols','statReflections'].forEach(id => {
       const el = document.getElementById(id);
@@ -1500,7 +1568,7 @@ async function loadManifest() {
     }
     document.getElementById('statFilesSub').textContent = 'Engine not running';
     document.getElementById('statSymbolsSub').textContent = 'Start: python srt1_code_indexer_engine.py';
-    document.getElementById('statReflectionsSub').textContent = 'Port 8475 not responding';
+    document.getElementById('statReflectionsSub').textContent = `${API} not responding`;
     document.getElementById('statTrustSub').textContent = 'Engine offline';
   }
 }
@@ -1532,12 +1600,12 @@ async function loadStatus() {
     const trusted = ((engineStatus.watcher === 'active' || engineStatus.watcher === 'running') && (engineStatus.bridge === 'active' || engineStatus.bridge === 'running'));
     const trustEl = document.getElementById('statTrust');
     if (trustEl) {
-      trustEl.textContent = trusted ? 'VERIFIED' : 'DEGRADED';
+      trustEl.textContent = trusted ? 'LOCAL OK' : 'DEGRADED';
       trustEl.style.color = trusted ? 'var(--green)' : 'var(--amber)';
       trustEl.style.fontSize = '22px';
       const ci = engineStatus.code_intelligence || {};
       document.getElementById('statTrustSub').textContent = trusted
-        ? `Watcher active · Bridge active · ${ci.violations_total || 0} violations`
+        ? `signed: external · verified: local health · ${ci.violations_total || 0} violations`
         : 'Check engine status';
     }
 
@@ -1706,13 +1774,13 @@ async function loadStatus() {
         licenseBadge.textContent = 'FREE TIER';
         licenseBadge.style.background = 'var(--bg3)';
         licenseBadge.style.color = 'var(--text3)';
-        licenseText.innerHTML = `Free Tier — Local Only<span>Full engine features · No team sync · Enter license key to upgrade</span>`;
+        licenseText.innerHTML = `Core Local<span>Repo intelligence, continuity, recall, reinjection, workcell review, and verification surfaces. Team/cloud/Slack remain external.</span>`;
         licenseDot.style.background = 'var(--text4)';
       }
 
       if (licenseEngine) licenseEngine.textContent = engineStatus.product || 'SRT-1';
       if (licenseRepo) licenseRepo.textContent = engineStatus.repo || 'unknown';
-      if (licensePort) licensePort.textContent = '8475';
+      if (licensePort) licensePort.textContent = window.location.port || 'local';
     }
 
     // --- Mobile Companion Token panel ---
@@ -1726,7 +1794,7 @@ async function loadStatus() {
         mobileTokenBadge.style.color = 'var(--green)';
         mobileTokenList.innerHTML = `<div style="padding:16px;font-size:13px;color:var(--text3);">
           <div style="margin-bottom:8px;color:var(--text);font-weight:600;">Auth tokens configured</div>
-          <div>The mobile companion PWA at <code style="background:var(--bg);padding:2px 6px;border-radius:4px;">localhost:8475/mobile.html</code> can connect using an authorized token.</div>
+          <div>The mobile companion PWA at <code style="background:var(--bg);padding:2px 6px;border-radius:4px;">${window.location.origin}/mobile</code> can connect using an authorized token.</div>
         </div>`;
       } else {
         mobileTokenBadge.textContent = 'open access';
@@ -1734,7 +1802,7 @@ async function loadStatus() {
         mobileTokenBadge.style.color = 'var(--text4)';
         mobileTokenList.innerHTML = `<div style="padding:16px;font-size:13px;color:var(--text3);">
           <div style="margin-bottom:8px;color:var(--text2);font-weight:600;">No auth configured — open access</div>
-          <div>The mobile companion PWA at <code style="background:var(--bg);padding:2px 6px;border-radius:4px;">localhost:8475/mobile.html</code> is accessible without tokens.</div>
+          <div>The mobile companion PWA at <code style="background:var(--bg);padding:2px 6px;border-radius:4px;">${window.location.origin}/mobile</code> is accessible without tokens.</div>
           <div style="margin-top:8px;color:var(--text4);font-size:12px;">To enable token auth, configure SCIARemoteAuth in your environment.</div>
         </div>`;
       }
@@ -1744,7 +1812,7 @@ async function loadStatus() {
     const list = document.getElementById('seedFarmList');
     if (list) list.innerHTML = '<div style="padding:24px;text-align:center;color:var(--red);font-size:13px;">Engine offline — code intelligence unavailable</div>';
     const actEl = document.getElementById('activityList');
-    if (actEl) actEl.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text4);font-size:13px;">No activity — engine not responding on port 8475</div>';
+    if (actEl) actEl.innerHTML = `<div style="padding:24px;text-align:center;color:var(--text4);font-size:13px;">No activity - engine not responding at ${API}</div>`;
   }
   
   // ============================================================
@@ -2336,9 +2404,8 @@ async function submitTask() {
 
 // ============================================================
 // SEED QUEUE — Phase 4: loads all seeds from /seeds endpoint
-// NOTE: Works in both BYOAI and SION modes.
-// In BYOAI: shows tasks the developer planted as context for their AI.
-// In SION: shows seeds with execution status and blueprint approval.
+// NOTE: Works for the Core BYOAI review flow.
+// SION execution is planned/inactive and must be explicitly connected later.
 // ============================================================
 async function loadSeedQueue() {
   const list = document.getElementById('seedQueueList');
@@ -2410,8 +2477,7 @@ async function loadSeedQueue() {
 
 // ============================================================
 // BLUEPRINT PREVIEW — Phase 4: populates from active_seed
-// NOTE: In BYOAI mode, shows the context bundle (AGENTS.md content preview).
-// In SION mode, shows the blueprint with approve/reject buttons.
+// NOTE: Core shows the context/plan review surface; it does not execute code directly.
 // ============================================================
 function updateBlueprintPreview() {
   const content = document.getElementById('blueprintContent');
@@ -2421,7 +2487,7 @@ function updateBlueprintPreview() {
 
   const seed = engineStatus.active_seed;
   if (seed && seed.blueprint) {
-    // SION mode: show blueprint with approve/reject
+    // Human review path: show blueprint with approve/reject.
     badge.textContent = 'REVIEW REQUIRED';
     badge.style.color = 'var(--amber)';
     badge.style.borderColor = 'var(--amber-border)';
@@ -2451,8 +2517,8 @@ function updateBlueprintPreview() {
   }
 }
 
-// Approve/Reject stubs — these will wire to Enterprise IntentCompiler
-// NOTE: In CORE, these show the flow. In Enterprise, they POST to /api/v1/seeds/approve
+// Approve/Reject stubs - Core human review only.
+// Enterprise/private execution integrations must be explicitly connected.
 function approveBlueprint() {
   const actions = document.getElementById('blueprintActions');
   const badge = document.getElementById('blueprintBadge');
@@ -2462,8 +2528,7 @@ function approveBlueprint() {
     badge.style.borderColor = 'var(--green-border)';
     badge.style.background = 'var(--green-bg)';
   }
-  if (actions) actions.innerHTML = '<div style="text-align:center;padding:12px;color:var(--green);font-weight:600;font-size:14px;">✓ Blueprint approved — Seed Signature applied</div>';
-  // TODO: POST to Enterprise IntentCompiler for cryptographic signing
+  if (actions) actions.innerHTML = '<div style="text-align:center;padding:12px;color:var(--green);font-weight:600;font-size:14px;">Review approved - signing remains external unless Seed Signature authority is connected</div>';
 }
 
 function rejectBlueprint() {

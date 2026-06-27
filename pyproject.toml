@@ -34,15 +34,12 @@ classifiers = [
 Homepage = "https://srt1.io"
 Documentation = "https://srt1.io/documentation.html"
 Repository = "https://github.com/SeedClassIntelligence/SRT1-CORE"
-Slack = "https://join.slack.com/t/seedclassinte-phn4203/shared_invite/zt-3wbucmj9i-RD1sfhXAAN1_3NuWaF8W2g"
 
 [project.scripts]
 srt1-index = "srt1_code_indexer.engine:main"
 srt1-engine = "srt1_code_indexer.engine:main"
 srt1-code-indexer = "srt1_code_indexer.engine:main"
 srt1-bundle = "srt1_pro.context_bundler:main"
-srt1-execute = "srt1_pro.execution_engine:main"
-srt1-heal = "srt1_pro.self_heal:main"
 srt1-middleware = "srt1_code_indexer.engine:main"
 srt1-mcp = "srt1_platform.mcp_server:main"
 
