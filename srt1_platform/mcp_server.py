@@ -67,6 +67,7 @@ import sys
 import json
 import hashlib
 import time
+from contextlib import redirect_stdout
 from datetime import datetime
 from typing import Dict, List, Any, Optional
 
@@ -116,7 +117,8 @@ class SCIAMCPEngine:
     def _index(self) -> None:
         try:
             indexer = SRT1CodeIndexer(self.repo_path)
-            self.manifest = indexer.index_repository()
+            with redirect_stdout(sys.stderr):
+                self.manifest = indexer.index_repository()
             self.symbol_table = indexer.symbol_table
             self.curation_report = indexer.curation_report
         except Exception:

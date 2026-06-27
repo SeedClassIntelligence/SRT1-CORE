@@ -4,6 +4,7 @@ from setuptools.command.build_py import build_py as _build_py
 
 EXCLUDED_PUBLIC_CORE_MODULES = {
     "srt1_platform.audit_ledger",
+    "srt1_platform.consistency_auditor",
     "srt1_platform.delta_auditor",
     "srt1_platform.governance_monitor",
     "srt1_platform.proxy_engine",

@@ -4,6 +4,7 @@ recursive-include srt1_code_indexer *.py
 recursive-include srt1_pro *.py
 recursive-include srt1_platform *.py *.html *.js *.css *.json
 exclude srt1_platform/audit_ledger.py
+exclude srt1_platform/consistency_auditor.py
 exclude srt1_platform/delta_auditor.py
 exclude srt1_platform/governance_monitor.py
 exclude srt1_platform/proxy_engine.py

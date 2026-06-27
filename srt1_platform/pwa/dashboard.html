@@ -407,10 +407,10 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
   <div class="modal-content">
     <div class="modal-header">Welcome to SRT-1 Dashboard</div>
     <div class="modal-body">
-      <p>Welcome to the unified <strong>Seed-Class Intelligence Architecture (SRT-1)</strong>.</p>
-      <p style="margin-top: 12px;">We have merged all individual components (the Indexer, Pro Execution Engine, and Platform Middleware) into a single, seamless ecosystem: <strong>SRT-1 Core</strong>.</p>
+      <p><strong>SRT-1 Core</strong> is a local repo-continuity and alignment cockpit for AI coding assistants.</p>
+      <p style="margin-top: 12px;">It helps you understand the repository, preserve seed continuity, review recall and reinjection context, monitor workcell boundaries, and verify changes without shipping private signing, SION execution, or Enterprise backend services in Core.</p>
       <p style="margin-top: 12px; padding: 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px;">
-        Run <code>pip install srt1-core</code> to instantly install the complete toolset in one command.
+        Run <code>pip install srt1-core</code> to install the public local Core toolset.
       </p>
     </div>
     <div style="display: flex; gap: 8px;">
@@ -1475,7 +1475,7 @@ async function loadManifest() {
     // Dynamically update the main dashboard title to show the current project
     if (repoName !== 'Unknown') {
       document.getElementById('mainDashboardTitle').textContent = repoName + " Dashboard";
-      document.getElementById('mainDashboardSubtitle').textContent = "Project Architecture & Code Intelligence";
+      document.getElementById('mainDashboardSubtitle').textContent = "Repo continuity, code intelligence, assistant alignment, and human review";
     }
 
     // Fetch the holistic project synopsis directly from the local engine
@@ -1527,7 +1527,7 @@ async function loadManifest() {
     trustEl.style.color = trusted ? 'var(--green)' : 'var(--amber)';
     trustEl.style.fontSize = '22px';
     document.getElementById('statTrustSub').textContent = trusted
-      ? `signed: external · lineage: manifest hash · ${status?.auth === 'disabled' ? 'auth open' : 'auth enabled'}`
+      ? `trust: local · signing: external optional · ${status?.auth === 'disabled' ? 'auth open' : 'auth enabled'}`
       : 'Engine status unknown';
 
     // Set Risk Profile & Coherence for video demonstration
@@ -1605,7 +1605,7 @@ async function loadStatus() {
       trustEl.style.fontSize = '22px';
       const ci = engineStatus.code_intelligence || {};
       document.getElementById('statTrustSub').textContent = trusted
-        ? `signed: external · verified: local health · ${ci.violations_total || 0} violations`
+        ? `trust: local · verified: local health · ${ci.violations_total || 0} violations`
         : 'Check engine status';
     }
 

@@ -4213,6 +4213,14 @@ def main():
             "  srt1-code-indexer --repo_path . --task 'Fix login bug' --port 8080\n"
         ),
     )
+    parser.description = "SRT-1 Core - local repo-continuity and alignment engine"
+    parser.epilog = (
+        "Initialization (Run Once):\n"
+        "  srt1-code-indexer init\n\n"
+        "Local repo-continuity engine:\n"
+        "  srt1-code-indexer --repo_path .\n"
+        "  srt1-code-indexer --repo_path . --task 'Fix login bug' --port 8080\n"
+    )
     parser.add_argument("--repo_path", required=True, help="Path to the repository")
     parser.add_argument("--task", help="Current active task (optional override)")
     parser.add_argument("--port", type=int, default=7483, help="Server port (default: 7483)")
