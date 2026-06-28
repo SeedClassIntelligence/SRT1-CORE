@@ -151,6 +151,12 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 .workcell-objective{font-size:12px;color:var(--text2);line-height:1.45;margin-top:4px;}
 .workcell-meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
 .workcell-chip{font-family:var(--mono);font-size:10px;color:var(--text3);border:1px solid var(--border);background:var(--bg2);border-radius:5px;padding:3px 6px;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.workcell-filecell{margin-top:10px;padding:9px;border:1px solid var(--border);border-radius:6px;background:rgba(255,255,255,0.025);}
+.workcell-filecell-title{font-size:11px;font-weight:800;color:var(--cyan);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px;}
+.workcell-filecell-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(92px,1fr));gap:6px;}
+.workcell-filecell-stat{min-width:0;border:1px solid var(--border);border-radius:5px;background:var(--bg2);padding:5px 6px;}
+.workcell-filecell-label{font-size:9px;color:var(--text4);text-transform:uppercase;font-weight:800;margin-bottom:3px;}
+.workcell-filecell-value{font-family:var(--mono);font-size:10px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .workcell-status{font-family:var(--mono);font-size:11px;color:var(--green);border:1px solid var(--green-border);background:var(--green-bg);border-radius:5px;padding:4px 8px;height:max-content;white-space:nowrap;}
 .workcell-empty{padding:18px;text-align:center;color:var(--text4);font-size:13px;border:1px dashed var(--border);border-radius:8px;background:var(--bg);}
 
@@ -1736,6 +1742,11 @@ function renderWorkCells(workcellsPayload, activeSeed) {
   listEl.innerHTML = executions.map(ex => {
     const wc = workcellById[ex.workcell_id] || {};
     const paths = (wc.owned_paths || []).slice(0, 4);
+    const filecell = wc.filecell_summary || {};
+    const filecellTrust = filecell.trust_state || {};
+    const roles = Object.keys(filecell.architectural_roles || {}).slice(0, 3).join(', ') || 'unknown';
+    const risks = Object.keys(filecell.risk_tags || {}).slice(0, 3).join(', ') || 'unknown';
+    const deps = (filecell.dependencies || []).slice(0, 3).join(', ') || 'none';
     const packagePath = ex.package_path || '.srt1/workcells/' + (ex.queue_seed_id || 'seed');
     const status = ex.status || 'ready';
     const chips = [
@@ -1756,6 +1767,43 @@ function renderWorkCells(workcellsPayload, activeSeed) {
           <div class="workcell-meta">
             <span class="workcell-chip">${escapeHtml(packagePath)}</span>
             ${paths.map(path => `<span class="workcell-chip">${escapeHtml(path)}</span>`).join('')}
+          </div>
+          <div class="workcell-filecell">
+            <div class="workcell-filecell-title">Attached FileCell</div>
+            <div class="workcell-filecell-grid">
+              <div class="workcell-filecell-stat">
+                <div class="workcell-filecell-label">Parser</div>
+                <div class="workcell-filecell-value">${escapeHtml(filecell.parser || 'unknown')}</div>
+              </div>
+              <div class="workcell-filecell-stat">
+                <div class="workcell-filecell-label">Symbols</div>
+                <div class="workcell-filecell-value">${escapeHtml(filecell.symbol_count ?? 0)}</div>
+              </div>
+              <div class="workcell-filecell-stat">
+                <div class="workcell-filecell-label">Freshness</div>
+                <div class="workcell-filecell-value">${escapeHtml(filecell.freshness_state || wc.freshness_state || 'unknown')}</div>
+              </div>
+              <div class="workcell-filecell-stat">
+                <div class="workcell-filecell-label">Trust</div>
+                <div class="workcell-filecell-value">${escapeHtml(filecellTrust.signature || 'unsigned')} / ${escapeHtml(filecellTrust.verification || 'unverified')}</div>
+              </div>
+              <div class="workcell-filecell-stat">
+                <div class="workcell-filecell-label">Roles</div>
+                <div class="workcell-filecell-value">${escapeHtml(roles)}</div>
+              </div>
+              <div class="workcell-filecell-stat">
+                <div class="workcell-filecell-label">Risks</div>
+                <div class="workcell-filecell-value">${escapeHtml(risks)}</div>
+              </div>
+              <div class="workcell-filecell-stat">
+                <div class="workcell-filecell-label">Deps</div>
+                <div class="workcell-filecell-value">${escapeHtml(deps)}</div>
+              </div>
+              <div class="workcell-filecell-stat">
+                <div class="workcell-filecell-label">FileCell</div>
+                <div class="workcell-filecell-value">${escapeHtml(filecell.filecell_id || 'unknown')}</div>
+              </div>
+            </div>
           </div>
         </div>
         <div class="workcell-status">${escapeHtml(status)}</div>

@@ -214,6 +214,9 @@ class WorkCellRuntimeTests(unittest.TestCase):
         self.assertIn("workcellList", html)
         self.assertIn("/api/v1/workcells", html)
         self.assertIn("renderWorkCells", html)
+        self.assertIn("Attached FileCell", html)
+        self.assertIn("filecell_summary", html)
+        self.assertIn("workcell-filecell-grid", html)
 
 
 if __name__ == "__main__":
