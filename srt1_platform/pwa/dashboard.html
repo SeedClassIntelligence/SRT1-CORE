@@ -169,6 +169,19 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 .workcell-detail-label{font-size:10px;color:var(--text4);text-transform:uppercase;font-weight:800;margin-bottom:5px;}
 .workcell-detail-value{font-family:var(--mono);font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .workcell-detail-paths{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+.workcell-package-actions{margin-top:12px;padding:10px;border:1px solid var(--border);border-radius:7px;background:rgba(255,255,255,0.02);}
+.workcell-package-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:8px;}
+.workcell-package-title{font-size:11px;font-weight:800;color:var(--cyan);text-transform:uppercase;letter-spacing:.04em;}
+.workcell-package-status{font-family:var(--mono);font-size:10px;padding:4px 7px;border-radius:5px;border:1px solid var(--amber-border);color:var(--amber);background:var(--amber-bg);}
+.workcell-package-status.ready{border-color:var(--green-border);color:var(--green);background:var(--green-bg);}
+.workcell-package-files{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;}
+.workcell-package-file{font-family:var(--mono);font-size:10px;border:1px solid var(--border);border-radius:5px;background:var(--bg2);color:var(--text3);padding:4px 7px;}
+.workcell-package-file.ready{border-color:var(--green-border);color:var(--green);background:var(--green-bg);}
+.workcell-package-file.missing{border-color:var(--amber-border);color:var(--amber);background:var(--amber-bg);}
+.workcell-package-buttons{display:flex;flex-wrap:wrap;gap:6px;}
+.workcell-package-btn{font-family:var(--sans);font-size:11px;font-weight:700;color:var(--text2);background:var(--bg3);border:1px solid var(--border2);border-radius:6px;padding:6px 9px;cursor:pointer;}
+.workcell-package-btn:hover{color:var(--text);border-color:var(--border3);background:var(--bg4);}
+.workcell-package-btn:disabled{opacity:.45;cursor:not-allowed;}
 
 /* === MODAL === */
 .modal-overlay {
@@ -1736,6 +1749,36 @@ function selectWorkCellDetail(executionId) {
   renderWorkCellDetail(payload, selectedExecution);
 }
 
+async function copyWorkCellPackagePath(value, button) {
+  if (!value) return;
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(value);
+    } else {
+      const input = document.createElement('textarea');
+      input.value = value;
+      input.setAttribute('readonly', '');
+      input.style.position = 'fixed';
+      input.style.opacity = '0';
+      document.body.appendChild(input);
+      input.select();
+      document.execCommand('copy');
+      document.body.removeChild(input);
+    }
+    if (button) {
+      const original = button.textContent;
+      button.textContent = 'Copied';
+      setTimeout(() => { button.textContent = original; }, 1200);
+    }
+  } catch (e) {
+    if (button) {
+      const original = button.textContent;
+      button.textContent = 'Copy failed';
+      setTimeout(() => { button.textContent = original; }, 1400);
+    }
+  }
+}
+
 function renderWorkCellDetail(payload, selectedExecution) {
   const detailEl = document.getElementById('workcellDetail');
   if (!detailEl) return;
@@ -1758,6 +1801,14 @@ function renderWorkCellDetail(payload, selectedExecution) {
   const deps = (filecell.dependencies || []).slice(0, 8).join(', ') || 'none';
   const symbols = (filecell.symbols || []).slice(0, 6).map(sym => sym.name || sym.type).filter(Boolean).join(', ') || 'none';
   const packagePath = selectedExecution.package_path || '.srt1/workcells/' + (selectedExecution.queue_seed_id || 'seed');
+  const packageStatus = selectedExecution.package_status || {};
+  const assistantReady = packageStatus.assistant_ready === true;
+  const packageLabel = assistantReady ? 'assistant ready' : 'package incomplete';
+  const packageFiles = [
+    ['workcell.md', packageStatus.workcell_md_exists, packageStatus.workcell_md_path || `${packagePath}/workcell.md`],
+    ['filecells.json', packageStatus.filecells_json_exists, packageStatus.filecells_json_path || `${packagePath}/filecells.json`],
+    ['runtime_state.json', packageStatus.runtime_state_json_exists, packageStatus.runtime_state_json_path || `${packagePath}/runtime_state.json`],
+  ];
 
   detailEl.innerHTML = `
     <div class="workcell-detail-head">
@@ -1783,6 +1834,19 @@ function renderWorkCellDetail(payload, selectedExecution) {
       <div class="workcell-detail-item"><div class="workcell-detail-label">Dependencies</div><div class="workcell-detail-value">${escapeHtml(deps)}</div></div>
       <div class="workcell-detail-item"><div class="workcell-detail-label">Symbols</div><div class="workcell-detail-value">${escapeHtml(symbols)}</div></div>
     </div>
+    <div class="workcell-package-actions">
+      <div class="workcell-package-head">
+        <div class="workcell-package-title">Package Actions</div>
+        <div class="workcell-package-status ${assistantReady ? 'ready' : ''}">${escapeHtml(packageLabel)}</div>
+      </div>
+      <div class="workcell-package-files">
+        ${packageFiles.map(([label, present]) => `<span class="workcell-package-file ${present ? 'ready' : 'missing'}">${escapeHtml(label)}:${present ? 'ready' : 'missing'}</span>`).join('')}
+      </div>
+      <div class="workcell-package-buttons">
+        <button type="button" class="workcell-package-btn" data-copy-value="${escapeHtml(packagePath)}">Copy package path</button>
+        ${packageFiles.map(([label, present, path]) => `<button type="button" class="workcell-package-btn" ${present ? '' : 'disabled'} data-copy-value="${escapeHtml(path)}">Copy ${escapeHtml(label)} path</button>`).join('')}
+      </div>
+    </div>
     <div class="workcell-detail-paths">
       ${paths.map(path => `<span class="workcell-chip">${escapeHtml(path)}</span>`).join('') || '<span class="workcell-chip">scope unavailable</span>'}
     </div>
@@ -1790,6 +1854,9 @@ function renderWorkCellDetail(payload, selectedExecution) {
       ${restricted.map(path => `<span class="workcell-chip">${escapeHtml('restricted:' + path)}</span>`).join('')}
     </div>
   `;
+  detailEl.querySelectorAll('.workcell-package-btn[data-copy-value]').forEach(button => {
+    button.addEventListener('click', () => copyWorkCellPackagePath(button.dataset.copyValue, button));
+  });
 }
 
 function renderWorkCells(workcellsPayload, activeSeed) {

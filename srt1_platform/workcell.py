@@ -83,6 +83,7 @@ class WorkCellExecution:
     })
     verification_state: str = "unverified"
     package_path: Optional[str] = None
+    package_status: Dict[str, Any] = field(default_factory=dict)
     created_at: str = field(default_factory=_now)
     updated_at: str = field(default_factory=_now)
 
@@ -346,16 +347,27 @@ class WorkCellRegistry:
         self._write_filecells_json(workcell, execution)
         self._write_workcell_md(workcell, execution)
         self._write_runtime_state(workcell, execution)
+        execution.package_status = self._build_package_status(execution)
+        self._write_runtime_state(workcell, execution)
         self._save()
         return execution
 
     def get_execution_for_seed(self, queue_seed_id: str) -> Optional[Dict[str, Any]]:
         execution = self._executions.get(f"wcx_{_safe_slug(queue_seed_id)}")
-        return execution.to_dict() if execution else None
+        if not execution:
+            return None
+        data = execution.to_dict()
+        data["package_status"] = self._build_package_status(execution)
+        return data
 
     def summary(self) -> Dict[str, Any]:
+        execution_dicts = []
+        for execution in self._executions.values():
+            item = execution.to_dict()
+            item["package_status"] = self._build_package_status(execution)
+            execution_dicts.append(item)
         executions = sorted(
-            [ex.to_dict() for ex in self._executions.values()],
+            execution_dicts,
             key=lambda ex: ex.get("updated_at") or ex.get("created_at") or "",
             reverse=True,
         )
@@ -369,6 +381,35 @@ class WorkCellRegistry:
                 ex for ex in executions
                 if ex.get("status") not in {"completed", "terminated"}
             ],
+        }
+
+    def _build_package_status(self, execution: WorkCellExecution) -> Dict[str, Any]:
+        package_path = execution.package_path
+        if not package_path:
+            return {
+                "assistant_ready": False,
+                "package_exists": False,
+                "missing_files": ["package_path"],
+            }
+
+        expected = {
+            "workcell_md": os.path.join(package_path, "workcell.md"),
+            "filecells_json": os.path.join(package_path, "filecells.json"),
+            "runtime_state_json": os.path.join(package_path, "runtime_state.json"),
+        }
+        exists = {name: os.path.exists(path) for name, path in expected.items()}
+        missing = [name for name, present in exists.items() if not present]
+        return {
+            "assistant_ready": os.path.isdir(package_path) and not missing,
+            "package_exists": os.path.isdir(package_path),
+            "package_path": package_path,
+            "workcell_md_exists": exists["workcell_md"],
+            "workcell_md_path": expected["workcell_md"],
+            "filecells_json_exists": exists["filecells_json"],
+            "filecells_json_path": expected["filecells_json"],
+            "runtime_state_json_exists": exists["runtime_state_json"],
+            "runtime_state_json_path": expected["runtime_state_json"],
+            "missing_files": missing,
         }
 
     def _write_runtime_state(self, workcell: WorkCell, execution: WorkCellExecution) -> None:

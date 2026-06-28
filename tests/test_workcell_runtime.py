@@ -117,6 +117,11 @@ class WorkCellRuntimeTests(unittest.TestCase):
             self.assertTrue(workcell_md.exists())
             self.assertTrue(runtime_state.exists())
             self.assertTrue(filecells_json.exists())
+            self.assertTrue(execution.package_status["assistant_ready"])
+            self.assertTrue(execution.package_status["workcell_md_exists"])
+            self.assertTrue(execution.package_status["filecells_json_exists"])
+            self.assertTrue(execution.package_status["runtime_state_json_exists"])
+            self.assertEqual(execution.package_status["missing_files"], [])
             self.assertIn("Refactor src/auth.py safely", content)
             self.assertIn("queue_seed_id: seed_0001_workcell", content)
             self.assertIn("Do not broaden context because files are nearby.", content)
@@ -127,6 +132,7 @@ class WorkCellRuntimeTests(unittest.TestCase):
             self.assertEqual(filecells["filecells"][0]["symbols"][0]["name"], "authenticate")
             self.assertIn("load_user", filecells["filecells"][0]["dependencies"])
             self.assertEqual(runtime["filecells"][0]["path"], "src/auth.py")
+            self.assertTrue(runtime["execution"]["package_status"]["assistant_ready"])
 
     def test_workcell_candidate_generation_does_not_write_assistant_files(self):
         with tempfile.TemporaryDirectory() as repo:
@@ -205,6 +211,9 @@ class WorkCellRuntimeTests(unittest.TestCase):
         self.assertEqual(status["workcell_count"], 1)
         self.assertEqual(status["execution_count"], 1)
         self.assertEqual(status["executions"][0]["queue_seed_id"], "seed_0001_status")
+        self.assertTrue(status["executions"][0]["package_status"]["assistant_ready"])
+        self.assertTrue(status["executions"][0]["package_status"]["workcell_md_exists"])
+        self.assertTrue(status["executions"][0]["package_status"]["filecells_json_exists"])
 
     def test_dashboard_contains_workcell_operations_surface(self):
         dashboard = Path(__file__).resolve().parents[1] / "srt1_platform" / "pwa" / "dashboard.html"
@@ -228,6 +237,10 @@ class WorkCellRuntimeTests(unittest.TestCase):
         self.assertIn("srt1DashboardIntroDismissed", html)
         self.assertIn("getDashboardPreference", html)
         self.assertIn("setDashboardPreference", html)
+        self.assertIn("Package Actions", html)
+        self.assertIn("assistant_ready", html)
+        self.assertIn("copyWorkCellPackagePath", html)
+        self.assertIn("Copy package path", html)
 
 
 if __name__ == "__main__":
