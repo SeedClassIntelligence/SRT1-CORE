@@ -223,6 +223,11 @@ class WorkCellRuntimeTests(unittest.TestCase):
         self.assertIn("workcell-detail-grid", html)
         self.assertIn("data-workcell-execution-id", html)
         self.assertIn('role="button"', html)
+        self.assertIn("Core Help", html)
+        self.assertIn("dismissIntroModal", html)
+        self.assertIn("srt1DashboardIntroDismissed", html)
+        self.assertIn("getDashboardPreference", html)
+        self.assertIn("setDashboardPreference", html)
 
 
 if __name__ == "__main__":

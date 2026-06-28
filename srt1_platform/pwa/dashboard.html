@@ -443,7 +443,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
       </p>
     </div>
     <div style="display: flex; gap: 8px;">
-      <button class="modal-btn" style="flex:1;" onclick="document.getElementById('introModal').classList.remove('show')">Got it, let’s go →</button>
+      <button class="modal-btn" style="flex:1;" onclick="dismissIntroModal()">Got it, let’s go →</button>
       <a href="/download/srt1-core.zip" class="modal-btn" style="flex:1; background: transparent; color: var(--text2); text-decoration: none; display: flex; justify-content: center; align-items: center; gap: 6px; border-color: var(--border2);">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
         Download ZIP
@@ -513,9 +513,12 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
       <h1 id="mainDashboardTitle">Dashboard</h1>
       <p id="mainDashboardSubtitle">Repo continuity, alignment, recall, reinjection, verification, and human review cockpit</p>
     </div>
-    <a href="/observatory" onclick="event.preventDefault();navPage('observatory')" style="display:inline-flex;align-items:center;padding:8px 16px;background:var(--bg3);border:1px solid var(--border2);color:var(--text);border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;transition:all 0.15s;">
-      Open Observatory
-    </a>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end;">
+      <button onclick="showIntroModal(true)" class="download-btn" style="font-size:12px;padding:8px 12px;">Core Help</button>
+      <a href="/observatory" onclick="event.preventDefault();navPage('observatory')" style="display:inline-flex;align-items:center;padding:8px 16px;background:var(--bg3);border:1px solid var(--border2);color:var(--text);border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;transition:all 0.15s;">
+        Open Observatory
+      </a>
+    </div>
   </div>
 
   <!-- STAT CARDS -->
@@ -3023,11 +3026,38 @@ setInterval(loadWorkCells, 30000);
 setInterval(loadSeedQueue, 30000);
 // Update blueprint preview after status loads
 setInterval(updateBlueprintPreview, 5000);
-// Show intro modal after a brief delay
-setTimeout(() => {
-    const modal = document.getElementById('introModal');
-    if (modal) modal.classList.add('show');
-}, 500);
+
+function showIntroModal(force = false) {
+  const modal = document.getElementById('introModal');
+  if (!modal) return;
+  if (!force && getDashboardPreference('srt1DashboardIntroDismissed') === '1') return;
+  modal.classList.add('show');
+}
+
+function dismissIntroModal() {
+  const modal = document.getElementById('introModal');
+  if (modal) modal.classList.remove('show');
+  setDashboardPreference('srt1DashboardIntroDismissed', '1');
+}
+
+function getDashboardPreference(key) {
+  try {
+    return window.localStorage ? window.localStorage.getItem(key) : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function setDashboardPreference(key, value) {
+  try {
+    if (window.localStorage) window.localStorage.setItem(key, value);
+  } catch (e) {
+    // Storage is optional; dashboard operation should not depend on it.
+  }
+}
+
+// The dashboard should open into the operational cockpit. The intro is first-run help only.
+setTimeout(() => showIntroModal(false), 500);
 </script>
 <script src="https://app.lemonsqueezy.com/js/lemon.js" defer></script>
 </body></html>
