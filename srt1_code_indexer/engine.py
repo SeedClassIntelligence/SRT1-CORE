@@ -93,11 +93,13 @@ except ImportError:
 try:
     from srt1_platform import SCIARemoteAuth, SCIASeedQueue, SCIADispatchBridge
     from srt1_platform.seed_queue import SeedStage
+    from srt1_platform.workcell import WorkCellRegistry
 except ImportError:
     SCIARemoteAuth = None
     SCIASeedQueue = None
     SeedStage = None
     SCIADispatchBridge = None
+    WorkCellRegistry = None
 
 # ---- Shared LLM Intelligence Layer ----
 try:
@@ -289,6 +291,11 @@ class SRT1Engine:
         if SCIASeedQueue:
             queue_dir = os.path.join(self.repo_path, ".srt1", "seeds")
             self.seed_queue = SCIASeedQueue(queue_dir=queue_dir)
+
+        # ---- WorkCell Registry ----
+        self.workcell_registry = None
+        if WorkCellRegistry:
+            self.workcell_registry = WorkCellRegistry(repo_path=self.repo_path)
 
         # ---- Analytics Engine ----
         self.analytics: Optional['AnalyticsEngine'] = None
@@ -1812,6 +1819,9 @@ class SRT1Engine:
                     seed.srt_anchor_id = self.task_seed_id
                     self.seed_queue._save()
 
+        if queue_seed_id:
+            self._activate_workcell_execution(queue_seed_id, task)
+
         if self.analytics:
             self.analytics.record_seed_planted(applied_template)
 
@@ -1845,6 +1855,47 @@ class SRT1Engine:
                 ).start()
 
         return queue_seed_id
+
+    def _get_workcell_registry(self):
+        """Return the WorkCell registry, lazily creating it for test/legacy engines."""
+        registry = getattr(self, "workcell_registry", None)
+        if registry:
+            return registry
+        if WorkCellRegistry is None or not getattr(self, "repo_path", None):
+            return None
+        registry = WorkCellRegistry(repo_path=self.repo_path)
+        self.workcell_registry = registry
+        return registry
+
+    def _activate_workcell_execution(self, queue_seed_id: str, objective: str) -> Optional[Dict[str, Any]]:
+        """Create a read-only WorkCell execution package for a canonical queue seed."""
+        registry = self._get_workcell_registry()
+        if not registry:
+            return None
+        try:
+            execution = registry.activate_execution(
+                queue_seed_id=queue_seed_id,
+                srt_anchor_id=getattr(self, "task_seed_id", None),
+                objective=objective,
+                manifest=getattr(self, "manifest", {}) or {},
+                runtime_port=getattr(self, "port", None),
+                assigned_agent="unassigned",
+            )
+            return execution.to_dict()
+        except Exception as exc:
+            logger.warning(f"WorkCell execution activation failed for {queue_seed_id}: {exc}")
+            return None
+
+    def _get_workcell_status(self, queue_seed_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
+        """Return WorkCell registry summary or a specific execution for status/API output."""
+        registry = self._get_workcell_registry()
+        if not registry:
+            return None
+        if queue_seed_id:
+            execution = registry.get_execution_for_seed(queue_seed_id)
+            if execution:
+                return execution
+        return registry.summary()
 
     def _resolve_queue_seed_id(self, seed_id: Optional[str]) -> Optional[str]:
         """Resolve a public/callback seed id to canonical queue seed id."""
@@ -1932,6 +1983,7 @@ class SRT1Engine:
                     "stage_emoji": seed["stage_emoji"],
                     "growth": seed["growth"],
                 }
+                response["workcell"] = self._get_workcell_status(queue_seed_id)
         return response
 
     def _get_active_seed_identity(self) -> Optional[Dict[str, Any]]:
@@ -2730,6 +2782,7 @@ class SRT1Engine:
                         },
                         "seed_queue": engine.seed_queue.get_stats() if engine.seed_queue else None,
                         "active_seed": engine._get_active_seed_identity(),
+                        "workcells": engine._get_workcell_status(),
                     })
 
                 elif path == "/api/v1/users/me":
@@ -2887,6 +2940,7 @@ class SRT1Engine:
                         "watcher": "active",
                         "seed_farm": seed_stats,
                         "active_seed": active_seed,
+                        "workcells": engine._get_workcell_status(active_seed.get("queue_seed_id") if active_seed else None),
                         "bridge": "active" if engine.bridge else "not_available",
                         "auth": "enabled" if engine.auth and engine.auth._tokens else "disabled",
                         "enforcement": enforcement,
@@ -2997,6 +3051,14 @@ class SRT1Engine:
                         limit = 3
 
                     self._json(engine._build_recall_response(seed_id, limit=limit))
+
+                elif path == "/api/v1/workcells":
+                    self._json(engine._get_workcell_status() or {
+                        "workcell_count": 0,
+                        "execution_count": 0,
+                        "workcells": [],
+                        "executions": [],
+                    })
 
                 # NOTE: /admin/stats handler consolidated above (line ~1668). Dead duplicate removed.
 

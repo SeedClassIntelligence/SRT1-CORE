@@ -31,6 +31,7 @@ from srt1_platform.execution_bridge import SCIADispatchBridge
 from srt1_platform.tracing_system import SRT1TracingSystem
 from srt1_platform.intelligence_adapter import IntelligenceAdapter
 from srt1_platform.llm_providers import TokenBudget, AnalysisCache, LLMResponse
+from srt1_platform.workcell import WorkCell, WorkCellExecution, WorkCellRegistry
 
 try:
     from srt1_platform.remote_auth import SCIARemoteAuth
@@ -48,6 +49,7 @@ __all__ = [
     "SCIALiveEngine", "SCIASeedQueue", "SCIADispatchBridge",
     "SRT1TracingSystem", "SCIARemoteAuth",
     "IntelligenceAdapter", "TokenBudget", "AnalysisCache", "LLMResponse",
+    "WorkCell", "WorkCellExecution", "WorkCellRegistry",
     # Backward-compatible aliases
     "SRT1LiveEngine", "SRT1SeedQueue", "SRT1ExecutionBridge", "SRT1RemoteAuth",
 ]

@@ -1,0 +1,286 @@
+#!/usr/bin/env python3
+"""Core-safe WorkCell registry and execution package support.
+
+WorkCells are persistent bounded architectural environments. Seeds activate
+temporary WorkCell executions inside those environments. This module writes
+only SRT-1 runtime metadata under `.srt1/workcells`; it does not mutate source
+files or perform execution.
+"""
+
+import json
+import os
+import re
+from dataclasses import asdict, dataclass, field
+from datetime import datetime
+from typing import Any, Dict, List, Optional
+
+
+def _now() -> str:
+    return datetime.now().isoformat()
+
+
+def _safe_slug(value: str) -> str:
+    slug = re.sub(r"[^A-Za-z0-9_.-]+", "-", value.strip().lower()).strip("-")
+    return slug[:80] or "repository"
+
+
+@dataclass
+class WorkCell:
+    """Persistent bounded architectural environment."""
+
+    workcell_id: str
+    name: str
+    purpose: str
+    repo_path: str
+    owned_paths: List[str] = field(default_factory=list)
+    related_paths: List[str] = field(default_factory=list)
+    restricted_paths: List[str] = field(default_factory=list)
+    authority_scope: List[str] = field(default_factory=lambda: ["repo understanding", "context isolation"])
+    default_verification_rules: List[str] = field(default_factory=lambda: [
+        "Stay inside approved WorkCell boundary.",
+        "Preserve public/Core private-boundary exclusions.",
+        "Run relevant tests before completion.",
+    ])
+    default_runtime_port: Optional[int] = None
+    created_at: str = field(default_factory=_now)
+    updated_at: str = field(default_factory=_now)
+    freshness_state: str = "unknown"
+    trust_state: Dict[str, str] = field(default_factory=lambda: {
+        "signature": "unsigned",
+        "verification": "unverified",
+        "lineage": "missing",
+    })
+
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass
+class WorkCellExecution:
+    """Seed-activated runtime package inside a persistent WorkCell."""
+
+    workcell_execution_id: str
+    workcell_id: str
+    queue_seed_id: str
+    srt_anchor_id: Optional[str]
+    objective: str
+    status: str = "ready"
+    runtime_port: Optional[int] = None
+    assigned_agent: str = "unassigned"
+    manifest_hash: Optional[str] = None
+    trust_state: Dict[str, str] = field(default_factory=lambda: {
+        "signature": "unsigned",
+        "verification": "unverified",
+        "lineage": "missing",
+    })
+    verification_state: str = "unverified"
+    package_path: Optional[str] = None
+    created_at: str = field(default_factory=_now)
+    updated_at: str = field(default_factory=_now)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
+
+
+class WorkCellRegistry:
+    """Persistent WorkCell registry plus seed-activated execution records."""
+
+    def __init__(self, repo_path: str, registry_dir: Optional[str] = None):
+        self.repo_path = os.path.realpath(repo_path)
+        self.registry_dir = registry_dir or os.path.join(self.repo_path, ".srt1", "workcells")
+        os.makedirs(self.registry_dir, exist_ok=True)
+        self.registry_file = os.path.join(self.registry_dir, "workcell_registry.json")
+        self._workcells: Dict[str, WorkCell] = {}
+        self._executions: Dict[str, WorkCellExecution] = {}
+        self._load()
+
+    def _load(self) -> None:
+        if not os.path.exists(self.registry_file):
+            return
+        try:
+            with open(self.registry_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            self._workcells = {
+                item["workcell_id"]: WorkCell(**item)
+                for item in data.get("workcells", [])
+            }
+            self._executions = {
+                item["workcell_execution_id"]: WorkCellExecution(**item)
+                for item in data.get("executions", [])
+            }
+        except Exception:
+            self._workcells = {}
+            self._executions = {}
+
+    def _save(self) -> None:
+        data = {
+            "repo_path": self.repo_path,
+            "updated_at": _now(),
+            "workcells": [wc.to_dict() for wc in self._workcells.values()],
+            "executions": [ex.to_dict() for ex in self._executions.values()],
+        }
+        with open(self.registry_file, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2, sort_keys=True)
+
+    def infer_workcell(self, objective: str, manifest: Optional[Dict[str, Any]] = None) -> WorkCell:
+        """Return a persistent WorkCell inferred from current repo evidence."""
+        manifest = manifest or {}
+        file_entries = manifest.get("file_manifest", []) or []
+        owned_paths = []
+        for entry in file_entries[:25]:
+            path = entry.get("file_path") or entry.get("path")
+            if path:
+                owned_paths.append(path)
+
+        workcell_id = "workcell_repository"
+        existing = self._workcells.get(workcell_id)
+        if existing:
+            existing.updated_at = _now()
+            existing.owned_paths = existing.owned_paths or owned_paths
+            existing.freshness_state = "fresh" if manifest.get("integrity", {}).get("manifest_hash") else existing.freshness_state
+            self._save()
+            return existing
+
+        repo_name = os.path.basename(self.repo_path) or "Repository"
+        workcell = WorkCell(
+            workcell_id=workcell_id,
+            name=f"{repo_name} Repository WorkCell",
+            purpose="Default bounded environment inferred from current repository manifest.",
+            repo_path=self.repo_path,
+            owned_paths=owned_paths,
+            restricted_paths=[
+                ".git/",
+                ".srt1/seeds/",
+                ".srt1/runtime/",
+                "memory/",
+                "scia_memory/",
+                "scia_security/",
+            ],
+            freshness_state="fresh" if manifest.get("integrity", {}).get("manifest_hash") else "unknown",
+        )
+        self._workcells[workcell_id] = workcell
+        self._save()
+        return workcell
+
+    def activate_execution(
+        self,
+        queue_seed_id: str,
+        objective: str,
+        manifest: Optional[Dict[str, Any]] = None,
+        srt_anchor_id: Optional[str] = None,
+        runtime_port: Optional[int] = None,
+        assigned_agent: str = "unassigned",
+    ) -> WorkCellExecution:
+        if not queue_seed_id:
+            raise ValueError("queue_seed_id is required to activate a WorkCell execution")
+
+        workcell = self.infer_workcell(objective=objective, manifest=manifest)
+        execution_id = f"wcx_{_safe_slug(queue_seed_id)}"
+        manifest_hash = (manifest or {}).get("integrity", {}).get("manifest_hash")
+        package_path = os.path.join(self.registry_dir, queue_seed_id)
+
+        execution = self._executions.get(execution_id)
+        if execution:
+            execution.updated_at = _now()
+            execution.srt_anchor_id = srt_anchor_id or execution.srt_anchor_id
+            execution.objective = objective or execution.objective
+            execution.runtime_port = runtime_port
+            execution.manifest_hash = manifest_hash or execution.manifest_hash
+        else:
+            execution = WorkCellExecution(
+                workcell_execution_id=execution_id,
+                workcell_id=workcell.workcell_id,
+                queue_seed_id=queue_seed_id,
+                srt_anchor_id=srt_anchor_id,
+                objective=objective,
+                runtime_port=runtime_port,
+                assigned_agent=assigned_agent,
+                manifest_hash=manifest_hash,
+                package_path=package_path,
+            )
+            self._executions[execution_id] = execution
+
+        os.makedirs(package_path, exist_ok=True)
+        self._write_workcell_md(workcell, execution)
+        self._write_runtime_state(workcell, execution)
+        self._save()
+        return execution
+
+    def get_execution_for_seed(self, queue_seed_id: str) -> Optional[Dict[str, Any]]:
+        execution = self._executions.get(f"wcx_{_safe_slug(queue_seed_id)}")
+        return execution.to_dict() if execution else None
+
+    def summary(self) -> Dict[str, Any]:
+        executions = [ex.to_dict() for ex in self._executions.values()]
+        return {
+            "registry_path": self.registry_file,
+            "workcell_count": len(self._workcells),
+            "execution_count": len(self._executions),
+            "workcells": [wc.to_dict() for wc in self._workcells.values()],
+            "executions": executions,
+            "active_executions": [
+                ex for ex in executions
+                if ex.get("status") not in {"completed", "terminated"}
+            ],
+        }
+
+    def _write_runtime_state(self, workcell: WorkCell, execution: WorkCellExecution) -> None:
+        if not execution.package_path:
+            return
+        state_path = os.path.join(execution.package_path, "runtime_state.json")
+        with open(state_path, "w", encoding="utf-8") as f:
+            json.dump({
+                "workcell": workcell.to_dict(),
+                "execution": execution.to_dict(),
+            }, f, indent=2, sort_keys=True)
+
+    def _write_workcell_md(self, workcell: WorkCell, execution: WorkCellExecution) -> None:
+        if not execution.package_path:
+            return
+        path = os.path.join(execution.package_path, "workcell.md")
+        allowed_paths = workcell.owned_paths[:20] or ["Not available yet; use manifest evidence before expanding scope."]
+        restricted_paths = workcell.restricted_paths or ["Not available"]
+        lines = [
+            f"# {workcell.name}",
+            "",
+            "## Active Objective",
+            execution.objective or "Not specified",
+            "",
+            "## Identity",
+            f"- workcell_id: {workcell.workcell_id}",
+            f"- workcell_execution_id: {execution.workcell_execution_id}",
+            f"- queue_seed_id: {execution.queue_seed_id}",
+            f"- srt_anchor_id: {execution.srt_anchor_id or 'none'}",
+            f"- runtime_port: {execution.runtime_port or 'repository-runtime'}",
+            f"- assigned_agent: {execution.assigned_agent}",
+            "",
+            "## Operating Rule",
+            "Begin inside this WorkCell package. Do not broaden context because files are nearby.",
+            "Broaden scope only when dependency evidence, verification needs, or human approval requires it.",
+            "",
+            "## Allowed / Relevant Paths",
+            *[f"- {item}" for item in allowed_paths],
+            "",
+            "## Restricted Paths",
+            *[f"- {item}" for item in restricted_paths],
+            "",
+            "## Verification Requirements",
+            *[f"- {item}" for item in workcell.default_verification_rules],
+            "",
+            "## Trust And Freshness",
+            f"- manifest_hash: {execution.manifest_hash or 'unknown'}",
+            f"- signature: {execution.trust_state.get('signature', 'unsigned')}",
+            f"- verification: {execution.verification_state}",
+            f"- lineage: {execution.trust_state.get('lineage', 'missing')}",
+            f"- filecell_freshness: {workcell.freshness_state}",
+            "",
+            "## Completion Requirements",
+            "- Stay inside the WorkCell boundary.",
+            "- Preserve related contracts.",
+            "- Run relevant tests or mark verification as degraded.",
+            "- Return work for human review before final acceptance.",
+            "",
+        ]
+        with open(path, "w", encoding="utf-8") as f:
+            f.write("\n".join(lines))
+
