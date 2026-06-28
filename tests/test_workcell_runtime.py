@@ -153,6 +153,39 @@ class WorkCellRuntimeTests(unittest.TestCase):
 
         self.assertEqual(written, [])
 
+    def test_workcell_package_repair_regenerates_missing_filecells_json(self):
+        with tempfile.TemporaryDirectory() as repo:
+            registry = WorkCellRegistry(repo_path=repo)
+            execution = registry.activate_execution(
+                queue_seed_id="seed_0001_repair",
+                objective="Repair package",
+                manifest={
+                    "integrity": {"manifest_hash": "manifest_123"},
+                    "file_manifest": [{"file_path": "src/auth.py"}],
+                    "symbol_table": {
+                        "src/auth.py": [
+                            {
+                                "name": "authenticate",
+                                "type": "function",
+                                "line": 5,
+                                "dependencies": [],
+                            }
+                        ]
+                    },
+                },
+            )
+            filecells_json = Path(execution.package_path) / "filecells.json"
+            filecells_json.unlink()
+
+            degraded = registry.get_execution_for_seed("seed_0001_repair")
+            result = registry.repair_execution_package("seed_0001_repair")
+
+        self.assertFalse(degraded["package_status"]["assistant_ready"])
+        self.assertIn("filecells_json", degraded["package_status"]["missing_files"])
+        self.assertEqual(result["status"], "repaired")
+        self.assertTrue(result["after"]["assistant_ready"])
+        self.assertTrue(result["after"]["filecells_json_exists"])
+
     def test_task_response_exposes_workcell_execution_for_queue_seed(self):
         with tempfile.TemporaryDirectory() as repo:
             engine = engine_module.SRT1Engine.__new__(engine_module.SRT1Engine)
@@ -241,6 +274,9 @@ class WorkCellRuntimeTests(unittest.TestCase):
         self.assertIn("assistant_ready", html)
         self.assertIn("copyWorkCellPackagePath", html)
         self.assertIn("Copy package path", html)
+        self.assertIn("repairWorkCellPackage", html)
+        self.assertIn("Repair package", html)
+        self.assertIn("repair-package", html)
 
 
 if __name__ == "__main__":

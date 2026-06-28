@@ -1779,6 +1779,37 @@ async function copyWorkCellPackagePath(value, button) {
   }
 }
 
+async function repairWorkCellPackage(queueSeedId, button) {
+  if (!queueSeedId) return;
+  const original = button?.textContent || 'Repair package';
+  if (button) {
+    button.disabled = true;
+    button.textContent = 'Repairing...';
+  }
+  try {
+    const response = await fetch(API + '/api/v1/workcells/' + encodeURIComponent(queueSeedId) + '/repair-package', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({})
+    });
+    const result = await response.json();
+    if (!response.ok || !['repaired', 'degraded'].includes(result.status)) {
+      throw new Error(result.error || 'Repair failed');
+    }
+    if (button) button.textContent = result.status === 'repaired' ? 'Repaired' : 'Repaired degraded';
+    await loadWorkCells();
+  } catch (e) {
+    if (button) button.textContent = 'Repair failed';
+  } finally {
+    if (button) {
+      setTimeout(() => {
+        button.disabled = false;
+        button.textContent = original;
+      }, 1400);
+    }
+  }
+}
+
 function renderWorkCellDetail(payload, selectedExecution) {
   const detailEl = document.getElementById('workcellDetail');
   if (!detailEl) return;
@@ -1845,6 +1876,7 @@ function renderWorkCellDetail(payload, selectedExecution) {
       <div class="workcell-package-buttons">
         <button type="button" class="workcell-package-btn" data-copy-value="${escapeHtml(packagePath)}">Copy package path</button>
         ${packageFiles.map(([label, present, path]) => `<button type="button" class="workcell-package-btn" ${present ? '' : 'disabled'} data-copy-value="${escapeHtml(path)}">Copy ${escapeHtml(label)} path</button>`).join('')}
+        ${assistantReady ? '' : `<button type="button" class="workcell-package-btn" data-repair-queue-seed-id="${escapeHtml(selectedExecution.queue_seed_id || '')}">Repair package</button>`}
       </div>
     </div>
     <div class="workcell-detail-paths">
@@ -1856,6 +1888,9 @@ function renderWorkCellDetail(payload, selectedExecution) {
   `;
   detailEl.querySelectorAll('.workcell-package-btn[data-copy-value]').forEach(button => {
     button.addEventListener('click', () => copyWorkCellPackagePath(button.dataset.copyValue, button));
+  });
+  detailEl.querySelectorAll('.workcell-package-btn[data-repair-queue-seed-id]').forEach(button => {
+    button.addEventListener('click', () => repairWorkCellPackage(button.dataset.repairQueueSeedId, button));
   });
 }
 

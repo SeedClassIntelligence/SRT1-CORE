@@ -360,6 +360,49 @@ class WorkCellRegistry:
         data["package_status"] = self._build_package_status(execution)
         return data
 
+    def repair_execution_package(self, queue_seed_id: str) -> Dict[str, Any]:
+        """Regenerate local WorkCell package files for an existing execution."""
+        execution = self._executions.get(f"wcx_{_safe_slug(queue_seed_id)}")
+        if not execution:
+            return {
+                "status": "not_found",
+                "queue_seed_id": queue_seed_id,
+                "error": "WorkCell execution not found",
+            }
+
+        workcell = self._workcells.get(execution.workcell_id)
+        if not workcell:
+            return {
+                "status": "not_found",
+                "queue_seed_id": queue_seed_id,
+                "workcell_execution_id": execution.workcell_execution_id,
+                "error": "Persistent WorkCell not found",
+            }
+
+        package_path = execution.package_path or os.path.join(self.registry_dir, queue_seed_id)
+        execution.package_path = package_path
+        execution.updated_at = _now()
+
+        before = self._build_package_status(execution)
+        os.makedirs(package_path, exist_ok=True)
+        self._write_filecells_json(workcell, execution)
+        self._write_workcell_md(workcell, execution)
+        self._write_runtime_state(workcell, execution)
+        execution.package_status = self._build_package_status(execution)
+        self._write_runtime_state(workcell, execution)
+        self._save()
+
+        return {
+            "status": "repaired" if execution.package_status.get("assistant_ready") else "degraded",
+            "queue_seed_id": queue_seed_id,
+            "workcell_execution_id": execution.workcell_execution_id,
+            "workcell_id": execution.workcell_id,
+            "package_path": package_path,
+            "before": before,
+            "after": execution.package_status,
+            "execution": execution.to_dict(),
+        }
+
     def summary(self) -> Dict[str, Any]:
         execution_dicts = []
         for execution in self._executions.values():

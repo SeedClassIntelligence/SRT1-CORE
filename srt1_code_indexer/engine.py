@@ -1897,6 +1897,15 @@ class SRT1Engine:
                 return execution
         return registry.summary()
 
+    def _repair_workcell_package(self, queue_seed_id: Optional[str]) -> Dict[str, Any]:
+        """Regenerate local WorkCell package files for an existing queue seed."""
+        if not queue_seed_id:
+            return {"error": "queue_seed_id is required", "status": "error"}
+        registry = self._get_workcell_registry()
+        if not registry:
+            return {"error": "WorkCell registry unavailable", "status": "error"}
+        return registry.repair_execution_package(queue_seed_id)
+
     def _resolve_queue_seed_id(self, seed_id: Optional[str]) -> Optional[str]:
         """Resolve a public/callback seed id to canonical queue seed id."""
         if not seed_id or not self.seed_queue:
@@ -3738,6 +3747,12 @@ class SRT1Engine:
                     enabled = body.get("enabled", True)
                     engine.enforcement_nudge_enabled = bool(enabled)
                     return self._json({"status": "success", "nudge_enabled": engine.enforcement_nudge_enabled})
+
+                elif path.startswith("/api/v1/workcells/") and path.endswith("/repair-package"):
+                    queue_seed_id = path[len("/api/v1/workcells/"):-len("/repair-package")].strip("/")
+                    result = engine._repair_workcell_package(queue_seed_id)
+                    status_code = 200 if result.get("status") in {"repaired", "degraded"} else 404
+                    return self._json(result, status_code)
 
                 elif path == "/api/v1/auth/signup":
                     email = body.get("email")
