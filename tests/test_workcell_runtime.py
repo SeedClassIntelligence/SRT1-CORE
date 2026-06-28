@@ -217,6 +217,12 @@ class WorkCellRuntimeTests(unittest.TestCase):
         self.assertIn("Attached FileCell", html)
         self.assertIn("filecell_summary", html)
         self.assertIn("workcell-filecell-grid", html)
+        self.assertIn("workcellDetail", html)
+        self.assertIn("selectWorkCellDetail", html)
+        self.assertIn("renderWorkCellDetail", html)
+        self.assertIn("workcell-detail-grid", html)
+        self.assertIn("data-workcell-execution-id", html)
+        self.assertIn('role="button"', html)
 
 
 if __name__ == "__main__":

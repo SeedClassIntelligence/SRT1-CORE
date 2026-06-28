@@ -145,8 +145,9 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 .workcell-metric-label{font-size:11px;color:var(--text3);text-transform:uppercase;font-weight:700;margin-bottom:5px;}
 .workcell-metric-value{font-family:var(--mono);font-size:15px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .workcell-list{display:flex;flex-direction:column;gap:10px;max-height:330px;overflow:auto;}
-.workcell-card{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;}
+.workcell-card{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;cursor:pointer;}
 .workcell-card.active{border-color:var(--cyan-border);background:rgba(34,211,238,0.04);}
+.workcell-card.selected{border-color:var(--green);box-shadow:0 0 0 1px var(--green-border);}
 .workcell-name{font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .workcell-objective{font-size:12px;color:var(--text2);line-height:1.45;margin-top:4px;}
 .workcell-meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
@@ -159,6 +160,15 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 .workcell-filecell-value{font-family:var(--mono);font-size:10px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .workcell-status{font-family:var(--mono);font-size:11px;color:var(--green);border:1px solid var(--green-border);background:var(--green-bg);border-radius:5px;padding:4px 8px;height:max-content;white-space:nowrap;}
 .workcell-empty{padding:18px;text-align:center;color:var(--text4);font-size:13px;border:1px dashed var(--border);border-radius:8px;background:var(--bg);}
+.workcell-detail{margin-top:14px;border:1px solid var(--border);border-radius:8px;background:var(--bg);padding:14px;}
+.workcell-detail-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px;}
+.workcell-detail-title{font-size:14px;font-weight:800;color:var(--text);line-height:1.35;word-break:break-word;}
+.workcell-detail-sub{font-family:var(--mono);font-size:11px;color:var(--text3);margin-top:4px;word-break:break-all;}
+.workcell-detail-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-top:10px;}
+.workcell-detail-item{min-width:0;border:1px solid var(--border);border-radius:6px;background:var(--bg2);padding:8px;}
+.workcell-detail-label{font-size:10px;color:var(--text4);text-transform:uppercase;font-weight:800;margin-bottom:5px;}
+.workcell-detail-value{font-family:var(--mono);font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.workcell-detail-paths{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
 
 /* === MODAL === */
 .modal-overlay {
@@ -935,6 +945,9 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
       <div id="workcellList" class="workcell-list">
         <div class="workcell-empty">No WorkCell registry loaded yet. Plant a seed to activate a WorkCell execution.</div>
       </div>
+      <div id="workcellDetail" class="workcell-detail">
+        <div class="workcell-empty">Select a WorkCell execution to inspect its objective, FileCell, scope, verification, and package state.</div>
+      </div>
     </div>
 
     <div class="panel">
@@ -1687,6 +1700,8 @@ async function loadDashboardSummary() {
 // LIVE STATUS — Code Intelligence + Real Activity from engine
 // ============================================================
 let engineStatus = null;
+let selectedWorkCellExecutionId = null;
+let lastWorkCellsPayload = null;
 
 const CATEGORY_DOT = {
   'engine': 'engine', 'indexing': 'cyan', 'enforcement': 'red',
@@ -1707,6 +1722,73 @@ function escapeHtml(value) {
   }[ch]));
 }
 
+function selectWorkCellDetail(executionId) {
+  selectedWorkCellExecutionId = executionId;
+  const payload = lastWorkCellsPayload || {};
+  const executions = payload.executions || (payload.queue_seed_id ? [payload] : []);
+  const selectedExecution = executions.find(ex => ex.workcell_execution_id === selectedWorkCellExecutionId) || null;
+  document.querySelectorAll('.workcell-card').forEach(card => {
+    card.classList.toggle('selected', card.dataset.workcellExecutionId === selectedWorkCellExecutionId);
+  });
+  renderWorkCellDetail(payload, selectedExecution);
+}
+
+function renderWorkCellDetail(payload, selectedExecution) {
+  const detailEl = document.getElementById('workcellDetail');
+  if (!detailEl) return;
+
+  const workcells = payload?.workcells || [];
+  if (!selectedExecution) {
+    detailEl.innerHTML = '<div class="workcell-empty">Select a WorkCell execution to inspect its objective, FileCell, scope, verification, and package state.</div>';
+    return;
+  }
+
+  const workcellById = Object.fromEntries(workcells.map(wc => [wc.workcell_id, wc]));
+  const wc = workcellById[selectedExecution.workcell_id] || {};
+  const filecell = wc.filecell_summary || {};
+  const trust = selectedExecution.trust_state || filecell.trust_state || {};
+  const fileTrust = filecell.trust_state || {};
+  const paths = (wc.owned_paths || []).slice(0, 12);
+  const restricted = (wc.restricted_paths || []).slice(0, 8);
+  const roles = Object.keys(filecell.architectural_roles || {}).join(', ') || 'unknown';
+  const risks = Object.keys(filecell.risk_tags || {}).join(', ') || 'unknown';
+  const deps = (filecell.dependencies || []).slice(0, 8).join(', ') || 'none';
+  const symbols = (filecell.symbols || []).slice(0, 6).map(sym => sym.name || sym.type).filter(Boolean).join(', ') || 'none';
+  const packagePath = selectedExecution.package_path || '.srt1/workcells/' + (selectedExecution.queue_seed_id || 'seed');
+
+  detailEl.innerHTML = `
+    <div class="workcell-detail-head">
+      <div style="min-width:0;">
+        <div class="workcell-detail-title">${escapeHtml(wc.name || selectedExecution.workcell_id || 'Repository WorkCell')}</div>
+        <div class="workcell-detail-sub">${escapeHtml(selectedExecution.objective || wc.purpose || 'No active objective')}</div>
+      </div>
+      <div class="workcell-status">${escapeHtml(selectedExecution.status || 'ready')}</div>
+    </div>
+    <div class="workcell-detail-grid">
+      <div class="workcell-detail-item"><div class="workcell-detail-label">Queue Seed</div><div class="workcell-detail-value">${escapeHtml(selectedExecution.queue_seed_id || 'none')}</div></div>
+      <div class="workcell-detail-item"><div class="workcell-detail-label">SRT Anchor</div><div class="workcell-detail-value">${escapeHtml(selectedExecution.srt_anchor_id || 'none')}</div></div>
+      <div class="workcell-detail-item"><div class="workcell-detail-label">Runtime</div><div class="workcell-detail-value">${escapeHtml(selectedExecution.runtime_port || 'repository')}</div></div>
+      <div class="workcell-detail-item"><div class="workcell-detail-label">Agent</div><div class="workcell-detail-value">${escapeHtml(selectedExecution.assigned_agent || 'unassigned')}</div></div>
+      <div class="workcell-detail-item"><div class="workcell-detail-label">Verification</div><div class="workcell-detail-value">${escapeHtml(selectedExecution.verification_state || 'unverified')}</div></div>
+      <div class="workcell-detail-item"><div class="workcell-detail-label">Trust</div><div class="workcell-detail-value">${escapeHtml(trust.signature || fileTrust.signature || 'unsigned')} / ${escapeHtml(trust.lineage || fileTrust.lineage || 'missing')}</div></div>
+      <div class="workcell-detail-item"><div class="workcell-detail-label">Manifest</div><div class="workcell-detail-value">${escapeHtml(selectedExecution.manifest_hash ? String(selectedExecution.manifest_hash).slice(0, 16) : 'unknown')}</div></div>
+      <div class="workcell-detail-item"><div class="workcell-detail-label">Package</div><div class="workcell-detail-value">${escapeHtml(packagePath)}</div></div>
+      <div class="workcell-detail-item"><div class="workcell-detail-label">FileCell</div><div class="workcell-detail-value">${escapeHtml(filecell.filecell_id || 'unknown')}</div></div>
+      <div class="workcell-detail-item"><div class="workcell-detail-label">Parser / Symbols</div><div class="workcell-detail-value">${escapeHtml(filecell.parser || 'unknown')} / ${escapeHtml(filecell.symbol_count ?? 0)}</div></div>
+      <div class="workcell-detail-item"><div class="workcell-detail-label">Roles</div><div class="workcell-detail-value">${escapeHtml(roles)}</div></div>
+      <div class="workcell-detail-item"><div class="workcell-detail-label">Risks</div><div class="workcell-detail-value">${escapeHtml(risks)}</div></div>
+      <div class="workcell-detail-item"><div class="workcell-detail-label">Dependencies</div><div class="workcell-detail-value">${escapeHtml(deps)}</div></div>
+      <div class="workcell-detail-item"><div class="workcell-detail-label">Symbols</div><div class="workcell-detail-value">${escapeHtml(symbols)}</div></div>
+    </div>
+    <div class="workcell-detail-paths">
+      ${paths.map(path => `<span class="workcell-chip">${escapeHtml(path)}</span>`).join('') || '<span class="workcell-chip">scope unavailable</span>'}
+    </div>
+    <div class="workcell-detail-paths">
+      ${restricted.map(path => `<span class="workcell-chip">${escapeHtml('restricted:' + path)}</span>`).join('')}
+    </div>
+  `;
+}
+
 function renderWorkCells(workcellsPayload, activeSeed) {
   const badge = document.getElementById('workcellBadge');
   const countEl = document.getElementById('workcellCount');
@@ -1717,12 +1799,18 @@ function renderWorkCells(workcellsPayload, activeSeed) {
   if (!listEl) return;
 
   const payload = workcellsPayload || {};
+  lastWorkCellsPayload = payload;
   const workcells = payload.workcells || [];
   const executions = (payload.executions || (payload.queue_seed_id ? [payload] : [])).slice()
     .sort((a, b) => String(b.updated_at || b.created_at || '').localeCompare(String(a.updated_at || a.created_at || '')));
   const activeExecutions = (payload.active_executions || executions.filter(ex => !['completed', 'terminated'].includes(ex.status))).slice()
     .sort((a, b) => String(b.updated_at || b.created_at || '').localeCompare(String(a.updated_at || a.created_at || '')));
   const active = activeExecutions[0] || executions[0] || null;
+  const selectedExists = executions.some(ex => ex.workcell_execution_id === selectedWorkCellExecutionId);
+  if (!selectedExists) {
+    selectedWorkCellExecutionId = active?.workcell_execution_id || executions[0]?.workcell_execution_id || null;
+  }
+  const selectedExecution = executions.find(ex => ex.workcell_execution_id === selectedWorkCellExecutionId) || active || executions[0] || null;
 
   if (badge) {
     badge.textContent = active ? 'ACTIVE MODEL' : 'READY';
@@ -1735,6 +1823,7 @@ function renderWorkCells(workcellsPayload, activeSeed) {
 
   if (!workcells.length && !executions.length) {
     listEl.innerHTML = '<div class="workcell-empty">No WorkCell execution yet. Plant a seed and SRT-1 will prepare a bounded WorkCell package.</div>';
+    renderWorkCellDetail(payload, null);
     return;
   }
 
@@ -1749,6 +1838,7 @@ function renderWorkCells(workcellsPayload, activeSeed) {
     const deps = (filecell.dependencies || []).slice(0, 3).join(', ') || 'none';
     const packagePath = ex.package_path || '.srt1/workcells/' + (ex.queue_seed_id || 'seed');
     const status = ex.status || 'ready';
+    const selectedClass = ex.workcell_execution_id === selectedWorkCellExecutionId ? 'selected' : '';
     const chips = [
       `seed:${ex.queue_seed_id || 'none'}`,
       `anchor:${ex.srt_anchor_id || 'none'}`,
@@ -1757,7 +1847,7 @@ function renderWorkCells(workcellsPayload, activeSeed) {
       `manifest:${ex.manifest_hash ? String(ex.manifest_hash).slice(0, 10) : 'unknown'}`
     ];
     return `
-      <div class="workcell-card ${status === 'ready' || status === 'running' ? 'active' : ''}">
+      <div role="button" tabindex="0" class="workcell-card ${status === 'ready' || status === 'running' ? 'active' : ''} ${selectedClass}" data-workcell-execution-id="${escapeHtml(ex.workcell_execution_id || '')}">
         <div style="min-width:0;">
           <div class="workcell-name">${escapeHtml(wc.name || ex.workcell_id || 'Repository WorkCell')}</div>
           <div class="workcell-objective">${escapeHtml(ex.objective || wc.purpose || 'No active objective')}</div>
@@ -1810,6 +1900,16 @@ function renderWorkCells(workcellsPayload, activeSeed) {
       </div>
     `;
   }).join('');
+  listEl.querySelectorAll('.workcell-card[data-workcell-execution-id]').forEach(card => {
+    card.addEventListener('click', () => selectWorkCellDetail(card.dataset.workcellExecutionId));
+    card.addEventListener('keydown', event => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        selectWorkCellDetail(card.dataset.workcellExecutionId);
+      }
+    });
+  });
+  renderWorkCellDetail(payload, selectedExecution);
 }
 
 async function loadStatus() {
