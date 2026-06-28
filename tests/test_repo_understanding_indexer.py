@@ -87,6 +87,26 @@ public class Greeter {
             self.assertIn("app.js", indexer.symbol_table)
             self.assertIn("index.html", indexer.symbol_table)
 
+    def test_indexer_parses_python_files_with_utf8_bom(self):
+        with tempfile.TemporaryDirectory() as repo:
+            repo_path = Path(repo)
+            py_file = repo_path / "app.py"
+            py_file.write_text("\ufeffdef hello():\n    return 'world'\n", encoding="utf-8")
+
+            indexer = SRT1CodeIndexer.__new__(SRT1CodeIndexer)
+            indexer.file_manifest = [
+                {"full_path": str(py_file), "file_path": "app.py", "extension": ".py"},
+            ]
+            indexer.symbol_table = {}
+            indexer.code_manifest = {}
+            indexer.srt_tool = FakeSRTTool()
+
+            indexer._parse_source_files()
+
+            names = {symbol["name"] for symbol in indexer.symbol_table["app.py"]}
+            self.assertIn("hello", names)
+            self.assertEqual(indexer.code_manifest["language_coverage"][".py"]["parser"], "ast")
+
     def test_save_manifest_preserves_language_coverage(self):
         with tempfile.TemporaryDirectory() as repo:
             indexer = SRT1CodeIndexer.__new__(SRT1CodeIndexer)

@@ -315,7 +315,7 @@ class SRT1CodeIndexer:
             ext = entry['extension']
             
             try:
-                with open(fpath, 'r', encoding='utf-8', errors='replace') as fh:
+                with open(fpath, 'r', encoding='utf-8-sig', errors='replace') as fh:
                     source = fh.read()
             except OSError:
                 continue
@@ -534,7 +534,7 @@ class SRT1CodeIndexer:
         for entry in self.file_manifest:
             if entry['file_path'] in self.symbol_table:
                 try:
-                    with open(entry['full_path'], 'r', encoding='utf-8', errors='replace') as fh:
+                    with open(entry['full_path'], 'r', encoding='utf-8-sig', errors='replace') as fh:
                         source_lines_cache[entry['file_path']] = fh.read().splitlines()
                 except OSError:
                     pass
