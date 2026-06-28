@@ -8,6 +8,7 @@ files or perform execution.
 """
 
 import json
+import hashlib
 import os
 import re
 from dataclasses import asdict, dataclass, field
@@ -22,6 +23,12 @@ def _now() -> str:
 def _safe_slug(value: str) -> str:
     slug = re.sub(r"[^A-Za-z0-9_.-]+", "-", value.strip().lower()).strip("-")
     return slug[:80] or "repository"
+
+
+def _workcell_id_for_path(path: str) -> str:
+    digest = hashlib.sha1(path.replace("\\", "/").encode("utf-8")).hexdigest()[:10]
+    slug = _safe_slug(os.path.basename(path) or path)
+    return f"workcell_file_{slug}_{digest}"
 
 
 @dataclass
@@ -122,21 +129,80 @@ class WorkCellRegistry:
         with open(self.registry_file, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2, sort_keys=True)
 
-    def infer_workcell(self, objective: str, manifest: Optional[Dict[str, Any]] = None) -> WorkCell:
-        """Return a persistent WorkCell inferred from current repo evidence."""
+    def populate_from_manifest(self, manifest: Optional[Dict[str, Any]] = None) -> List[WorkCell]:
+        """Populate one persistent WorkCell for every repository file."""
         manifest = manifest or {}
         file_entries = manifest.get("file_manifest", []) or []
-        owned_paths = []
-        for entry in file_entries[:25]:
+        manifest_hash = manifest.get("integrity", {}).get("manifest_hash")
+        workcells = []
+
+        for entry in file_entries:
             path = entry.get("file_path") or entry.get("path")
-            if path:
-                owned_paths.append(path)
+            if not path:
+                continue
+            workcell_id = _workcell_id_for_path(path)
+            existing = self._workcells.get(workcell_id)
+            if existing:
+                existing.updated_at = _now()
+                existing.owned_paths = [path]
+                existing.freshness_state = "fresh" if manifest_hash else existing.freshness_state
+                workcells.append(existing)
+                continue
+
+            workcell = WorkCell(
+                workcell_id=workcell_id,
+                name=path,
+                purpose=f"Smallest safe execution boundary for {path}.",
+                repo_path=self.repo_path,
+                owned_paths=[path],
+                restricted_paths=[
+                    ".git/",
+                    ".srt1/seeds/",
+                    ".srt1/runtime/",
+                    "memory/",
+                    "scia_memory/",
+                    "scia_security/",
+                ],
+                freshness_state="fresh" if manifest_hash else "unknown",
+            )
+            self._workcells[workcell_id] = workcell
+            workcells.append(workcell)
+
+        if workcells:
+            self._save()
+        return workcells
+
+    def infer_workcell(self, objective: str, manifest: Optional[Dict[str, Any]] = None) -> WorkCell:
+        """Return the best file-scoped WorkCell for a seed objective."""
+        manifest = manifest or {}
+        workcells = self.populate_from_manifest(manifest)
+        objective_lc = (objective or "").lower()
+
+        best_match = None
+        best_score = 0
+        for workcell in workcells:
+            path = workcell.owned_paths[0] if workcell.owned_paths else ""
+            path_lc = path.lower().replace("\\", "/")
+            name_lc = os.path.basename(path_lc)
+            stem_lc = os.path.splitext(name_lc)[0]
+            score = 0
+            if path_lc and path_lc in objective_lc:
+                score = 100
+            elif name_lc and name_lc in objective_lc:
+                score = 75
+            elif stem_lc and re.search(rf"\b{re.escape(stem_lc)}\b", objective_lc):
+                score = 40
+            if score > best_score:
+                best_score = score
+                best_match = workcell
+
+        if best_match:
+            return best_match
 
         workcell_id = "workcell_repository"
         existing = self._workcells.get(workcell_id)
         if existing:
             existing.updated_at = _now()
-            existing.owned_paths = existing.owned_paths or owned_paths
             existing.freshness_state = "fresh" if manifest.get("integrity", {}).get("manifest_hash") else existing.freshness_state
             self._save()
             return existing
@@ -145,9 +211,9 @@ class WorkCellRegistry:
         workcell = WorkCell(
             workcell_id=workcell_id,
             name=f"{repo_name} Repository WorkCell",
-            purpose="Default bounded environment inferred from current repository manifest.",
+            purpose="Degraded fallback when no file-scoped WorkCell evidence is available.",
             repo_path=self.repo_path,
-            owned_paths=owned_paths,
+            owned_paths=[],
             restricted_paths=[
                 ".git/",
                 ".srt1/seeds/",
@@ -211,7 +277,11 @@ class WorkCellRegistry:
         return execution.to_dict() if execution else None
 
     def summary(self) -> Dict[str, Any]:
-        executions = [ex.to_dict() for ex in self._executions.values()]
+        executions = sorted(
+            [ex.to_dict() for ex in self._executions.values()],
+            key=lambda ex: ex.get("updated_at") or ex.get("created_at") or "",
+            reverse=True,
+        )
         return {
             "registry_path": self.registry_file,
             "workcell_count": len(self._workcells),
@@ -283,4 +353,3 @@ class WorkCellRegistry:
         ]
         with open(path, "w", encoding="utf-8") as f:
             f.write("\n".join(lines))
-

@@ -8,13 +8,77 @@ from srt1_platform.workcell import WorkCellRegistry
 
 
 class WorkCellRuntimeTests(unittest.TestCase):
+    def test_repository_understanding_populates_one_workcell_per_file(self):
+        with tempfile.TemporaryDirectory() as repo:
+            registry = WorkCellRegistry(repo_path=repo)
+            workcells = registry.populate_from_manifest({
+                "integrity": {"manifest_hash": "manifest_123"},
+                "file_manifest": [
+                    {"file_path": "src/auth.py"},
+                    {"file_path": "src/oauth.py"},
+                    {"file_path": "src/billing.py"},
+                ],
+            })
+            summary = registry.summary()
+
+        self.assertEqual(len(workcells), 3)
+        self.assertEqual(summary["workcell_count"], 3)
+        self.assertEqual(
+            sorted(wc["owned_paths"][0] for wc in summary["workcells"]),
+            ["src/auth.py", "src/billing.py", "src/oauth.py"],
+        )
+
+    def test_seed_execution_selects_matching_file_workcell(self):
+        with tempfile.TemporaryDirectory() as repo:
+            registry = WorkCellRegistry(repo_path=repo)
+            execution = registry.activate_execution(
+                queue_seed_id="seed_0001_auth",
+                objective="Fix auth token validation",
+                manifest={
+                    "integrity": {"manifest_hash": "manifest_123"},
+                    "file_manifest": [
+                        {"file_path": "src/auth.py"},
+                        {"file_path": "src/billing.py"},
+                    ],
+                },
+            )
+            summary = registry.summary()
+            selected = [
+                wc for wc in summary["workcells"]
+                if wc["workcell_id"] == execution.workcell_id
+            ][0]
+
+        self.assertEqual(selected["owned_paths"], ["src/auth.py"])
+
+    def test_seed_execution_prefers_exact_path_over_loose_stem_match(self):
+        with tempfile.TemporaryDirectory() as repo:
+            registry = WorkCellRegistry(repo_path=repo)
+            execution = registry.activate_execution(
+                queue_seed_id="seed_0001_workcell_path",
+                objective="Review srt1_platform/workcell.py boundary",
+                manifest={
+                    "integrity": {"manifest_hash": "manifest_123"},
+                    "file_manifest": [
+                        {"file_path": "srt1_code_indexer/srt.py"},
+                        {"file_path": "srt1_platform/workcell.py"},
+                    ],
+                },
+            )
+            summary = registry.summary()
+            selected = [
+                wc for wc in summary["workcells"]
+                if wc["workcell_id"] == execution.workcell_id
+            ][0]
+
+        self.assertEqual(selected["owned_paths"], ["srt1_platform/workcell.py"])
+
     def test_workcell_registry_creates_execution_package_with_workcell_md(self):
         with tempfile.TemporaryDirectory() as repo:
             registry = WorkCellRegistry(repo_path=repo)
             execution = registry.activate_execution(
                 queue_seed_id="seed_0001_workcell",
                 srt_anchor_id="srt_anchor_001",
-                objective="Refactor authentication safely",
+                objective="Refactor src/auth.py safely",
                 runtime_port=4102,
                 manifest={
                     "integrity": {"manifest_hash": "manifest_123"},
@@ -34,7 +98,7 @@ class WorkCellRuntimeTests(unittest.TestCase):
             self.assertEqual(execution.srt_anchor_id, "srt_anchor_001")
             self.assertTrue(workcell_md.exists())
             self.assertTrue(runtime_state.exists())
-            self.assertIn("Refactor authentication safely", content)
+            self.assertIn("Refactor src/auth.py safely", content)
             self.assertIn("queue_seed_id: seed_0001_workcell", content)
             self.assertIn("Do not broaden context because files are nearby.", content)
             self.assertIn("src/auth.py", content)
@@ -116,6 +180,15 @@ class WorkCellRuntimeTests(unittest.TestCase):
         self.assertEqual(status["workcell_count"], 1)
         self.assertEqual(status["execution_count"], 1)
         self.assertEqual(status["executions"][0]["queue_seed_id"], "seed_0001_status")
+
+    def test_dashboard_contains_workcell_operations_surface(self):
+        dashboard = Path(__file__).resolve().parents[1] / "srt1_platform" / "pwa" / "dashboard.html"
+        html = dashboard.read_text(encoding="utf-8")
+
+        self.assertIn("WorkCell Operations", html)
+        self.assertIn("workcellList", html)
+        self.assertIn("/api/v1/workcells", html)
+        self.assertIn("renderWorkCells", html)
 
 
 if __name__ == "__main__":

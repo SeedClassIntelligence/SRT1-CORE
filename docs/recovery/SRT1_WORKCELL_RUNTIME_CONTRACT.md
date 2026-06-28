@@ -14,7 +14,7 @@ WorkCells own bounded architectural environments.
 Seeds activate execution inside WorkCells.
 ```
 
-SRT-1 should not require every assistant session to reread and reinterpret the whole repository. Repo Understanding should maintain persistent FileCells. SRT-1 should discover or define persistent WorkCells as the known places where bounded categories of work happen. Continuity should use seeds to activate work inside a WorkCell. The active WorkCell execution should attach the minimum useful set of FileCells and provide agents with an operating package.
+SRT-1 should not require every assistant session to reread and reinterpret the whole repository. Repo Understanding should maintain persistent FileCells and create a persistent WorkCell for every repository file. Continuity should use seeds to activate work inside the most relevant file WorkCell. The active WorkCell execution should attach additional FileCells only when dependency evidence, contracts, verification requirements, or human approval require expansion.
 
 ## Canonical Terms
 
@@ -22,7 +22,7 @@ SRT-1 should not require every assistant session to reread and reinterpret the w
 | --- | --- | --- |
 | Repository Runtime | The local SRT-1 engine for one repository. | A shared cross-project context pool. |
 | FileCell | Persistent intelligence object for one file or tightly coupled file set. | Temporary prompt context or an execution sandbox. |
-| WorkCell | Persistent bounded architectural environment where a category of work happens. | A raw folder copy, repo-wide assistant session, or direct autonomous controller. |
+| WorkCell | Persistent bounded execution environment associated with one repository file by default. | A raw folder copy, repo-wide assistant session, feature bucket, or direct autonomous controller. |
 | WorkCell Execution | Active seed-driven runtime instance inside a WorkCell. | The permanent WorkCell identity or the whole repository. |
 | workcell.md | Agent entry document describing objective, scope, boundaries, verification, and completion rules. | Replacement for source files or standing global assistant instructions. |
 | WorkCell Package | Runtime bundle containing local instructions, selected FileCells, recall packets, dependency evidence, allowed paths, and verification rules. | Private memory dump, private signing chain, or Enterprise backend state. |
@@ -35,7 +35,7 @@ Repository intelligence is persistent.
 
 FileCells are persistent.
 
-WorkCells are persistent bounded environments assembled from persistent knowledge.
+WorkCells are persistent bounded file environments assembled from persistent knowledge.
 
 WorkCell executions are temporary runtime instances activated by seeds.
 
@@ -48,7 +48,7 @@ The PWA exists to manage WorkCells rather than to browse repository files as the
 | Create canonical seed identity | Continuity | Uses `queue_seed_id` as lifecycle identity. |
 | Produce manifest, symbols, dependencies, and file hashes | Repo Understanding | Source of FileCell intelligence. |
 | Maintain FileCell intelligence | Repo Understanding + Recall + Verification | Repo facts, historical recall, and verification evidence attach to FileCells. |
-| Discover or define persistent WorkCell | Repo Understanding + Context Isolation | WorkCell identity should come from repository structure, contracts, and approved architectural boundaries. |
+| Create persistent WorkCells | Repo Understanding + Context Isolation | Every repository file receives a default WorkCell after repository understanding. |
 | Activate WorkCell execution from seed | Continuity + Context Isolation | Continuity owns seed lifecycle; Context Isolation owns boundary. |
 | Select FileCells for WorkCell execution | Context Isolation + Recall | Selection must be evidence-based and bounded. |
 | Generate `workcell.md` | Reinjection | Reinjection delivers instructions; it does not own retrieval. |
@@ -111,9 +111,9 @@ A FileCell may contain:
 
 ## WorkCell Contract
 
-A WorkCell is the defined operating boundary for a repository subsystem, feature area, recovery area, or architectural domain. It is the place where a specific category of work belongs.
+A WorkCell is the defined operating boundary for one repository file by default. It is the smallest safe execution environment SRT-1 can give an AI assistant.
 
-A seed does not have to create the WorkCell itself. A seed activates work inside an existing WorkCell when one is known, or causes SRT-1 to propose a new WorkCell when no appropriate WorkCell exists.
+A seed does not create the file WorkCell itself. Repository Understanding creates the WorkCell after indexing the file. A seed activates work inside the relevant WorkCell when one is known, or causes SRT-1 to propose a degraded fallback when no file evidence exists.
 
 The practical distinction is:
 
@@ -124,6 +124,16 @@ Agent = the worker
 FileCells = the knowledge objects
 WorkCell Execution = the active runtime package
 ```
+
+The default relationship is one-to-one:
+
+```text
+repository file
+-> FileCell
+-> WorkCell
+```
+
+The FileCell stores what SRT-1 knows. The WorkCell defines where the assistant is allowed to work.
 
 ### WorkCell Identity
 
@@ -143,6 +153,8 @@ Minimum identity fields:
 - `updated_at`
 - `freshness_state`
 - `trust_state`
+
+For a file WorkCell, `owned_paths` should contain exactly one repository file path unless a later, human-approved expansion explicitly attaches related WorkCells.
 
 ### WorkCell Execution Identity
 
@@ -208,19 +220,19 @@ Not every file needs to exist in the first implementation slice. Missing package
 
 ## Persistent WorkCell Registry
 
-SRT-1 should eventually maintain a persistent WorkCell registry for the repository.
+SRT-1 should maintain a persistent WorkCell registry for the repository.
 
 The registry answers:
 
-- which bounded environments exist
-- which files and directories belong to each environment
+- which file WorkCells exist
+- which repository file belongs to each WorkCell
 - which dependencies are allowed or expected
 - which contracts govern the environment
 - which tests usually verify it
-- which active seeds are currently running inside it
+- which active seeds are currently running inside each WorkCell
 - which runtime port, if any, is assigned to the active execution
 
-The registry prevents context contamination by making SRT-1 choose the relevant operating environment before an agent starts reading.
+The registry prevents context contamination by making SRT-1 choose a file WorkCell before an agent starts reading.
 
 ## workcell.md Contract
 
@@ -254,14 +266,28 @@ The agent should begin with `workcell.md` instead of rediscovering its responsib
 
 The primary risk WorkCells address is not only out-of-scope file mutation. It is context contamination.
 
-SRT-1 should prevent agents from forming unnecessary relationships across unrelated files simply because they were visible. The agent should not begin by reading the broad repository or a whole feature folder. The agent should enter through the active WorkCell package and read only the FileCells, dependencies, contracts, and recall packets selected for the mission.
+SRT-1 should prevent agents from forming unnecessary relationships across unrelated files simply because they were visible. The agent should not begin by reading the broad repository, a whole feature folder, or neighboring files. The agent should enter through the active file WorkCell package and read only the FileCell, dependencies, contracts, and recall packets selected for the mission.
 
 The default posture is:
 
 ```text
 Do not broaden context because it is nearby.
-Broaden context only when dependency evidence, verification needs, or human-approved scope requires it.
+Broaden context only when dependency evidence, contract evidence, verification needs, or human-approved scope requires it.
 ```
+
+## Controlled Expansion
+
+The default execution boundary is one file.
+
+Additional WorkCells may be attached only when:
+
+- Repository Understanding detects an import/dependency relationship
+- a contract requires another file
+- Verification requires a test/support file
+- Recall identifies directly relevant prior work
+- a human explicitly approves scope expansion
+
+Expansion should attach additional WorkCells intentionally. It should not happen because files are adjacent in a folder.
 
 ## Local Knowledge Index Contract
 
@@ -351,9 +377,9 @@ Source browsing should be a WorkCell view, not the primary product model.
 Repository
 -> Repo Understanding
 -> Persistent FileCells
--> Persistent WorkCell registry
+-> Persistent file WorkCell registry
 -> Seed
--> Continuity activates WorkCell execution
+-> Continuity activates file WorkCell execution
 -> Context Isolation derives execution boundary
 -> Recall selects relevant prior state
 -> Reinjection generates workcell.md and context package
@@ -373,7 +399,7 @@ Repository
 | --- | --- | --- |
 | Repository manifest | Repo Understanding | FileCells, WorkCells, Recall, Verification |
 | FileCell | Repo Understanding | WorkCells, Recall, Verification, PWA |
-| Persistent WorkCell registry | Context Isolation + Repo Understanding | Continuity, PWA, Constellation, Reinjection |
+| Persistent file WorkCell registry | Context Isolation + Repo Understanding | Continuity, PWA, Constellation, Reinjection |
 | Seed lifecycle | Continuity | WorkCell runtime, PWA, Verification |
 | WorkCell execution lifecycle | Continuity | PWA, Constellation, Verification |
 | WorkCell execution boundary | Context Isolation | Agent, Verification, PWA |
@@ -388,7 +414,7 @@ Repository
 Public Core may include:
 
 - WorkCell vocabulary
-- persistent WorkCell registry schema
+- persistent per-file WorkCell registry schema
 - WorkCell package schema
 - WorkCell execution schema
 - `workcell.md` generation contract
@@ -420,13 +446,13 @@ SION may later become a first-party assistant/executor that operates inside appr
 The easiest safe implementation path is:
 
 1. Keep current repository runtime as the only active server.
-2. Add a read-only persistent WorkCell registry with at least one inferred WorkCell.
+2. Add a read-only persistent WorkCell registry that creates one WorkCell per manifest file.
 3. Add a read-only WorkCell execution record linked to `queue_seed_id`.
 4. Generate a minimal `.srt1/workcells/<queue_seed_id>/workcell.md`.
 5. Attach existing manifest summary and boundary evidence.
 6. Expose WorkCell registry/status through API.
 7. Update the PWA to show WorkCells first.
-8. Add FileCell summaries after the WorkCell registry is stable.
+8. Add FileCell summaries after the per-file WorkCell registry is stable.
 9. Add multi-port runtime support only after single-runtime WorkCell executions are reliable.
 
 This preserves working code while moving the product toward autonomous bounded runtime environments without pretending the active seed is the same thing as the persistent WorkCell.

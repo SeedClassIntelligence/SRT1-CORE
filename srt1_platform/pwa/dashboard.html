@@ -140,6 +140,19 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 .violation-badge{font-family:var(--mono);font-size:10px;padding:3px 8px;border-radius:4px;font-weight:600;white-space:nowrap;text-align:right;}
 .violation-badge.hard{background:rgba(239,68,68,0.08);color:var(--red);border:1px solid rgba(239,68,68,0.2);}
 .violation-badge.med{background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-border);}
+.workcell-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:14px;}
+.workcell-metric{padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;min-width:0;}
+.workcell-metric-label{font-size:11px;color:var(--text3);text-transform:uppercase;font-weight:700;margin-bottom:5px;}
+.workcell-metric-value{font-family:var(--mono);font-size:15px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.workcell-list{display:flex;flex-direction:column;gap:10px;max-height:330px;overflow:auto;}
+.workcell-card{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;}
+.workcell-card.active{border-color:var(--cyan-border);background:rgba(34,211,238,0.04);}
+.workcell-name{font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.workcell-objective{font-size:12px;color:var(--text2);line-height:1.45;margin-top:4px;}
+.workcell-meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+.workcell-chip{font-family:var(--mono);font-size:10px;color:var(--text3);border:1px solid var(--border);background:var(--bg2);border-radius:5px;padding:3px 6px;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.workcell-status{font-family:var(--mono);font-size:11px;color:var(--green);border:1px solid var(--green-border);background:var(--green-bg);border-radius:5px;padding:4px 8px;height:max-content;white-space:nowrap;}
+.workcell-empty{padding:18px;text-align:center;color:var(--text4);font-size:13px;border:1px dashed var(--border);border-radius:8px;background:var(--bg);}
 
 /* === MODAL === */
 .modal-overlay {
@@ -890,6 +903,34 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 
   <!-- AUTHORITY TRUTH SURFACE - recovered SRT-1 organs made visible -->
   <div class="grid-2" id="authority-surface" style="margin-bottom:32px;scroll-margin-top:80px;">
+    <div class="panel" style="grid-column:1 / -1;">
+      <div class="panel-header">
+        <div class="panel-title">WorkCell Operations <span class="info-icon" data-tooltip="Persistent WorkCells are bounded environments. Seeds activate WorkCell executions with their own package, scope, and verification state.">?</span></div>
+        <div class="panel-badge info" id="workcellBadge">LOADING</div>
+      </div>
+      <div class="workcell-summary">
+        <div class="workcell-metric">
+          <div class="workcell-metric-label">WorkCells</div>
+          <div class="workcell-metric-value" id="workcellCount">-</div>
+        </div>
+        <div class="workcell-metric">
+          <div class="workcell-metric-label">Executions</div>
+          <div class="workcell-metric-value" id="workcellExecutionCount">-</div>
+        </div>
+        <div class="workcell-metric">
+          <div class="workcell-metric-label">Active Seed</div>
+          <div class="workcell-metric-value" id="workcellActiveSeed">none</div>
+        </div>
+        <div class="workcell-metric">
+          <div class="workcell-metric-label">Runtime</div>
+          <div class="workcell-metric-value" id="workcellRuntime">repository</div>
+        </div>
+      </div>
+      <div id="workcellList" class="workcell-list">
+        <div class="workcell-empty">No WorkCell registry loaded yet. Plant a seed to activate a WorkCell execution.</div>
+      </div>
+    </div>
+
     <div class="panel">
       <div class="panel-header">
         <div class="panel-title">Recall Packets <span class="info-icon" data-tooltip="Recall retrieves packet-shaped context. Reinjection consumes packets but does not own retrieval.">?</span></div>
@@ -1630,6 +1671,7 @@ async function loadDashboardSummary() {
     if (tabContent && !manifestLoaded) {
       tabContent.innerHTML = '<div style="padding:32px;text-align:center;color:var(--text3);font-size:13px;border:1px dashed var(--border);border-radius:10px;">Repo intelligence is ready. Load it when you need file, symbol, role, risk, curation, or dependency details.</div>';
     }
+    renderWorkCells(summary.workcells, summary.active_seed);
   } catch(e) {
     document.getElementById('repoStats').innerHTML = `<span style="color:var(--red);">Could not load dashboard summary. Is the SRT-1 engine running at ${API}?</span>`;
   }
@@ -1651,6 +1693,75 @@ function formatTime(isoStr) {
     const d = new Date(isoStr);
     return d.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
   } catch(e) { return ''; }
+}
+
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, ch => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[ch]));
+}
+
+function renderWorkCells(workcellsPayload, activeSeed) {
+  const badge = document.getElementById('workcellBadge');
+  const countEl = document.getElementById('workcellCount');
+  const executionCountEl = document.getElementById('workcellExecutionCount');
+  const activeSeedEl = document.getElementById('workcellActiveSeed');
+  const runtimeEl = document.getElementById('workcellRuntime');
+  const listEl = document.getElementById('workcellList');
+  if (!listEl) return;
+
+  const payload = workcellsPayload || {};
+  const workcells = payload.workcells || [];
+  const executions = (payload.executions || (payload.queue_seed_id ? [payload] : [])).slice()
+    .sort((a, b) => String(b.updated_at || b.created_at || '').localeCompare(String(a.updated_at || a.created_at || '')));
+  const activeExecutions = (payload.active_executions || executions.filter(ex => !['completed', 'terminated'].includes(ex.status))).slice()
+    .sort((a, b) => String(b.updated_at || b.created_at || '').localeCompare(String(a.updated_at || a.created_at || '')));
+  const active = activeExecutions[0] || executions[0] || null;
+
+  if (badge) {
+    badge.textContent = active ? 'ACTIVE MODEL' : 'READY';
+    badge.className = active ? 'panel-badge info' : 'panel-badge';
+  }
+  if (countEl) countEl.textContent = String(payload.workcell_count ?? workcells.length ?? 0);
+  if (executionCountEl) executionCountEl.textContent = String(payload.execution_count ?? executions.length ?? 0);
+  if (activeSeedEl) activeSeedEl.textContent = active?.queue_seed_id || activeSeed?.queue_seed_id || 'none';
+  if (runtimeEl) runtimeEl.textContent = active?.runtime_port || window.location.port || 'repository';
+
+  if (!workcells.length && !executions.length) {
+    listEl.innerHTML = '<div class="workcell-empty">No WorkCell execution yet. Plant a seed and SRT-1 will prepare a bounded WorkCell package.</div>';
+    return;
+  }
+
+  const workcellById = Object.fromEntries(workcells.map(wc => [wc.workcell_id, wc]));
+  listEl.innerHTML = executions.map(ex => {
+    const wc = workcellById[ex.workcell_id] || {};
+    const paths = (wc.owned_paths || []).slice(0, 4);
+    const packagePath = ex.package_path || '.srt1/workcells/' + (ex.queue_seed_id || 'seed');
+    const status = ex.status || 'ready';
+    const chips = [
+      `seed:${ex.queue_seed_id || 'none'}`,
+      `anchor:${ex.srt_anchor_id || 'none'}`,
+      `port:${ex.runtime_port || 'repository'}`,
+      `verify:${ex.verification_state || 'unverified'}`,
+      `manifest:${ex.manifest_hash ? String(ex.manifest_hash).slice(0, 10) : 'unknown'}`
+    ];
+    return `
+      <div class="workcell-card ${status === 'ready' || status === 'running' ? 'active' : ''}">
+        <div style="min-width:0;">
+          <div class="workcell-name">${escapeHtml(wc.name || ex.workcell_id || 'Repository WorkCell')}</div>
+          <div class="workcell-objective">${escapeHtml(ex.objective || wc.purpose || 'No active objective')}</div>
+          <div class="workcell-meta">
+            ${chips.map(chip => `<span class="workcell-chip">${escapeHtml(chip)}</span>`).join('')}
+          </div>
+          <div class="workcell-meta">
+            <span class="workcell-chip">${escapeHtml(packagePath)}</span>
+            ${paths.map(path => `<span class="workcell-chip">${escapeHtml(path)}</span>`).join('')}
+          </div>
+        </div>
+        <div class="workcell-status">${escapeHtml(status)}</div>
+      </div>
+    `;
+  }).join('');
 }
 
 async function loadStatus() {
@@ -1677,6 +1788,7 @@ async function loadStatus() {
     const violations = ci.violations_total || 0;
     const overlaps = ci.functional_overlaps || 0;
     const curationItems = ci.curation_items || [];
+    renderWorkCells(engineStatus.workcells, engineStatus.active_seed);
 
     // --- Update top-level Active Violations card dynamically ---
     const activeBlocks = enforcement.active_blocks !== undefined ? enforcement.active_blocks : violations;
@@ -1946,6 +2058,17 @@ async function loadStatus() {
 // ============================================================
 // AI API KEYS — localStorage-backed key manager
 // ============================================================
+async function loadWorkCells() {
+  try {
+    const r = await fetch(API + '/api/v1/workcells');
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const payload = await r.json();
+    renderWorkCells(payload, engineStatus?.active_seed);
+  } catch(e) {
+    renderWorkCells(null, engineStatus?.active_seed);
+  }
+}
+
 const AI_KEY_PROVIDERS = ['openai','anthropic','gemini','grok'];
 
 function loadSavedKeys() {
@@ -2742,11 +2865,13 @@ organizePanels();
 // Then start loading data from engine
 loadDashboardSummary();
 loadStatus();
+loadWorkCells();
 loadSeedQueue();
 loadSavedKeys();
 // Refresh every 30 seconds
 setInterval(loadDashboardSummary, 30000);
 setInterval(loadStatus, 30000);
+setInterval(loadWorkCells, 30000);
 setInterval(loadSeedQueue, 30000);
 // Update blueprint preview after status loads
 setInterval(updateBlueprintPreview, 5000);

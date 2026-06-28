@@ -3957,7 +3957,7 @@ class SRT1Engine:
 
                 # ── Seed Queue POST Endpoints ──
 
-                elif path == "/seeds":
+                elif path in ("/seeds", "/task", "/api/v1/task"):
                     block = engine.srt_tool.check_enforcement("seed_dispatch")
                     if block is not None:
                         self._json({
@@ -3980,45 +3980,26 @@ class SRT1Engine:
                     priority = body.get("priority", 5)
                     tags = body.get("tags", [])
 
-                    # Plant in queue
-                    seed = engine.seed_queue.plant(
-                        intent=intent, source=source,
-                        priority=priority, tags=tags
-                    )
-
-                    # Set as current task (lightweight)
-                    engine.task = intent
-
-                    # Dispatch blueprint generation in background (non-blocking)
                     auto_dispatch = body.get("auto_dispatch", True)
-                    if auto_dispatch and engine.bridge:
-                        def _seed_dispatch(sid, t):
-                            try:
-                                bp_result = engine.generate_blueprint(t)
-                                engine.seed_queue.germinate(
-                                    seed_id=sid,
-                                    blueprint=bp_result.get("blueprint", ""),
-                                    blueprint_path=bp_result.get("saved_to", ""),
-                                    relevant_symbols=bp_result.get("relevant_symbols", 0),
-                                    relevant_files=bp_result.get("relevant_files", 0),
-                                )
-                                engine.bridge.dispatch_seed(
-                                    seed_id=sid, intent=t,
-                                    blueprint=bp_result.get("blueprint", ""),
-                                )
-                            except Exception as e:
-                                logger.error(f"Seed dispatch failed: {e}")
-                        threading.Thread(
-                            target=_seed_dispatch, args=(seed.seed_id, intent),
-                            daemon=True
-                        ).start()
-
-                    seed_data = engine.seed_queue.get_seed(seed.seed_id)
-                    self._json({
+                    queue_seed_id = engine._plant_seed(
+                        intent,
+                        source=source,
+                        priority=priority,
+                        auto_dispatch=auto_dispatch,
+                    )
+                    seed_data = engine.seed_queue.get_seed(queue_seed_id) if queue_seed_id else None
+                    response = engine._build_task_response(
+                        task=intent,
+                        queue_seed_id=queue_seed_id,
+                        auto_dispatch=auto_dispatch,
+                    )
+                    response.update({
                         "status": "seed_planted",
                         "seed": seed_data,
-                        "message": f"{seed.stage.emoji} Seed planted! Blueprint generating in background.",
+                        "tags": tags,
+                        "message": "Seed planted. WorkCell execution prepared.",
                     })
+                    self._json(response)
 
                 elif path.startswith("/seeds/") and path.endswith("/complete"):
                     if not engine.seed_queue:
