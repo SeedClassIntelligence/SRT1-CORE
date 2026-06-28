@@ -49,6 +49,7 @@ class WorkCell:
         "Run relevant tests before completion.",
     ])
     default_runtime_port: Optional[int] = None
+    filecell_summary: Dict[str, Any] = field(default_factory=dict)
     created_at: str = field(default_factory=_now)
     updated_at: str = field(default_factory=_now)
     freshness_state: str = "unknown"
@@ -129,6 +130,79 @@ class WorkCellRegistry:
         with open(self.registry_file, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2, sort_keys=True)
 
+    def _find_file_entry(self, manifest: Dict[str, Any], path: str) -> Dict[str, Any]:
+        target = path.replace("\\", "/")
+        for entry in manifest.get("file_manifest", []) or []:
+            entry_path = (entry.get("file_path") or entry.get("path") or "").replace("\\", "/")
+            if entry_path == target:
+                return entry
+        return {}
+
+    def _symbols_for_path(self, manifest: Dict[str, Any], path: str) -> List[Dict[str, Any]]:
+        symbol_table = manifest.get("symbol_table", {}) or {}
+        candidates = [
+            path,
+            path.replace("\\", "/"),
+            path.replace("/", "\\"),
+        ]
+        for candidate in candidates:
+            if candidate in symbol_table:
+                return symbol_table.get(candidate) or []
+        target = path.replace("\\", "/")
+        for table_path, symbols in symbol_table.items():
+            if str(table_path).replace("\\", "/") == target:
+                return symbols or []
+        return []
+
+    def _build_filecell_summary(self, path: str, manifest: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        manifest = manifest or {}
+        entry = self._find_file_entry(manifest, path)
+        symbols = self._symbols_for_path(manifest, path)
+        manifest_hash = manifest.get("integrity", {}).get("manifest_hash")
+
+        roles: Dict[str, int] = {}
+        risks: Dict[str, int] = {}
+        dependencies = []
+        compact_symbols = []
+        for symbol in symbols:
+            reflection = symbol.get("reflection", {}) or {}
+            role = reflection.get("architectural_role", "GENERAL")
+            roles[role] = roles.get(role, 0) + 1
+            for risk in reflection.get("risk_profile", []) or []:
+                risks[risk] = risks.get(risk, 0) + 1
+            for dependency in symbol.get("dependencies", []) or []:
+                if dependency not in dependencies:
+                    dependencies.append(dependency)
+            compact_symbols.append({
+                "name": symbol.get("name"),
+                "type": symbol.get("type"),
+                "line": symbol.get("line"),
+                "dependencies": (symbol.get("dependencies", []) or [])[:10],
+                "architectural_role": role,
+                "risk_profile": reflection.get("risk_profile", []) or [],
+            })
+
+        return {
+            "filecell_id": f"filecell_{hashlib.sha1(path.replace('\\', '/').encode('utf-8')).hexdigest()[:12]}",
+            "path": path,
+            "manifest_hash": manifest_hash,
+            "file_hash": entry.get("hash") or entry.get("sha256") or entry.get("content_hash"),
+            "size": entry.get("size"),
+            "extension": entry.get("extension") or os.path.splitext(path)[1],
+            "parser": entry.get("parser") or ("ast" if path.endswith(".py") else "structural"),
+            "symbol_count": len(symbols),
+            "symbols": compact_symbols[:50],
+            "dependencies": dependencies[:50],
+            "architectural_roles": roles,
+            "risk_tags": risks,
+            "freshness_state": "fresh" if manifest_hash else "unknown",
+            "trust_state": {
+                "signature": "unsigned",
+                "verification": "unverified",
+                "lineage": "missing",
+            },
+        }
+
     def populate_from_manifest(self, manifest: Optional[Dict[str, Any]] = None) -> List[WorkCell]:
         """Populate one persistent WorkCell for every repository file."""
         manifest = manifest or {}
@@ -145,6 +219,7 @@ class WorkCellRegistry:
             if existing:
                 existing.updated_at = _now()
                 existing.owned_paths = [path]
+                existing.filecell_summary = self._build_filecell_summary(path, manifest)
                 existing.freshness_state = "fresh" if manifest_hash else existing.freshness_state
                 workcells.append(existing)
                 continue
@@ -163,6 +238,7 @@ class WorkCellRegistry:
                     "scia_memory/",
                     "scia_security/",
                 ],
+                filecell_summary=self._build_filecell_summary(path, manifest),
                 freshness_state="fresh" if manifest_hash else "unknown",
             )
             self._workcells[workcell_id] = workcell
@@ -267,6 +343,7 @@ class WorkCellRegistry:
             self._executions[execution_id] = execution
 
         os.makedirs(package_path, exist_ok=True)
+        self._write_filecells_json(workcell, execution)
         self._write_workcell_md(workcell, execution)
         self._write_runtime_state(workcell, execution)
         self._save()
@@ -302,6 +379,18 @@ class WorkCellRegistry:
             json.dump({
                 "workcell": workcell.to_dict(),
                 "execution": execution.to_dict(),
+                "filecells": [workcell.filecell_summary] if workcell.filecell_summary else [],
+            }, f, indent=2, sort_keys=True)
+
+    def _write_filecells_json(self, workcell: WorkCell, execution: WorkCellExecution) -> None:
+        if not execution.package_path:
+            return
+        path = os.path.join(execution.package_path, "filecells.json")
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump({
+                "queue_seed_id": execution.queue_seed_id,
+                "workcell_id": workcell.workcell_id,
+                "filecells": [workcell.filecell_summary] if workcell.filecell_summary else [],
             }, f, indent=2, sort_keys=True)
 
     def _write_workcell_md(self, workcell: WorkCell, execution: WorkCellExecution) -> None:
@@ -310,6 +399,9 @@ class WorkCellRegistry:
         path = os.path.join(execution.package_path, "workcell.md")
         allowed_paths = workcell.owned_paths[:20] or ["Not available yet; use manifest evidence before expanding scope."]
         restricted_paths = workcell.restricted_paths or ["Not available"]
+        filecell = workcell.filecell_summary or {}
+        roles = ", ".join(filecell.get("architectural_roles", {}).keys()) or "unknown"
+        risks = ", ".join(filecell.get("risk_tags", {}).keys()) or "unknown"
         lines = [
             f"# {workcell.name}",
             "",
@@ -327,6 +419,14 @@ class WorkCellRegistry:
             "## Operating Rule",
             "Begin inside this WorkCell package. Do not broaden context because files are nearby.",
             "Broaden scope only when dependency evidence, verification needs, or human approval requires it.",
+            "",
+            "## Attached FileCell",
+            f"- filecell_id: {filecell.get('filecell_id', 'unknown')}",
+            f"- path: {filecell.get('path', 'unknown')}",
+            f"- parser: {filecell.get('parser', 'unknown')}",
+            f"- symbols: {filecell.get('symbol_count', 0)}",
+            f"- roles: {roles}",
+            f"- risks: {risks}",
             "",
             "## Allowed / Relevant Paths",
             *[f"- {item}" for item in allowed_paths],

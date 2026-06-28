@@ -1,3 +1,4 @@
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -86,22 +87,46 @@ class WorkCellRuntimeTests(unittest.TestCase):
                         {"file_path": "src/auth.py"},
                         {"file_path": "tests/test_auth.py"},
                     ],
+                    "symbol_table": {
+                        "src/auth.py": [
+                            {
+                                "name": "authenticate",
+                                "type": "function",
+                                "line": 5,
+                                "dependencies": ["load_user"],
+                                "reflection": {
+                                    "architectural_role": "AUTHORITY",
+                                    "risk_profile": ["SECURITY_CRITICAL"],
+                                },
+                            }
+                        ]
+                    },
                 },
             )
 
             package = Path(execution.package_path)
             workcell_md = package / "workcell.md"
             runtime_state = package / "runtime_state.json"
+            filecells_json = package / "filecells.json"
             content = workcell_md.read_text(encoding="utf-8")
+            filecells = json.loads(filecells_json.read_text(encoding="utf-8"))
+            runtime = json.loads(runtime_state.read_text(encoding="utf-8"))
 
             self.assertEqual(execution.queue_seed_id, "seed_0001_workcell")
             self.assertEqual(execution.srt_anchor_id, "srt_anchor_001")
             self.assertTrue(workcell_md.exists())
             self.assertTrue(runtime_state.exists())
+            self.assertTrue(filecells_json.exists())
             self.assertIn("Refactor src/auth.py safely", content)
             self.assertIn("queue_seed_id: seed_0001_workcell", content)
             self.assertIn("Do not broaden context because files are nearby.", content)
+            self.assertIn("## Attached FileCell", content)
             self.assertIn("src/auth.py", content)
+            self.assertEqual(filecells["filecells"][0]["path"], "src/auth.py")
+            self.assertEqual(filecells["filecells"][0]["symbol_count"], 1)
+            self.assertEqual(filecells["filecells"][0]["symbols"][0]["name"], "authenticate")
+            self.assertIn("load_user", filecells["filecells"][0]["dependencies"])
+            self.assertEqual(runtime["filecells"][0]["path"], "src/auth.py")
 
     def test_workcell_candidate_generation_does_not_write_assistant_files(self):
         with tempfile.TemporaryDirectory() as repo:
