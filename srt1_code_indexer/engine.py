@@ -1906,6 +1906,15 @@ class SRT1Engine:
             return {"error": "WorkCell registry unavailable", "status": "error"}
         return registry.repair_execution_package(queue_seed_id)
 
+    def _get_workcell_md_preview(self, queue_seed_id: Optional[str]) -> Dict[str, Any]:
+        """Return generated workcell.md instructions for a WorkCell execution."""
+        if not queue_seed_id:
+            return {"error": "queue_seed_id is required", "status": "error"}
+        registry = self._get_workcell_registry()
+        if not registry:
+            return {"error": "WorkCell registry unavailable", "status": "error"}
+        return registry.read_workcell_md(queue_seed_id)
+
     def _resolve_queue_seed_id(self, seed_id: Optional[str]) -> Optional[str]:
         """Resolve a public/callback seed id to canonical queue seed id."""
         if not seed_id or not self.seed_queue:
@@ -3068,6 +3077,12 @@ class SRT1Engine:
                         "workcells": [],
                         "executions": [],
                     })
+
+                elif path.startswith("/api/v1/workcells/") and path.endswith("/package/workcell-md"):
+                    queue_seed_id = path[len("/api/v1/workcells/"):-len("/package/workcell-md")].strip("/")
+                    result = engine._get_workcell_md_preview(queue_seed_id)
+                    status_code = 200 if result.get("status") == "ok" else 404
+                    self._json(result, status_code)
 
                 # NOTE: /admin/stats handler consolidated above (line ~1668). Dead duplicate removed.
 

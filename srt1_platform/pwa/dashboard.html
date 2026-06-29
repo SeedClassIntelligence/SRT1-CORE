@@ -182,6 +182,12 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 .workcell-package-btn{font-family:var(--sans);font-size:11px;font-weight:700;color:var(--text2);background:var(--bg3);border:1px solid var(--border2);border-radius:6px;padding:6px 9px;cursor:pointer;}
 .workcell-package-btn:hover{color:var(--text);border-color:var(--border3);background:var(--bg4);}
 .workcell-package-btn:disabled{opacity:.45;cursor:not-allowed;}
+.workcell-preview{margin-top:12px;border:1px solid var(--border);border-radius:7px;background:var(--bg);overflow:hidden;}
+.workcell-preview-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:10px;border-bottom:1px solid var(--border);background:rgba(255,255,255,0.02);}
+.workcell-preview-title{font-size:11px;font-weight:800;color:var(--green);text-transform:uppercase;letter-spacing:.04em;}
+.workcell-preview-body{max-height:260px;overflow:auto;padding:12px;font-family:var(--mono);font-size:11px;line-height:1.55;color:var(--text2);white-space:pre-wrap;}
+.workcell-preview-body.loading{color:var(--text4);}
+.workcell-preview-body.error{color:var(--amber);}
 
 /* === MODAL === */
 .modal-overlay {
@@ -1810,6 +1816,35 @@ async function repairWorkCellPackage(queueSeedId, button) {
   }
 }
 
+async function loadWorkCellMdPreview(queueSeedId, button) {
+  const preview = document.getElementById('workcellMdPreview');
+  if (!preview || !queueSeedId) return;
+  const original = button?.textContent || 'Refresh preview';
+  if (button) {
+    button.disabled = true;
+    button.textContent = 'Loading...';
+  }
+  preview.className = 'workcell-preview-body loading';
+  preview.textContent = 'Loading workcell.md...';
+  try {
+    const response = await fetch(API + '/api/v1/workcells/' + encodeURIComponent(queueSeedId) + '/package/workcell-md');
+    const result = await response.json();
+    if (!response.ok || result.status !== 'ok') {
+      throw new Error(result.error || 'Preview unavailable');
+    }
+    preview.className = 'workcell-preview-body';
+    preview.textContent = result.content || 'workcell.md is empty.';
+  } catch (e) {
+    preview.className = 'workcell-preview-body error';
+    preview.textContent = e.message || 'Preview unavailable.';
+  } finally {
+    if (button) {
+      button.disabled = false;
+      button.textContent = original;
+    }
+  }
+}
+
 function renderWorkCellDetail(payload, selectedExecution) {
   const detailEl = document.getElementById('workcellDetail');
   if (!detailEl) return;
@@ -1876,8 +1911,16 @@ function renderWorkCellDetail(payload, selectedExecution) {
       <div class="workcell-package-buttons">
         <button type="button" class="workcell-package-btn" data-copy-value="${escapeHtml(packagePath)}">Copy package path</button>
         ${packageFiles.map(([label, present, path]) => `<button type="button" class="workcell-package-btn" ${present ? '' : 'disabled'} data-copy-value="${escapeHtml(path)}">Copy ${escapeHtml(label)} path</button>`).join('')}
+        <button type="button" class="workcell-package-btn" ${packageStatus.workcell_md_exists ? '' : 'disabled'} data-preview-queue-seed-id="${escapeHtml(selectedExecution.queue_seed_id || '')}">Refresh preview</button>
         ${assistantReady ? '' : `<button type="button" class="workcell-package-btn" data-repair-queue-seed-id="${escapeHtml(selectedExecution.queue_seed_id || '')}">Repair package</button>`}
       </div>
+    </div>
+    <div class="workcell-preview">
+      <div class="workcell-preview-head">
+        <div class="workcell-preview-title">workcell.md Preview</div>
+        <div class="workcell-package-status ${packageStatus.workcell_md_exists ? 'ready' : ''}">${packageStatus.workcell_md_exists ? 'available' : 'missing'}</div>
+      </div>
+      <pre id="workcellMdPreview" class="workcell-preview-body loading">Loading workcell.md...</pre>
     </div>
     <div class="workcell-detail-paths">
       ${paths.map(path => `<span class="workcell-chip">${escapeHtml(path)}</span>`).join('') || '<span class="workcell-chip">scope unavailable</span>'}
@@ -1892,6 +1935,10 @@ function renderWorkCellDetail(payload, selectedExecution) {
   detailEl.querySelectorAll('.workcell-package-btn[data-repair-queue-seed-id]').forEach(button => {
     button.addEventListener('click', () => repairWorkCellPackage(button.dataset.repairQueueSeedId, button));
   });
+  detailEl.querySelectorAll('.workcell-package-btn[data-preview-queue-seed-id]').forEach(button => {
+    button.addEventListener('click', () => loadWorkCellMdPreview(button.dataset.previewQueueSeedId, button));
+  });
+  loadWorkCellMdPreview(selectedExecution.queue_seed_id);
 }
 
 function renderWorkCells(workcellsPayload, activeSeed) {

@@ -403,6 +403,50 @@ class WorkCellRegistry:
             "execution": execution.to_dict(),
         }
 
+    def read_workcell_md(self, queue_seed_id: str) -> Dict[str, Any]:
+        """Read the generated workcell.md instructions for an execution package."""
+        execution = self._executions.get(f"wcx_{_safe_slug(queue_seed_id)}")
+        if not execution:
+            return {
+                "status": "not_found",
+                "queue_seed_id": queue_seed_id,
+                "error": "WorkCell execution not found",
+            }
+
+        package_status = self._build_package_status(execution)
+        path = package_status.get("workcell_md_path")
+        if not path or not package_status.get("workcell_md_exists"):
+            return {
+                "status": "missing",
+                "queue_seed_id": queue_seed_id,
+                "workcell_execution_id": execution.workcell_execution_id,
+                "package_status": package_status,
+                "error": "workcell.md is missing",
+            }
+
+        package_root = os.path.realpath(execution.package_path or self.registry_dir)
+        target = os.path.realpath(path)
+        if not target.startswith(package_root + os.sep):
+            return {
+                "status": "blocked",
+                "queue_seed_id": queue_seed_id,
+                "workcell_execution_id": execution.workcell_execution_id,
+                "error": "Package preview path escaped WorkCell package boundary",
+            }
+
+        with open(target, "r", encoding="utf-8") as f:
+            content = f.read()
+        return {
+            "status": "ok",
+            "queue_seed_id": queue_seed_id,
+            "workcell_execution_id": execution.workcell_execution_id,
+            "workcell_id": execution.workcell_id,
+            "path": target,
+            "content": content,
+            "size": len(content),
+            "package_status": package_status,
+        }
+
     def summary(self) -> Dict[str, Any]:
         execution_dicts = []
         for execution in self._executions.values():

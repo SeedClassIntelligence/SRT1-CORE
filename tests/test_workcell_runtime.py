@@ -186,6 +186,27 @@ class WorkCellRuntimeTests(unittest.TestCase):
         self.assertTrue(result["after"]["assistant_ready"])
         self.assertTrue(result["after"]["filecells_json_exists"])
 
+    def test_workcell_md_preview_reads_generated_entry_instructions(self):
+        with tempfile.TemporaryDirectory() as repo:
+            registry = WorkCellRegistry(repo_path=repo)
+            registry.activate_execution(
+                queue_seed_id="seed_0001_preview",
+                srt_anchor_id="srt_anchor_preview",
+                objective="Preview WorkCell instructions",
+                manifest={
+                    "integrity": {"manifest_hash": "manifest_123"},
+                    "file_manifest": [{"file_path": "src/auth.py"}],
+                },
+            )
+
+            preview = registry.read_workcell_md("seed_0001_preview")
+
+        self.assertEqual(preview["status"], "ok")
+        self.assertEqual(preview["queue_seed_id"], "seed_0001_preview")
+        self.assertIn("Preview WorkCell instructions", preview["content"])
+        self.assertIn("## Operating Rule", preview["content"])
+        self.assertIn("queue_seed_id: seed_0001_preview", preview["content"])
+
     def test_task_response_exposes_workcell_execution_for_queue_seed(self):
         with tempfile.TemporaryDirectory() as repo:
             engine = engine_module.SRT1Engine.__new__(engine_module.SRT1Engine)
@@ -277,6 +298,9 @@ class WorkCellRuntimeTests(unittest.TestCase):
         self.assertIn("repairWorkCellPackage", html)
         self.assertIn("Repair package", html)
         self.assertIn("repair-package", html)
+        self.assertIn("loadWorkCellMdPreview", html)
+        self.assertIn("workcell.md Preview", html)
+        self.assertIn("package/workcell-md", html)
 
 
 if __name__ == "__main__":
