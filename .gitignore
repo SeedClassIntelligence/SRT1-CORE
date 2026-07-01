@@ -96,6 +96,7 @@ unknown_to_ast.py
 scratch/
 scratch_ledger_test/
 sion_output/
+project_code.txt
 
 # -- PRODUCT PACKAGING / MARKETING DRAFTS --
 # Keep these outside Core commits until product packaging is approved.

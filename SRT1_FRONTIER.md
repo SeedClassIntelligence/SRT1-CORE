@@ -11,11 +11,42 @@
 
 ## Primary Frontier: Public Boundary Stabilization
 
-Status: ACTIVE
+Status: COMPLETE ENOUGH FOR PRODUCT VERIFICATION
 
 The immediate frontier is making public-facing documentation match the recovered SRT-1 authority model before additional implementation work occurs.
 
 SRT-1 is a repo-continuity and alignment partner for AI coding assistants. Public Core must describe local repo understanding, continuity, reflection, recall, reinjection, context isolation, verification, human co-creation, constellation awareness, and trust awareness without implying that private Enterprise systems ship in Core.
+
+## Primary Product Frontier: Repository Activation
+
+Status: NEXT
+
+SRT-1 currently has a working single-repository runtime, Repo Understanding, WorkCell registry, FileCell summaries, WorkCell cockpit, package readiness, and workcell.md preview. The missing first-run product layer is Repository Activation.
+
+The product should not ask a first-time user to plant a seed before SRT-1 knows which repository it manages. The next product slice should introduce a Repository Manager that can register a local repository, activate it, run or reuse Repository Understanding, and then present FileCells and WorkCells through the PWA.
+
+Expected first-run flow:
+
+```text
+Install SRT-1
+-> Launch SRT-1
+-> Add Repository
+-> Repository Understanding
+-> Repository Ready
+-> Select WorkCell
+-> Plant Seed
+```
+
+Expected daily flow:
+
+```text
+Launch SRT-1
+-> Select Repository
+-> Load existing understanding
+-> Refresh stale evidence if needed
+-> Select WorkCell
+-> Plant Seed
+```
 
 ## Secondary Frontier: Continuity Consistency Auditing
 
@@ -36,6 +67,7 @@ This frontier must detect divergence between canonical documents and physical re
 
 ## Boundary Backlog
 
+- Add Repository Activation and Repository Manager as the first-run PWA/API layer.
 - Stabilize seed lifecycle and build-plan continuity state.
 - Stabilize recall as approved summaries and targeted historical evidence retrieval.
 - Decouple FileCell, manifest derivation, verification, and operational registry candidates from private signing, SION, and private ledger assumptions before staging.

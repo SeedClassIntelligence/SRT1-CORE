@@ -4,6 +4,8 @@ This document maps the public SRT-1 Core build boundary. It is an authority map,
 
 SRT-1 is a repo-continuity and alignment partner for AI coding assistants. Core includes local repo understanding, continuity, reflection, recall, reinjection, context isolation, verification, human co-creation, constellation awareness, and trust awareness.
 
+Repository Activation is the first product bootstrapping layer. Before SRT-1 can plant seeds or show useful WorkCells, the user must register or select the local repository SRT-1 manages. Repository Activation runs before Repo Understanding, then Repo Understanding builds the manifest, FileCells, WorkCells, dependency graph, authority graph, and verification index for that repository.
+
 ## Public Directory Map
 
 ```text
@@ -50,6 +52,25 @@ Before packaging or publishing:
 3. Confirm PWA changes are staged only after the canonical PWA source is approved.
 4. Confirm FileCell, manifest derivation, verification, and operational registry code is staged only after private dependencies have been removed or abstracted.
 5. Confirm docs describe Core as local continuity/alignment infrastructure, not as autonomous execution or private signing authority.
+
+## Product Boot Sequence
+
+The intended public Core boot sequence is:
+
+```text
+Install SRT-1
+-> Launch SRT-1
+-> Register or select repository
+-> Repository Understanding
+-> FileCells and WorkCells created
+-> Repository ready
+-> Select WorkCell
+-> Plant Seed
+-> WorkCell execution package
+-> Verification and human review
+```
+
+The current implementation has a working single-repository runtime, manifest/indexing capabilities, WorkCell registry, WorkCell cockpit, FileCell summaries, and WorkCell package preview. The missing first-run product layer is the Repository Manager: a PWA/API surface for registering, activating, refreshing, and reopening repositories without returning to the operating system file picker after first setup.
 
 ## Build / Test / Package Commands
 

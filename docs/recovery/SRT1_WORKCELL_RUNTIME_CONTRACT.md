@@ -9,17 +9,19 @@ The existing workcell boundary contract defines containment: allowed reads, allo
 The governing principle is:
 
 ```text
+Repository Activation selects the managed repository.
 FileCells own persistent repository intelligence.
 WorkCells own bounded architectural environments.
 Seeds activate execution inside WorkCells.
 ```
 
-SRT-1 should not require every assistant session to reread and reinterpret the whole repository. Repo Understanding should maintain persistent FileCells and create a persistent WorkCell for every repository file. Continuity should use seeds to activate work inside the most relevant file WorkCell. The active WorkCell execution should attach additional FileCells only when dependency evidence, contracts, verification requirements, or human approval require expansion.
+SRT-1 should not require every assistant session to reread and reinterpret the whole repository. First, Repository Activation should register or select the local repository SRT-1 manages. Then Repo Understanding should maintain persistent FileCells and create a persistent WorkCell for every repository file. Continuity should use seeds to activate work inside the most relevant file WorkCell. The active WorkCell execution should attach additional FileCells only when dependency evidence, contracts, verification requirements, or human approval require expansion.
 
 ## Canonical Terms
 
 | Term | Meaning | Must not mean |
 | --- | --- | --- |
+| Repository Activation | First-run layer that registers, selects, and activates the local repository SRT-1 manages. | Repo indexing, cloud workspace sync, or Enterprise policy backend. |
 | Repository Runtime | The local SRT-1 engine for one repository. | A shared cross-project context pool. |
 | FileCell | Persistent intelligence object for one file or tightly coupled file set. | Temporary prompt context or an execution sandbox. |
 | WorkCell | Persistent bounded execution environment associated with one repository file by default. | A raw folder copy, repo-wide assistant session, feature bucket, or direct autonomous controller. |
@@ -374,7 +376,8 @@ Source browsing should be a WorkCell view, not the primary product model.
 ## Runtime Flow
 
 ```text
-Repository
+Repository Activation
+-> Selected repository
 -> Repo Understanding
 -> Persistent FileCells
 -> Persistent file WorkCell registry
