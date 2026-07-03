@@ -655,6 +655,37 @@ class SRT1Engine:
         except Exception as exc:
             return {"status": "error", "error": f"Could not stop repository runtime: {exc}", "repositories": registry.list_repositories()}
 
+    def _shutdown_current_runtime(self) -> Dict[str, Any]:
+        """Stop this local SRT-1 runtime after the HTTP response is sent."""
+        port = getattr(self, "port", None)
+        engine_id = getattr(self, "_engine_id", None)
+        server = getattr(self, "_http_server", None)
+
+        def _shutdown() -> None:
+            time.sleep(0.35)
+            try:
+                if getattr(self, "_registry", None) and engine_id:
+                    self._registry.deregister_engine(engine_id)
+            except Exception:
+                pass
+            self._watcher_running = False
+            if server:
+                try:
+                    server.shutdown()
+                    server.server_close()
+                    return
+                except Exception:
+                    pass
+            os._exit(0)
+
+        threading.Thread(target=_shutdown, daemon=True).start()
+        return {
+            "status": "stopping",
+            "message": "SRT-1 runtime is stopping.",
+            "port": port,
+            "engine_id": engine_id,
+        }
+
     def _log_event(self, category: str, message: str, data: Optional[Dict] = None) -> None:
         """Record a real, timestamped engine event. External signing is optional."""
         event = {
@@ -4153,6 +4184,10 @@ class SRT1Engine:
                     status_code = 200 if result.get("status") in {"stopped", "not_running"} else 400
                     return self._json(result, status_code)
 
+                elif path == "/api/v1/runtime/shutdown":
+                    result = engine._shutdown_current_runtime()
+                    return self._json(result, 200)
+
                 elif path == "/api/v1/auth/signup":
                     email = body.get("email")
                     name = body.get("name", "User")
@@ -4565,6 +4600,7 @@ class SRT1Engine:
         while True:
             try:
                 server = ThreadedServer(("127.0.0.1", self.port), Handler)
+                self._http_server = server
                 break
             except OSError as e:
                 # 98 is EADDRINUSE on Linux/Mac, 10048 is WSAEADDRINUSE on Windows

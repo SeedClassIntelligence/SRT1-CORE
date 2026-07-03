@@ -619,6 +619,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
       <button type="button" class="workcell-package-btn" onclick="registerRepositoryPath()">Register path</button>
       <button type="button" class="workcell-package-btn" onclick="registerCurrentRepository()">Register current repository</button>
       <button type="button" class="workcell-package-btn" onclick="loadDashboardSummary()">Refresh repository state</button>
+      <button type="button" class="workcell-package-btn" onclick="shutdownCurrentRuntime()" title="Stop this local SRT-1 engine. External coding assistants must be stopped from their own app.">Stop SRT-1</button>
     </div>
     <div class="repo-library">
       <div class="repo-library-title">Known Repositories</div>
@@ -2157,6 +2158,39 @@ async function stopRepositoryRuntime(repoId) {
   } catch (e) {
     if (statusEl) {
       statusEl.textContent = 'stop failed';
+      statusEl.classList.remove('ready');
+    }
+  }
+}
+
+async function shutdownCurrentRuntime() {
+  const statusEl = document.getElementById('repositoryManagerStatus');
+  if (!window.confirm('Stop this local SRT-1 runtime? External coding assistants are not stopped by this control.')) {
+    return;
+  }
+  if (statusEl) {
+    statusEl.textContent = 'stopping SRT-1';
+    statusEl.classList.remove('ready');
+  }
+  try {
+    const response = await fetch(API + '/api/v1/runtime/shutdown', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    const result = await response.json();
+    if (!response.ok || result.status !== 'stopping') {
+      throw new Error(result.error || 'SRT-1 shutdown failed');
+    }
+    if (statusEl) statusEl.textContent = 'SRT-1 stopping';
+    setTimeout(() => {
+      const grid = document.getElementById('neuralMapGrid');
+      if (grid) {
+        grid.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text4);font-size:13px;">SRT-1 runtime stopped. Restart SRT-1 from your launcher or terminal to reconnect.</div>';
+      }
+    }, 600);
+  } catch (e) {
+    if (statusEl) {
+      statusEl.textContent = 'shutdown failed';
       statusEl.classList.remove('ready');
     }
   }
