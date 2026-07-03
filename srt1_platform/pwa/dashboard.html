@@ -199,6 +199,18 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 .repo-manager-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px;}
 .repo-manager-status{font-family:var(--mono);font-size:10px;padding:4px 7px;border-radius:5px;border:1px solid var(--amber-border);color:var(--amber);background:var(--amber-bg);}
 .repo-manager-status.ready{border-color:var(--green-border);color:var(--green);background:var(--green-bg);}
+.repo-activation-flow{display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:8px;margin:12px 0;}
+.repo-activation-step{border:1px solid var(--border);border-radius:7px;background:rgba(255,255,255,.02);padding:8px;min-width:0;}
+.repo-activation-step.active{border-color:var(--cyan-border);background:var(--cyan-bg);}
+.repo-activation-step.ready{border-color:var(--green-border);background:var(--green-bg);}
+.repo-activation-step-label{font-size:10px;color:var(--text4);text-transform:uppercase;font-weight:800;margin-bottom:4px;}
+.repo-activation-step-value{font-size:12px;color:var(--text2);line-height:1.35;}
+.repo-library{margin-top:10px;border-top:1px solid var(--border);padding-top:10px;}
+.repo-library-title{font-size:10px;color:var(--text4);text-transform:uppercase;font-weight:800;margin-bottom:6px;}
+.repo-library-list{display:grid;gap:6px;}
+.repo-library-item{display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid var(--border);border-radius:7px;background:var(--bg);padding:7px 8px;font-size:11px;color:var(--text3);}
+.repo-library-name{font-family:var(--mono);color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.repo-library-meta{font-size:10px;color:var(--text4);white-space:nowrap;}
 
 /* === MODAL === */
 .modal-overlay {
@@ -555,9 +567,27 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
     <div class="repo-manager-head">
       <div>
         <div class="repo-manager-title">Repository Manager</div>
-        <div class="repo-manager-sub" id="repositoryManagerSubtitle">Register or activate the local repository before selecting WorkCells.</div>
+        <div class="repo-manager-sub" id="repositoryManagerSubtitle">Choose the repository SRT-1 should manage before selecting WorkCells or planting Seeds.</div>
       </div>
       <div class="repo-manager-status" id="repositoryManagerStatus">checking</div>
+    </div>
+    <div class="repo-activation-flow">
+      <div class="repo-activation-step" id="repoStepRegister">
+        <div class="repo-activation-step-label">1. Repository</div>
+        <div class="repo-activation-step-value">Register local project</div>
+      </div>
+      <div class="repo-activation-step" id="repoStepUnderstand">
+        <div class="repo-activation-step-label">2. Understanding</div>
+        <div class="repo-activation-step-value">Manifest and symbols</div>
+      </div>
+      <div class="repo-activation-step" id="repoStepCells">
+        <div class="repo-activation-step-label">3. Cells</div>
+        <div class="repo-activation-step-value">FileCells and WorkCells</div>
+      </div>
+      <div class="repo-activation-step" id="repoStepExecute">
+        <div class="repo-activation-step-label">4. Execute</div>
+        <div class="repo-activation-step-value">Plant Seed in WorkCell</div>
+      </div>
     </div>
     <div class="repo-manager-grid">
       <div class="repo-manager-item">
@@ -584,6 +614,15 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
     <div class="repo-manager-actions">
       <button type="button" class="workcell-package-btn" onclick="registerCurrentRepository()">Register current repository</button>
       <button type="button" class="workcell-package-btn" onclick="loadDashboardSummary()">Refresh repository state</button>
+    </div>
+    <div class="repo-library">
+      <div class="repo-library-title">Known Repositories</div>
+      <div class="repo-library-list" id="repoLibraryList">
+        <div class="repo-library-item">
+          <span class="repo-library-name">Waiting for repository registry</span>
+          <span class="repo-library-meta">local runtime</span>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -1835,6 +1874,44 @@ function escapeHtml(value) {
   }[ch]));
 }
 
+function setRepositoryActivationStep(id, state) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.remove('active', 'ready');
+  if (state) el.classList.add(state);
+}
+
+function renderRepositoryLibrary(repositories, activeRepoId) {
+  const listEl = document.getElementById('repoLibraryList');
+  if (!listEl) return;
+  const repos = Array.isArray(repositories) ? repositories : [];
+  if (!repos.length) {
+    listEl.innerHTML = `
+      <div class="repo-library-item">
+        <span class="repo-library-name">No repositories registered yet</span>
+        <span class="repo-library-meta">register current</span>
+      </div>
+    `;
+    return;
+  }
+  listEl.innerHTML = repos.map(repo => {
+    const isActive = repo.repo_id === activeRepoId || repo.active;
+    const meta = `${repo.filecell_count || repo.file_count || 0} files · ${repo.workcell_count || 0} workcells · ${repo.freshness_state || 'unknown'}`;
+    return `
+      <div class="repo-library-item">
+        <div style="min-width:0;">
+          <div class="repo-library-name">${escapeHtml(repo.name || repo.path || repo.repo_id)}</div>
+          <div class="repo-library-meta">${escapeHtml(repo.path || '')}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:7px;flex-shrink:0;">
+          <span class="repo-library-meta">${escapeHtml(meta)}</span>
+          ${isActive ? '<span class="repo-manager-status ready">active</span>' : `<button type="button" class="workcell-package-btn" onclick="activateRepository('${escapeHtml(repo.repo_id)}')">Activate</button>`}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
 function renderRepositoryManager(activation, summary) {
   const statusEl = document.getElementById('repositoryManagerStatus');
   const subtitleEl = document.getElementById('repositoryManagerSubtitle');
@@ -1848,18 +1925,26 @@ function renderRepositoryManager(activation, summary) {
   const active = activation?.active_repository || null;
   const status = activation?.status || 'offline';
   const ready = status === 'ready' && active;
+  const hasManifest = !!(active?.manifest_hash || summary?.manifest_hash);
+  const hasCells = Number(active?.filecell_count ?? summary?.files_indexed ?? 0) > 0
+    && Number(active?.workcell_count ?? summary?.workcells?.workcell_count ?? 0) > 0;
 
   statusEl.textContent = ready ? 'ready' : status;
   statusEl.classList.toggle('ready', !!ready);
   subtitleEl.textContent = ready
-    ? 'Repository is activated. Select a WorkCell, then plant a Seed.'
-    : 'Register or activate a local repository before selecting WorkCells.';
+    ? 'Repository is activated. Browse SRT-1 intelligence, select a WorkCell, then plant a Seed.'
+    : 'First choose the repository SRT-1 should manage, then let Repo Understanding create FileCells and WorkCells.';
 
   nameEl.textContent = active?.name || summary?.repo || 'No repository active';
   pathEl.textContent = active?.path || 'Waiting for SRT-1 engine';
   fileCellsEl.textContent = String(active?.filecell_count ?? summary?.files_indexed ?? 0);
   workCellsEl.textContent = String(active?.workcell_count ?? summary?.workcells?.workcell_count ?? 0);
   freshnessEl.textContent = active?.freshness_state || summary?.manifest_freshness || 'unknown';
+  setRepositoryActivationStep('repoStepRegister', ready ? 'ready' : 'active');
+  setRepositoryActivationStep('repoStepUnderstand', hasManifest ? 'ready' : (ready ? 'active' : ''));
+  setRepositoryActivationStep('repoStepCells', hasCells ? 'ready' : (hasManifest ? 'active' : ''));
+  setRepositoryActivationStep('repoStepExecute', hasCells ? 'active' : '');
+  renderRepositoryLibrary(activation?.repositories || [], activation?.active_repo_id || active?.repo_id || null);
 }
 
 async function registerCurrentRepository() {
@@ -1889,6 +1974,33 @@ async function registerCurrentRepository() {
   } finally {
     if (statusEl && statusEl.textContent === 'registering') {
       statusEl.textContent = original;
+    }
+  }
+}
+
+async function activateRepository(repoId) {
+  const statusEl = document.getElementById('repositoryManagerStatus');
+  if (statusEl) {
+    statusEl.textContent = 'activating';
+    statusEl.classList.remove('ready');
+  }
+  try {
+    const response = await fetch(API + '/api/v1/repositories/activate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ repo_id: repoId })
+    });
+    const result = await response.json();
+    if (!response.ok || result.status !== 'ready') {
+      throw new Error(result.error || 'Repository activation failed');
+    }
+    renderRepositoryManager(result, null);
+    await loadDashboardSummary();
+    setTimeout(() => loadManifest({ renderExplorer: false }), 150);
+  } catch (e) {
+    if (statusEl) {
+      statusEl.textContent = 'error';
+      statusEl.classList.remove('ready');
     }
   }
 }

@@ -74,9 +74,13 @@ class RepositoryActivationTests(unittest.TestCase):
         ).read_text(encoding="utf-8")
 
         self.assertIn("Repository Manager", dashboard)
+        self.assertIn("repo-activation-flow", dashboard)
+        self.assertIn("Known Repositories", dashboard)
         self.assertIn("renderRepositoryManager", dashboard)
+        self.assertIn("activateRepository", dashboard)
         self.assertIn("registerCurrentRepository", dashboard)
         self.assertIn("/api/v1/repositories/register-current", dashboard)
+        self.assertIn("/api/v1/repositories/activate", dashboard)
 
 
 if __name__ == "__main__":
