@@ -1917,6 +1917,38 @@ function renderRepositoryLibrary(repositories, activeRepoId) {
   }).join('');
 }
 
+renderRepositoryLibrary = function(repositories, activeRepoId) {
+  const listEl = document.getElementById('repoLibraryList');
+  if (!listEl) return;
+  const repos = Array.isArray(repositories) ? repositories : [];
+  if (!repos.length) {
+    listEl.innerHTML = `
+      <div class="repo-library-item">
+        <span class="repo-library-name">No repositories registered yet</span>
+        <span class="repo-library-meta">register current</span>
+      </div>
+    `;
+    return;
+  }
+  listEl.innerHTML = repos.map(repo => {
+    const isActive = repo.repo_id === activeRepoId || repo.active;
+    const runtime = repo.runtime_port ? ` | port:${repo.runtime_port}` : '';
+    const meta = `${repo.filecell_count || repo.file_count || 0} files | ${repo.workcell_count || 0} workcells | ${repo.freshness_state || 'unknown'}${runtime}`;
+    return `
+      <div class="repo-library-item">
+        <div style="min-width:0;">
+          <div class="repo-library-name">${escapeHtml(repo.name || repo.path || repo.repo_id)}</div>
+          <div class="repo-library-meta">${escapeHtml(repo.path || '')}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:7px;flex-shrink:0;">
+          <span class="repo-library-meta">${escapeHtml(meta)}</span>
+          ${isActive ? '<span class="repo-manager-status ready">active</span>' : `<button type="button" class="workcell-package-btn" onclick="launchRepositoryRuntime('${escapeHtml(repo.repo_id)}')">Launch runtime</button>`}
+        </div>
+      </div>
+    `;
+  }).join('');
+};
+
 function renderRepositoryManager(activation, summary) {
   const statusEl = document.getElementById('repositoryManagerStatus');
   const subtitleEl = document.getElementById('repositoryManagerSubtitle');
@@ -2055,6 +2087,35 @@ async function browseRepositoryFolder() {
   } catch (e) {
     if (statusEl) {
       statusEl.textContent = 'picker unavailable';
+      statusEl.classList.remove('ready');
+    }
+  }
+}
+
+async function launchRepositoryRuntime(repoId) {
+  const statusEl = document.getElementById('repositoryManagerStatus');
+  if (statusEl) {
+    statusEl.textContent = 'launching runtime';
+    statusEl.classList.remove('ready');
+  }
+  try {
+    const response = await fetch(API + '/api/v1/repositories/launch', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ repo_id: repoId })
+    });
+    const result = await response.json();
+    if (!response.ok || !['ready', 'running', 'launching'].includes(result.status)) {
+      throw new Error(result.error || 'Repository runtime launch failed');
+    }
+    renderRepositoryManager(result, null);
+    if (result.dashboard_url) {
+      if (statusEl) statusEl.textContent = result.status === 'launching' ? 'switching' : 'running';
+      setTimeout(() => { window.location.href = result.dashboard_url; }, result.status === 'launching' ? 2500 : 400);
+    }
+  } catch (e) {
+    if (statusEl) {
+      statusEl.textContent = 'launch failed';
       statusEl.classList.remove('ready');
     }
   }

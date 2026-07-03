@@ -1,6 +1,7 @@
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import Mock, patch
 
 from srt1_code_indexer import engine as engine_module
 from srt1_platform.repository_activation import RepositoryActivationRegistry
@@ -93,6 +94,38 @@ class RepositoryActivationTests(unittest.TestCase):
         self.assertEqual(rejected_activation["status"], "registered")
         self.assertIn("different local path", rejected_activation["error"])
 
+    def test_engine_launches_registered_repository_as_separate_runtime(self):
+        with tempfile.TemporaryDirectory() as active_repo, tempfile.TemporaryDirectory() as other_repo:
+            engine = engine_module.SRT1Engine.__new__(engine_module.SRT1Engine)
+            engine.repo_path = active_repo
+            engine.port = 7499
+            engine.manifest = {
+                "integrity": {"manifest_hash": "manifest_active"},
+                "file_manifest": [{"file_path": "src/app.py"}],
+            }
+            engine.repository_registry = RepositoryActivationRegistry(
+                state_dir=str(Path(active_repo) / ".srt1" / "repositories")
+            )
+            engine.workcell_registry = WorkCellRegistry(repo_path=active_repo)
+            engine.workcell_registry.populate_from_manifest(engine.manifest)
+            engine._refresh_repository_activation()
+            registered = engine._register_repository_path(other_repo)
+            repo_id = registered["registered_repository"]["repo_id"]
+
+            with patch.object(engine_module, "OperationalRegistry", None), \
+                 patch.object(engine_module, "_find_free_port", return_value=7555), \
+                 patch.object(engine_module.subprocess, "Popen", return_value=Mock(pid=12345)) as popen:
+                launched = engine._launch_repository_runtime(repo_id)
+
+        self.assertEqual(launched["status"], "launching")
+        self.assertEqual(launched["runtime_port"], 7555)
+        self.assertEqual(launched["pid"], 12345)
+        self.assertEqual(launched["active_repository"]["path"], str(Path(active_repo).resolve()))
+        self.assertIn("http://127.0.0.1:7555/dashboard", launched["dashboard_url"])
+        args = popen.call_args.args[0]
+        self.assertIn("--repo_path", args)
+        self.assertIn(str(Path(other_repo).resolve()), args)
+
     def test_dashboard_contains_repository_manager_wiring(self):
         dashboard = (
             Path(__file__).resolve().parents[1]
@@ -109,7 +142,10 @@ class RepositoryActivationTests(unittest.TestCase):
         self.assertIn("registerRepositoryPath", dashboard)
         self.assertIn("browseRepositoryFolder", dashboard)
         self.assertIn("Browse folder", dashboard)
+        self.assertIn("launchRepositoryRuntime", dashboard)
+        self.assertIn("Launch runtime", dashboard)
         self.assertIn("registerCurrentRepository", dashboard)
+        self.assertIn("/api/v1/repositories/launch", dashboard)
         self.assertIn("/api/v1/repositories/browse-folder", dashboard)
         self.assertIn("/api/v1/repositories/register-path", dashboard)
         self.assertIn("/api/v1/repositories/register-current", dashboard)

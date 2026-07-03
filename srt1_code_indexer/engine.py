@@ -54,6 +54,8 @@ import hashlib
 import logging
 import threading
 import argparse
+import subprocess
+import socket
 import webbrowser
 import sqlite3
 import uuid
@@ -142,6 +144,15 @@ logging.basicConfig(
     format="%(asctime)s [SRT-1] %(message)s",
 )
 logger = logging.getLogger("srt1")
+
+
+def _find_free_port(start_port: int, span: int = 100) -> int:
+    for port in range(start_port, start_port + span):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            if sock.connect_ex(("127.0.0.1", port)) != 0:
+                return port
+    return start_port + span
+
 
 # ---- Consumer Auth Helpers (unified from legacy/srt1_cloud.py) ----
 DB_FILE = "srt1_cloud.db"
@@ -493,6 +504,96 @@ class SRT1Engine:
                 "active_repository": registry.active_repository(),
                 "repositories": registry.list_repositories(),
             }
+
+    def _launch_repository_runtime(self, repo_id: Optional[str]) -> Dict[str, Any]:
+        """Launch an isolated SRT-1 engine for a registered repository."""
+        registry = self._get_repository_registry()
+        if not registry:
+            return {"status": "unavailable", "error": "Repository Activation registry unavailable"}
+        if not repo_id:
+            return {"status": "error", "error": "Repository id is required", "repositories": registry.list_repositories()}
+
+        repositories = registry.list_repositories()
+        candidate = next((repo for repo in repositories if repo.get("repo_id") == repo_id), None)
+        if not candidate:
+            return {"status": "error", "error": f"Repository not registered: {repo_id}", "repositories": repositories}
+
+        repo_path = os.path.realpath(candidate.get("path", ""))
+        if not os.path.isdir(repo_path):
+            return {"status": "error", "error": f"Repository path does not exist: {repo_path}", "repositories": repositories}
+
+        if os.path.realpath(repo_path) == os.path.realpath(self.repo_path):
+            return {
+                "status": "ready",
+                "active_repository": registry.active_repository(),
+                "repositories": repositories,
+                "runtime_port": getattr(self, "port", None),
+                "dashboard_url": f"http://127.0.0.1:{getattr(self, 'port', '')}/dashboard",
+                "message": "Repository is already running in this engine.",
+            }
+
+        if OperationalRegistry:
+            try:
+                op_registry = OperationalRegistry()
+                for engine_entry in op_registry.get_active_engines():
+                    if os.path.realpath(engine_entry.get("workspace_path", "")) == repo_path:
+                        port = engine_entry.get("port")
+                        return {
+                            "status": "running",
+                            "runtime_port": port,
+                            "dashboard_url": f"http://127.0.0.1:{port}/dashboard",
+                            "active_repository": registry.active_repository(),
+                            "repositories": repositories,
+                            "message": "Repository runtime is already running.",
+                        }
+            except Exception:
+                pass
+
+        start_port = int(getattr(self, "port", 7484) or 7484) + 1
+        port = _find_free_port(start_port)
+        log_dir = os.path.join(os.path.expanduser("~"), ".srt1", "runtime-logs")
+        os.makedirs(log_dir, exist_ok=True)
+        safe_name = "".join(ch if ch.isalnum() or ch in ("-", "_") else "_" for ch in os.path.basename(repo_path) or "repository")
+        stdout_path = os.path.join(log_dir, f"{safe_name}_{port}.out.log")
+        stderr_path = os.path.join(log_dir, f"{safe_name}_{port}.err.log")
+
+        env = os.environ.copy()
+        env["PYTHONPATH"] = os.pathsep.join([_core_dir, env.get("PYTHONPATH", "")]).rstrip(os.pathsep)
+        creationflags = getattr(subprocess, "CREATE_NO_WINDOW", 0) if os.name == "nt" else 0
+        try:
+            with open(stdout_path, "a", encoding="utf-8") as stdout, open(stderr_path, "a", encoding="utf-8") as stderr:
+                process = subprocess.Popen(
+                    [
+                        sys.executable,
+                        "-m",
+                        "srt1_code_indexer.engine",
+                        "--repo_path",
+                        repo_path,
+                        "--port",
+                        str(port),
+                    ],
+                    cwd=_core_dir,
+                    env=env,
+                    stdout=stdout,
+                    stderr=stderr,
+                    stdin=subprocess.DEVNULL,
+                    creationflags=creationflags,
+                )
+        except Exception as exc:
+            return {"status": "error", "error": f"Could not launch repository runtime: {exc}", "repositories": repositories}
+
+        record = registry.register_path(repo_path, runtime_port=port, activate=False)
+        return {
+            "status": "launching",
+            "runtime_port": port,
+            "pid": process.pid,
+            "dashboard_url": f"http://127.0.0.1:{port}/dashboard",
+            "registered_repository": record.to_dict(),
+            "active_repository": registry.active_repository(),
+            "repositories": registry.list_repositories(),
+            "stdout_log": stdout_path,
+            "stderr_log": stderr_path,
+        }
 
     def _log_event(self, category: str, message: str, data: Optional[Dict] = None) -> None:
         """Record a real, timestamped engine event. External signing is optional."""
@@ -3978,6 +4079,12 @@ class SRT1Engine:
                     repo_id = body.get("repo_id")
                     result = engine._activate_repository(repo_id)
                     status_code = 200 if result.get("status") in {"ready", "registered"} else 404
+                    return self._json(result, status_code)
+
+                elif path == "/api/v1/repositories/launch":
+                    repo_id = body.get("repo_id")
+                    result = engine._launch_repository_runtime(repo_id)
+                    status_code = 200 if result.get("status") in {"ready", "running", "launching"} else 400
                     return self._json(result, status_code)
 
                 elif path == "/api/v1/auth/signup":
