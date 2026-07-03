@@ -1886,7 +1886,7 @@ function setRepositoryActivationStep(id, state) {
   if (state) el.classList.add(state);
 }
 
-function renderRepositoryLibrary(repositories, activeRepoId) {
+function renderRepositoryLibraryLegacy(repositories, activeRepoId) {
   const listEl = document.getElementById('repoLibraryList');
   if (!listEl) return;
   const repos = Array.isArray(repositories) ? repositories : [];
@@ -1932,8 +1932,14 @@ renderRepositoryLibrary = function(repositories, activeRepoId) {
   }
   listEl.innerHTML = repos.map(repo => {
     const isActive = repo.repo_id === activeRepoId || repo.active;
+    const isRunning = !!repo.runtime_port;
     const runtime = repo.runtime_port ? ` | port:${repo.runtime_port}` : '';
     const meta = `${repo.filecell_count || repo.file_count || 0} files | ${repo.workcell_count || 0} workcells | ${repo.freshness_state || 'unknown'}${runtime}`;
+    const actions = isActive
+      ? '<span class="repo-manager-status ready">active</span>'
+      : isRunning
+        ? `<button type="button" class="workcell-package-btn" onclick="openRepositoryRuntime('${escapeHtml(repo.runtime_port)}')">Open</button><button type="button" class="workcell-package-btn" onclick="stopRepositoryRuntime('${escapeHtml(repo.repo_id)}')">Stop runtime</button>`
+        : `<button type="button" class="workcell-package-btn" onclick="launchRepositoryRuntime('${escapeHtml(repo.repo_id)}')">Launch runtime</button>`;
     return `
       <div class="repo-library-item">
         <div style="min-width:0;">
@@ -1942,7 +1948,7 @@ renderRepositoryLibrary = function(repositories, activeRepoId) {
         </div>
         <div style="display:flex;align-items:center;gap:7px;flex-shrink:0;">
           <span class="repo-library-meta">${escapeHtml(meta)}</span>
-          ${isActive ? '<span class="repo-manager-status ready">active</span>' : `<button type="button" class="workcell-package-btn" onclick="launchRepositoryRuntime('${escapeHtml(repo.repo_id)}')">Launch runtime</button>`}
+          ${actions}
         </div>
       </div>
     `;
@@ -2116,6 +2122,41 @@ async function launchRepositoryRuntime(repoId) {
   } catch (e) {
     if (statusEl) {
       statusEl.textContent = 'launch failed';
+      statusEl.classList.remove('ready');
+    }
+  }
+}
+
+function openRepositoryRuntime(port) {
+  if (!port) return;
+  window.location.href = `http://127.0.0.1:${port}/dashboard`;
+}
+
+async function stopRepositoryRuntime(repoId) {
+  const statusEl = document.getElementById('repositoryManagerStatus');
+  if (statusEl) {
+    statusEl.textContent = 'stopping runtime';
+    statusEl.classList.remove('ready');
+  }
+  try {
+    const response = await fetch(API + '/api/v1/repositories/stop-runtime', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ repo_id: repoId })
+    });
+    const result = await response.json();
+    if (!response.ok || !['stopped', 'not_running'].includes(result.status)) {
+      throw new Error(result.error || 'Repository runtime stop failed');
+    }
+    renderRepositoryManager(result, null);
+    await loadDashboardSummary();
+    if (statusEl) {
+      statusEl.textContent = result.status === 'stopped' ? 'stopped' : 'not running';
+      statusEl.classList.remove('ready');
+    }
+  } catch (e) {
+    if (statusEl) {
+      statusEl.textContent = 'stop failed';
       statusEl.classList.remove('ready');
     }
   }

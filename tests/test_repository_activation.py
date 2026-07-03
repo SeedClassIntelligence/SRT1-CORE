@@ -126,6 +126,56 @@ class RepositoryActivationTests(unittest.TestCase):
         self.assertIn("--repo_path", args)
         self.assertIn(str(Path(other_repo).resolve()), args)
 
+    def test_engine_stops_external_repository_runtime(self):
+        with tempfile.TemporaryDirectory() as active_repo, tempfile.TemporaryDirectory() as other_repo:
+            engine = engine_module.SRT1Engine.__new__(engine_module.SRT1Engine)
+            engine.repo_path = active_repo
+            engine.port = 7499
+            engine.manifest = {
+                "integrity": {"manifest_hash": "manifest_active"},
+                "file_manifest": [{"file_path": "src/app.py"}],
+            }
+            engine.repository_registry = RepositoryActivationRegistry(
+                state_dir=str(Path(active_repo) / ".srt1" / "repositories")
+            )
+            engine.workcell_registry = WorkCellRegistry(repo_path=active_repo)
+            engine.workcell_registry.populate_from_manifest(engine.manifest)
+            engine._refresh_repository_activation()
+            registered = engine._register_repository_path(other_repo)
+            repo_id = registered["registered_repository"]["repo_id"]
+            engine.repository_registry.register_path(other_repo, runtime_port=7555)
+
+            class FakeOperationalRegistry:
+                def __init__(self):
+                    self.deregistered = None
+
+                def get_all_engines(self):
+                    return {
+                        "engines": {
+                            "engine_other": {
+                                "workspace_path": str(Path(other_repo).resolve()),
+                                "status": "RUNNING",
+                                "pid": 12345,
+                                "port": 7555,
+                            }
+                        }
+                    }
+
+                def deregister_engine(self, engine_id):
+                    self.deregistered = engine_id
+                    return True
+
+            fake_registry = FakeOperationalRegistry()
+            with patch.object(engine_module, "OperationalRegistry", return_value=fake_registry), \
+                 patch.object(engine_module.os, "kill") as kill:
+                stopped = engine._stop_repository_runtime(repo_id)
+
+        self.assertEqual(stopped["status"], "stopped")
+        self.assertEqual(stopped["stopped_pid"], 12345)
+        kill.assert_called_once()
+        self.assertEqual(stopped["registered_repository"]["runtime_port"], None)
+        self.assertEqual(stopped["active_repository"]["path"], str(Path(active_repo).resolve()))
+
     def test_dashboard_contains_repository_manager_wiring(self):
         dashboard = (
             Path(__file__).resolve().parents[1]
@@ -144,8 +194,12 @@ class RepositoryActivationTests(unittest.TestCase):
         self.assertIn("Browse folder", dashboard)
         self.assertIn("launchRepositoryRuntime", dashboard)
         self.assertIn("Launch runtime", dashboard)
+        self.assertIn("stopRepositoryRuntime", dashboard)
+        self.assertIn("Stop runtime", dashboard)
+        self.assertIn("openRepositoryRuntime", dashboard)
         self.assertIn("registerCurrentRepository", dashboard)
         self.assertIn("/api/v1/repositories/launch", dashboard)
+        self.assertIn("/api/v1/repositories/stop-runtime", dashboard)
         self.assertIn("/api/v1/repositories/browse-folder", dashboard)
         self.assertIn("/api/v1/repositories/register-path", dashboard)
         self.assertIn("/api/v1/repositories/register-current", dashboard)

@@ -56,6 +56,7 @@ import threading
 import argparse
 import subprocess
 import socket
+import signal
 import webbrowser
 import sqlite3
 import uuid
@@ -594,6 +595,65 @@ class SRT1Engine:
             "stdout_log": stdout_path,
             "stderr_log": stderr_path,
         }
+
+    def _stop_repository_runtime(self, repo_id: Optional[str]) -> Dict[str, Any]:
+        """Stop an isolated SRT-1 engine for a registered repository."""
+        registry = self._get_repository_registry()
+        if not registry:
+            return {"status": "unavailable", "error": "Repository Activation registry unavailable"}
+        if not repo_id:
+            return {"status": "error", "error": "Repository id is required", "repositories": registry.list_repositories()}
+
+        repositories = registry.list_repositories()
+        candidate = next((repo for repo in repositories if repo.get("repo_id") == repo_id), None)
+        if not candidate:
+            return {"status": "error", "error": f"Repository not registered: {repo_id}", "repositories": repositories}
+
+        repo_path = os.path.realpath(candidate.get("path", ""))
+        if os.path.realpath(repo_path) == os.path.realpath(self.repo_path):
+            return {
+                "status": "error",
+                "error": "Refusing to stop the current active engine from inside itself.",
+                "active_repository": registry.active_repository(),
+                "repositories": repositories,
+            }
+        if not OperationalRegistry:
+            return {"status": "unavailable", "error": "OperationalRegistry unavailable", "repositories": repositories}
+
+        try:
+            op_registry = OperationalRegistry()
+            engines = op_registry.get_all_engines().get("engines", {})
+            match = None
+            match_id = None
+            for engine_id, entry in engines.items():
+                if os.path.realpath(entry.get("workspace_path", "")) == repo_path and entry.get("status") == "RUNNING":
+                    match = entry
+                    match_id = engine_id
+                    break
+            if not match:
+                record = registry.register_path(repo_path, runtime_port=None, activate=False)
+                return {
+                    "status": "not_running",
+                    "registered_repository": record.to_dict(),
+                    "active_repository": registry.active_repository(),
+                    "repositories": registry.list_repositories(),
+                }
+
+            pid = match.get("pid")
+            if pid:
+                os.kill(int(pid), signal.SIGTERM)
+            if match_id:
+                op_registry.deregister_engine(match_id)
+            record = registry.register_path(repo_path, runtime_port=None, activate=False)
+            return {
+                "status": "stopped",
+                "stopped_pid": pid,
+                "registered_repository": record.to_dict(),
+                "active_repository": registry.active_repository(),
+                "repositories": registry.list_repositories(),
+            }
+        except Exception as exc:
+            return {"status": "error", "error": f"Could not stop repository runtime: {exc}", "repositories": registry.list_repositories()}
 
     def _log_event(self, category: str, message: str, data: Optional[Dict] = None) -> None:
         """Record a real, timestamped engine event. External signing is optional."""
@@ -4085,6 +4145,12 @@ class SRT1Engine:
                     repo_id = body.get("repo_id")
                     result = engine._launch_repository_runtime(repo_id)
                     status_code = 200 if result.get("status") in {"ready", "running", "launching"} else 400
+                    return self._json(result, status_code)
+
+                elif path == "/api/v1/repositories/stop-runtime":
+                    repo_id = body.get("repo_id")
+                    result = engine._stop_repository_runtime(repo_id)
+                    status_code = 200 if result.get("status") in {"stopped", "not_running"} else 400
                     return self._json(result, status_code)
 
                 elif path == "/api/v1/auth/signup":
