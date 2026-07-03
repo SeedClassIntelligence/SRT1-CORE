@@ -65,6 +65,34 @@ class RepositoryActivationTests(unittest.TestCase):
         self.assertEqual(status["active_repository"]["file_count"], 2)
         self.assertEqual(status["active_repository"]["workcell_count"], 2)
 
+    def test_engine_registers_external_path_without_switching_runtime(self):
+        with tempfile.TemporaryDirectory() as active_repo, tempfile.TemporaryDirectory() as other_repo:
+            engine = engine_module.SRT1Engine.__new__(engine_module.SRT1Engine)
+            engine.repo_path = active_repo
+            engine.port = 7499
+            engine.manifest = {
+                "integrity": {"manifest_hash": "manifest_active"},
+                "file_manifest": [{"file_path": "src/app.py"}],
+            }
+            engine.repository_registry = RepositoryActivationRegistry(
+                state_dir=str(Path(active_repo) / ".srt1" / "repositories")
+            )
+            engine.workcell_registry = WorkCellRegistry(repo_path=active_repo)
+            engine.workcell_registry.populate_from_manifest(engine.manifest)
+            active_status = engine._refresh_repository_activation()
+
+            registered = engine._register_repository_path(other_repo)
+            rejected_activation = engine._activate_repository(
+                registered["registered_repository"]["repo_id"]
+            )
+
+        self.assertEqual(active_status["status"], "ready")
+        self.assertEqual(registered["status"], "registered")
+        self.assertEqual(len(registered["repositories"]), 2)
+        self.assertEqual(registered["active_repository"]["path"], str(Path(active_repo).resolve()))
+        self.assertEqual(rejected_activation["status"], "registered")
+        self.assertIn("different local path", rejected_activation["error"])
+
     def test_dashboard_contains_repository_manager_wiring(self):
         dashboard = (
             Path(__file__).resolve().parents[1]
@@ -78,7 +106,9 @@ class RepositoryActivationTests(unittest.TestCase):
         self.assertIn("Known Repositories", dashboard)
         self.assertIn("renderRepositoryManager", dashboard)
         self.assertIn("activateRepository", dashboard)
+        self.assertIn("registerRepositoryPath", dashboard)
         self.assertIn("registerCurrentRepository", dashboard)
+        self.assertIn("/api/v1/repositories/register-path", dashboard)
         self.assertIn("/api/v1/repositories/register-current", dashboard)
         self.assertIn("/api/v1/repositories/activate", dashboard)
 

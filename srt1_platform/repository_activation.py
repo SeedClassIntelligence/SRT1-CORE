@@ -142,6 +142,36 @@ class RepositoryActivationRegistry:
         self._save()
         return record
 
+    def register_path(
+        self,
+        repo_path: str,
+        runtime_port: Optional[int] = None,
+        activate: bool = False,
+    ) -> RepositoryRecord:
+        """Register a local repository path before a runtime is launched for it."""
+        real_path = os.path.realpath(repo_path)
+        if not os.path.isdir(real_path):
+            raise ValueError(f"Repository path does not exist: {repo_path}")
+
+        repo_id = _repo_id_for_path(real_path)
+        record = self._repositories.get(repo_id) or RepositoryRecord(
+            repo_id=repo_id,
+            name=os.path.basename(real_path) or real_path,
+            path=real_path,
+        )
+        record.name = os.path.basename(real_path) or real_path
+        record.path = real_path
+        record.runtime_port = runtime_port
+        record.status = record.status if record.manifest_hash else "registered"
+        record.freshness_state = record.freshness_state or "unknown"
+        record.updated_at = _now()
+        self._repositories[repo_id] = record
+
+        if activate:
+            self.activate(repo_id, save=False)
+        self._save()
+        return record
+
     def activate(self, repo_id: str, save: bool = True) -> RepositoryRecord:
         if repo_id not in self._repositories:
             raise KeyError(f"Repository not registered: {repo_id}")

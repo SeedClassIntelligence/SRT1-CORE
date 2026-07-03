@@ -197,6 +197,8 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 .repo-manager-label{font-size:10px;color:var(--text4);text-transform:uppercase;font-weight:800;margin-bottom:5px;}
 .repo-manager-value{font-family:var(--mono);font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .repo-manager-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px;}
+.repo-path-input{min-width:260px;flex:1;padding:7px 9px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:11px;outline:none;}
+.repo-path-input:focus{border-color:var(--cyan);}
 .repo-manager-status{font-family:var(--mono);font-size:10px;padding:4px 7px;border-radius:5px;border:1px solid var(--amber-border);color:var(--amber);background:var(--amber-bg);}
 .repo-manager-status.ready{border-color:var(--green-border);color:var(--green);background:var(--green-bg);}
 .repo-activation-flow{display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:8px;margin:12px 0;}
@@ -612,6 +614,8 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
       </div>
     </div>
     <div class="repo-manager-actions">
+      <input type="text" class="repo-path-input" id="repoPathInput" placeholder="Paste local repository path..." />
+      <button type="button" class="workcell-package-btn" onclick="registerRepositoryPath()">Register path</button>
       <button type="button" class="workcell-package-btn" onclick="registerCurrentRepository()">Register current repository</button>
       <button type="button" class="workcell-package-btn" onclick="loadDashboardSummary()">Refresh repository state</button>
     </div>
@@ -1974,6 +1978,45 @@ async function registerCurrentRepository() {
   } finally {
     if (statusEl && statusEl.textContent === 'registering') {
       statusEl.textContent = original;
+    }
+  }
+}
+
+async function registerRepositoryPath() {
+  const input = document.getElementById('repoPathInput');
+  const statusEl = document.getElementById('repositoryManagerStatus');
+  const path = input?.value?.trim();
+  if (!path) {
+    if (statusEl) {
+      statusEl.textContent = 'path required';
+      statusEl.classList.remove('ready');
+    }
+    return;
+  }
+  if (statusEl) {
+    statusEl.textContent = 'registering path';
+    statusEl.classList.remove('ready');
+  }
+  try {
+    const response = await fetch(API + '/api/v1/repositories/register-path', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path })
+    });
+    const result = await response.json();
+    if (!response.ok || ['error', 'unavailable'].includes(result.status)) {
+      throw new Error(result.error || 'Repository path registration failed');
+    }
+    renderRepositoryManager(result, null);
+    await loadDashboardSummary();
+    if (statusEl && result.status === 'registered') {
+      statusEl.textContent = 'registered';
+      statusEl.classList.remove('ready');
+    }
+  } catch (e) {
+    if (statusEl) {
+      statusEl.textContent = 'error';
+      statusEl.classList.remove('ready');
     }
   }
 }

@@ -426,8 +426,39 @@ class SRT1Engine:
         if not repo_id:
             return self._refresh_repository_activation()
         try:
+            candidate = next((repo for repo in registry.list_repositories() if repo.get("repo_id") == repo_id), None)
+            if candidate and os.path.realpath(candidate.get("path", "")) != os.path.realpath(self.repo_path):
+                return {
+                    "status": "registered",
+                    "error": "Repository is registered, but this engine is running a different local path. Launch SRT-1 for that repository to activate it.",
+                    "active_repository": registry.active_repository(),
+                    "repositories": registry.list_repositories(),
+                }
             active = registry.activate(repo_id)
             return {"status": "ready", "active_repository": active.to_dict(), "repositories": registry.list_repositories()}
+        except Exception as exc:
+            return {"status": "error", "error": str(exc), "repositories": registry.list_repositories()}
+
+    def _register_repository_path(self, repo_path: Optional[str]) -> Dict[str, Any]:
+        """Register a user-supplied local path without switching engine context unsafely."""
+        registry = self._get_repository_registry()
+        if not registry:
+            return {"status": "unavailable", "error": "Repository Activation registry unavailable"}
+        if not repo_path or not str(repo_path).strip():
+            return {"status": "error", "error": "Repository path is required", "repositories": registry.list_repositories()}
+
+        real_path = os.path.realpath(str(repo_path).strip())
+        try:
+            if os.path.realpath(real_path) == os.path.realpath(self.repo_path):
+                return self._refresh_repository_activation()
+            record = registry.register_path(real_path, activate=False)
+            return {
+                "status": "registered",
+                "registered_repository": record.to_dict(),
+                "active_repository": registry.active_repository(),
+                "repositories": registry.list_repositories(),
+                "message": "Repository path registered. Launch SRT-1 for that path to build its manifest, FileCells, and WorkCells.",
+            }
         except Exception as exc:
             return {"status": "error", "error": str(exc), "repositories": registry.list_repositories()}
 
@@ -3901,10 +3932,15 @@ class SRT1Engine:
                     status_code = 200 if result.get("status") in {"ready", "registered"} else 500
                     return self._json(result, status_code)
 
+                elif path == "/api/v1/repositories/register-path":
+                    result = engine._register_repository_path(body.get("path"))
+                    status_code = 200 if result.get("status") in {"ready", "registered"} else 400
+                    return self._json(result, status_code)
+
                 elif path == "/api/v1/repositories/activate":
                     repo_id = body.get("repo_id")
                     result = engine._activate_repository(repo_id)
-                    status_code = 200 if result.get("status") == "ready" else 404
+                    status_code = 200 if result.get("status") in {"ready", "registered"} else 404
                     return self._json(result, status_code)
 
                 elif path == "/api/v1/auth/signup":
