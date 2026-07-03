@@ -107,6 +107,23 @@ public class Greeter {
             self.assertIn("hello", names)
             self.assertEqual(indexer.code_manifest["language_coverage"][".py"]["parser"], "ast")
 
+    def test_scan_skips_generated_project_code_dump(self):
+        with tempfile.TemporaryDirectory() as repo:
+            repo_path = Path(repo)
+            (repo_path / "project_code.txt").write_text("<html>generated dump</html>", encoding="utf-8")
+            (repo_path / "README.md").write_text("# Real source context\n", encoding="utf-8")
+
+            indexer = SRT1CodeIndexer.__new__(SRT1CodeIndexer)
+            indexer.repo_path = repo
+            indexer.file_manifest = []
+            indexer.srt_tool = FakeSRTTool()
+
+            indexer._scan_repository()
+
+            paths = {entry["file_path"] for entry in indexer.file_manifest}
+            self.assertIn("README.md", paths)
+            self.assertNotIn("project_code.txt", paths)
+
     def test_save_manifest_preserves_language_coverage(self):
         with tempfile.TemporaryDirectory() as repo:
             indexer = SRT1CodeIndexer.__new__(SRT1CodeIndexer)

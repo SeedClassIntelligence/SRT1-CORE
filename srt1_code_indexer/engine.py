@@ -94,12 +94,14 @@ try:
     from srt1_platform import SCIARemoteAuth, SCIASeedQueue, SCIADispatchBridge
     from srt1_platform.seed_queue import SeedStage
     from srt1_platform.workcell import WorkCellRegistry
+    from srt1_platform.repository_activation import RepositoryActivationRegistry
 except ImportError:
     SCIARemoteAuth = None
     SCIASeedQueue = None
     SeedStage = None
     SCIADispatchBridge = None
     WorkCellRegistry = None
+    RepositoryActivationRegistry = None
 
 # ---- Shared LLM Intelligence Layer ----
 try:
@@ -297,6 +299,22 @@ class SRT1Engine:
         if WorkCellRegistry:
             self.workcell_registry = WorkCellRegistry(repo_path=self.repo_path)
 
+        # ---- Repository Activation Registry ----
+        self.repository_registry = None
+        if RepositoryActivationRegistry:
+            activation_dir = os.path.join(self.repo_path, ".srt1", "repositories")
+            self.repository_registry = RepositoryActivationRegistry(state_dir=activation_dir)
+            try:
+                self.repository_registry.register_current(
+                    repo_path=self.repo_path,
+                    runtime_port=self.port,
+                    manifest=self.manifest,
+                    workcell_count=0,
+                    activate=True,
+                )
+            except Exception as exc:
+                logger.warning(f"Repository activation registration failed: {exc}")
+
         # ---- Analytics Engine ----
         self.analytics: Optional['AnalyticsEngine'] = None
         if AnalyticsEngine:
@@ -321,6 +339,79 @@ class SRT1Engine:
     # -----------------------------------------------------------------
     # REAL EVENT LOG
     # -----------------------------------------------------------------
+
+    def _get_repository_registry(self):
+        """Return Repository Activation registry, lazily creating it for tests."""
+        registry = getattr(self, "repository_registry", None)
+        if registry:
+            return registry
+        if RepositoryActivationRegistry is None or not getattr(self, "repo_path", None):
+            return None
+        activation_dir = os.path.join(self.repo_path, ".srt1", "repositories")
+        registry = RepositoryActivationRegistry(state_dir=activation_dir)
+        self.repository_registry = registry
+        return registry
+
+    def _refresh_repository_activation(self) -> Dict[str, Any]:
+        """Register the current local repository with current manifest/runtime state."""
+        registry = self._get_repository_registry()
+        if not registry:
+            return {
+                "status": "unavailable",
+                "error": "Repository Activation registry unavailable",
+                "repositories": [],
+                "count": 0,
+            }
+
+        workcell_count = None
+        workcells = self._get_workcell_status()
+        if workcells:
+            workcell_count = workcells.get("workcell_count")
+
+        try:
+            registry.register_current(
+                repo_path=self.repo_path,
+                runtime_port=getattr(self, "port", None),
+                manifest=getattr(self, "manifest", {}) or {},
+                workcell_count=workcell_count,
+                activate=True,
+            )
+        except Exception as exc:
+            return {
+                "status": "error",
+                "error": str(exc),
+                "repositories": registry.list_repositories(),
+                "count": len(registry.list_repositories()),
+            }
+        return registry.summary()
+
+    def _get_repository_activation_status(self) -> Dict[str, Any]:
+        """Return first-run Repository Manager status for API/PWA surfaces."""
+        registry = self._get_repository_registry()
+        if not registry:
+            return {
+                "status": "unavailable",
+                "active_repository": None,
+                "repositories": [],
+                "count": 0,
+            }
+        summary = registry.summary()
+        if not summary.get("active_repository"):
+            return self._refresh_repository_activation()
+        return summary
+
+    def _activate_repository(self, repo_id: Optional[str] = None) -> Dict[str, Any]:
+        """Activate a known repository. Core only supports the current local runtime path."""
+        registry = self._get_repository_registry()
+        if not registry:
+            return {"status": "unavailable", "error": "Repository Activation registry unavailable"}
+        if not repo_id:
+            return self._refresh_repository_activation()
+        try:
+            active = registry.activate(repo_id)
+            return {"status": "ready", "active_repository": active.to_dict(), "repositories": registry.list_repositories()}
+        except Exception as exc:
+            return {"status": "error", "error": str(exc), "repositories": registry.list_repositories()}
 
     def _log_event(self, category: str, message: str, data: Optional[Dict] = None) -> None:
         """Record a real, timestamped engine event. External signing is optional."""
@@ -484,6 +575,7 @@ class SRT1Engine:
             self.port = get_free_port(self.port)
 
         # Print ready message
+        self._refresh_repository_activation()
         self._print_ready()
         self._log_event("engine", f"Server ready on port {self.port}", {"port": self.port})
 
@@ -669,6 +761,11 @@ class SRT1Engine:
 
                 for entry in indexer.file_manifest:
                     self.file_hashes[entry["file_path"]] = entry["content_hash"]
+
+                registry = self._get_workcell_registry()
+                if registry:
+                    registry.populate_from_manifest(self.manifest)
+                self._refresh_repository_activation()
                     
                 # Run optional delta audit if a T-1 state and integration are available.
                 if state_t1 and self.manifest:
@@ -2800,6 +2897,7 @@ class SRT1Engine:
                         },
                         "seed_queue": engine.seed_queue.get_stats() if engine.seed_queue else None,
                         "active_seed": engine._get_active_seed_identity(),
+                        "repository_activation": engine._get_repository_activation_status(),
                         "workcells": engine._get_workcell_status(),
                     })
 
@@ -2958,6 +3056,7 @@ class SRT1Engine:
                         "watcher": "active",
                         "seed_farm": seed_stats,
                         "active_seed": active_seed,
+                        "repository_activation": engine._get_repository_activation_status(),
                         "workcells": engine._get_workcell_status(active_seed.get("queue_seed_id") if active_seed else None),
                         "bridge": "active" if engine.bridge else "not_available",
                         "auth": "enabled" if engine.auth and engine.auth._tokens else "disabled",
@@ -3069,6 +3168,9 @@ class SRT1Engine:
                         limit = 3
 
                     self._json(engine._build_recall_response(seed_id, limit=limit))
+
+                elif path == "/api/v1/repositories":
+                    self._json(engine._get_repository_activation_status())
 
                 elif path == "/api/v1/workcells":
                     self._json(engine._get_workcell_status() or {
@@ -3767,6 +3869,17 @@ class SRT1Engine:
                     queue_seed_id = path[len("/api/v1/workcells/"):-len("/repair-package")].strip("/")
                     result = engine._repair_workcell_package(queue_seed_id)
                     status_code = 200 if result.get("status") in {"repaired", "degraded"} else 404
+                    return self._json(result, status_code)
+
+                elif path == "/api/v1/repositories/register-current":
+                    result = engine._refresh_repository_activation()
+                    status_code = 200 if result.get("status") in {"ready", "registered"} else 500
+                    return self._json(result, status_code)
+
+                elif path == "/api/v1/repositories/activate":
+                    repo_id = body.get("repo_id")
+                    result = engine._activate_repository(repo_id)
+                    status_code = 200 if result.get("status") == "ready" else 404
                     return self._json(result, status_code)
 
                 elif path == "/api/v1/auth/signup":

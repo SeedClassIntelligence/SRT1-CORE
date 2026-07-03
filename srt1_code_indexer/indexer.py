@@ -89,6 +89,16 @@ SKIP_DIRS: Set[str] = {
     'memory', 'scia_memory', 'scia_security', 'srt1-contracts', 'sion_output', 'scratch_ledger_test',  # Local/private/generated layers
 }
 
+SKIP_FILES: Set[str] = {
+    'srt1_code_manifest.json',
+    'srt1_audit_delta.json',
+    'srt1_build_plan.json',
+    'srt1_context.json',
+    'package-lock.json',
+    'yarn.lock',
+    'project_code.txt',
+}
+
 
 
 
@@ -225,7 +235,7 @@ class SRT1CodeIndexer:
                 if d not in SKIP_DIRS and not d.endswith('.egg-info')
             ]
             for fname in filenames:
-                if fname in {'srt1_code_manifest.json', 'srt1_audit_delta.json', 'srt1_build_plan.json', 'srt1_context.json', 'package-lock.json', 'yarn.lock'}:
+                if fname in SKIP_FILES:
                     continue
                 ext = os.path.splitext(fname)[1].lower()
                 if ext not in SUPPORTED_EXTENSIONS:

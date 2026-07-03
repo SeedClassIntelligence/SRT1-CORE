@@ -188,6 +188,17 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 .workcell-preview-body{max-height:260px;overflow:auto;padding:12px;font-family:var(--mono);font-size:11px;line-height:1.55;color:var(--text2);white-space:pre-wrap;}
 .workcell-preview-body.loading{color:var(--text4);}
 .workcell-preview-body.error{color:var(--amber);}
+.repo-manager{margin-bottom:18px;border:1px solid var(--border);border-radius:10px;background:linear-gradient(180deg,rgba(6,182,212,0.04),rgba(255,255,255,0.015));padding:16px;}
+.repo-manager-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px;}
+.repo-manager-title{font-size:13px;font-weight:800;color:var(--cyan);text-transform:uppercase;letter-spacing:.04em;}
+.repo-manager-sub{font-size:12px;color:var(--text3);margin-top:4px;line-height:1.45;}
+.repo-manager-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:8px;}
+.repo-manager-item{min-width:0;border:1px solid var(--border);border-radius:7px;background:var(--bg);padding:9px;}
+.repo-manager-label{font-size:10px;color:var(--text4);text-transform:uppercase;font-weight:800;margin-bottom:5px;}
+.repo-manager-value{font-family:var(--mono);font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.repo-manager-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px;}
+.repo-manager-status{font-family:var(--mono);font-size:10px;padding:4px 7px;border-radius:5px;border:1px solid var(--amber-border);color:var(--amber);background:var(--amber-bg);}
+.repo-manager-status.ready{border-color:var(--green-border);color:var(--green);background:var(--green-bg);}
 
 /* === MODAL === */
 .modal-overlay {
@@ -539,6 +550,42 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
       </a>
     </div>
   </div>
+
+  <section class="repo-manager" id="repositoryManager">
+    <div class="repo-manager-head">
+      <div>
+        <div class="repo-manager-title">Repository Manager</div>
+        <div class="repo-manager-sub" id="repositoryManagerSubtitle">Register or activate the local repository before selecting WorkCells.</div>
+      </div>
+      <div class="repo-manager-status" id="repositoryManagerStatus">checking</div>
+    </div>
+    <div class="repo-manager-grid">
+      <div class="repo-manager-item">
+        <div class="repo-manager-label">Active Repository</div>
+        <div class="repo-manager-value" id="repoManagerName">Unknown</div>
+      </div>
+      <div class="repo-manager-item">
+        <div class="repo-manager-label">Local Path</div>
+        <div class="repo-manager-value" id="repoManagerPath">Waiting for engine</div>
+      </div>
+      <div class="repo-manager-item">
+        <div class="repo-manager-label">FileCells</div>
+        <div class="repo-manager-value" id="repoManagerFileCells">0</div>
+      </div>
+      <div class="repo-manager-item">
+        <div class="repo-manager-label">WorkCells</div>
+        <div class="repo-manager-value" id="repoManagerWorkCells">0</div>
+      </div>
+      <div class="repo-manager-item">
+        <div class="repo-manager-label">Freshness</div>
+        <div class="repo-manager-value" id="repoManagerFreshness">unknown</div>
+      </div>
+    </div>
+    <div class="repo-manager-actions">
+      <button type="button" class="workcell-package-btn" onclick="registerCurrentRepository()">Register current repository</button>
+      <button type="button" class="workcell-package-btn" onclick="loadDashboardSummary()">Refresh repository state</button>
+    </div>
+  </section>
 
   <!-- STAT CARDS -->
   <div class="stats-row">
@@ -1671,6 +1718,7 @@ async function loadDashboardSummary() {
     const enforcement = summary.enforcement || {};
     const trust = summary.trust || {};
     const sig = summary.manifest_hash ? summary.manifest_hash.substring(0, 16) : 'N/A';
+    renderRepositoryManager(summary.repository_activation, summary);
 
     document.getElementById('repoName').textContent = repoName;
     if (repoName !== 'Unknown') {
@@ -1715,6 +1763,7 @@ async function loadDashboardSummary() {
     renderWorkCells(summary.workcells, summary.active_seed);
   } catch(e) {
     document.getElementById('repoStats').innerHTML = `<span style="color:var(--red);">Could not load dashboard summary. Is the SRT-1 engine running at ${API}?</span>`;
+    renderRepositoryManager(null, null);
   }
 }
 
@@ -1742,6 +1791,64 @@ function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>"']/g, ch => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
   }[ch]));
+}
+
+function renderRepositoryManager(activation, summary) {
+  const statusEl = document.getElementById('repositoryManagerStatus');
+  const subtitleEl = document.getElementById('repositoryManagerSubtitle');
+  const nameEl = document.getElementById('repoManagerName');
+  const pathEl = document.getElementById('repoManagerPath');
+  const fileCellsEl = document.getElementById('repoManagerFileCells');
+  const workCellsEl = document.getElementById('repoManagerWorkCells');
+  const freshnessEl = document.getElementById('repoManagerFreshness');
+  if (!statusEl || !nameEl || !pathEl) return;
+
+  const active = activation?.active_repository || null;
+  const status = activation?.status || 'offline';
+  const ready = status === 'ready' && active;
+
+  statusEl.textContent = ready ? 'ready' : status;
+  statusEl.classList.toggle('ready', !!ready);
+  subtitleEl.textContent = ready
+    ? 'Repository is activated. Select a WorkCell, then plant a Seed.'
+    : 'Register or activate a local repository before selecting WorkCells.';
+
+  nameEl.textContent = active?.name || summary?.repo || 'No repository active';
+  pathEl.textContent = active?.path || 'Waiting for SRT-1 engine';
+  fileCellsEl.textContent = String(active?.filecell_count ?? summary?.files_indexed ?? 0);
+  workCellsEl.textContent = String(active?.workcell_count ?? summary?.workcells?.workcell_count ?? 0);
+  freshnessEl.textContent = active?.freshness_state || summary?.manifest_freshness || 'unknown';
+}
+
+async function registerCurrentRepository() {
+  const statusEl = document.getElementById('repositoryManagerStatus');
+  const original = statusEl?.textContent || 'checking';
+  if (statusEl) {
+    statusEl.textContent = 'registering';
+    statusEl.classList.remove('ready');
+  }
+  try {
+    const response = await fetch(API + '/api/v1/repositories/register-current', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({})
+    });
+    const result = await response.json();
+    if (!response.ok || ['error', 'unavailable'].includes(result.status)) {
+      throw new Error(result.error || 'Repository registration failed');
+    }
+    renderRepositoryManager(result, null);
+    await loadDashboardSummary();
+  } catch (e) {
+    if (statusEl) {
+      statusEl.textContent = 'error';
+      statusEl.classList.remove('ready');
+    }
+  } finally {
+    if (statusEl && statusEl.textContent === 'registering') {
+      statusEl.textContent = original;
+    }
+  }
 }
 
 function selectWorkCellDetail(executionId) {
