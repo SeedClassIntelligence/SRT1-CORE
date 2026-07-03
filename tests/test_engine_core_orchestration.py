@@ -1,4 +1,6 @@
+import os
 import unittest
+from unittest.mock import patch
 
 from srt1_code_indexer import engine as engine_module
 
@@ -41,6 +43,23 @@ class FakeLLM:
 
 
 class EngineCoreOrchestrationTests(unittest.TestCase):
+    def test_llm_opt_in_is_disabled_by_default(self):
+        with patch.dict(os.environ, {}, clear=True):
+            self.assertFalse(engine_module.SRT1Engine._llm_opt_in_enabled())
+
+    def test_llm_opt_in_accepts_semantic_enrichment_flag(self):
+        with patch.dict(os.environ, {"SRT1_ENABLE_SEMANTIC_ENRICHMENT": "1"}, clear=True):
+            self.assertTrue(engine_module.SRT1Engine._llm_opt_in_enabled())
+
+    def test_semantic_enrichment_requires_explicit_flag(self):
+        engine = engine_module.SRT1Engine.__new__(engine_module.SRT1Engine)
+        engine.llm = FakeLLM()
+
+        with patch.dict(os.environ, {}, clear=True):
+            self.assertFalse(engine._semantic_enrichment_enabled())
+        with patch.dict(os.environ, {"SRT1_ENABLE_SEMANTIC_ENRICHMENT": "true"}, clear=True):
+            self.assertTrue(engine._semantic_enrichment_enabled())
+
     def test_log_event_uses_memory_cache_without_audit_ledger(self):
         engine = engine_module.SRT1Engine.__new__(engine_module.SRT1Engine)
         engine.signing_client = None

@@ -185,6 +185,21 @@ class SRT1Engine:
 
     REFLECTION_INTERVAL = 3
 
+    @staticmethod
+    def _env_flag_enabled(name: str) -> bool:
+        value = os.getenv(name, "").strip().lower()
+        return value in {"1", "true", "yes", "on"}
+
+    @classmethod
+    def _llm_opt_in_enabled(cls) -> bool:
+        return (
+            cls._env_flag_enabled("SRT1_ENABLE_LLM")
+            or cls._env_flag_enabled("SRT1_ENABLE_SEMANTIC_ENRICHMENT")
+        )
+
+    def _semantic_enrichment_enabled(self) -> bool:
+        return bool(self.llm) and self._env_flag_enabled("SRT1_ENABLE_SEMANTIC_ENRICHMENT")
+
     def __init__(self, repo_path: str, task: Optional[str] = None, port: int = 7483):
         self.repo_path = os.path.abspath(repo_path)
         self.task = task
@@ -195,7 +210,7 @@ class SRT1Engine:
 
         # ---- Shared LLM Intelligence (SRT-1 Thinking Mode) ----
         self.llm: Optional['IntelligenceAdapter'] = None
-        if IntelligenceAdapter:
+        if IntelligenceAdapter and self._llm_opt_in_enabled():
             try:
                 adapter = IntelligenceAdapter()
                 if adapter.is_available():
@@ -205,6 +220,9 @@ class SRT1Engine:
                     logger.info("SRT-1 LLM: No providers configured — using deterministic analysis")
             except Exception as e:
                 logger.warning(f"SRT-1 LLM: Init failed ({e}) — using deterministic analysis")
+
+        elif IntelligenceAdapter:
+            logger.info("SRT-1 LLM: Optional model enrichment disabled; using deterministic analysis")
 
         # Codebase knowledge
         self.manifest: Dict[str, Any] = {}
@@ -803,8 +821,15 @@ class SRT1Engine:
                 # remains the source of structural truth — unmodified.
                 # All enrichment outputs are labeled as "semantic_enrichment"
                 # to distinguish them from deterministic authority.
-                import threading
-                threading.Thread(target=self._apply_semantic_enrichment, daemon=True).start()
+                if self._semantic_enrichment_enabled():
+                    import threading
+                    threading.Thread(target=self._apply_semantic_enrichment, daemon=True).start()
+                else:
+                    self._log_event(
+                        "semantic_enrichment",
+                        "Optional semantic enrichment skipped; deterministic manifest is active",
+                        {"enabled": False},
+                    )
                         
             except Exception as exc:
                 # ── SCIA Event: repo_index_failed ──────────────────────────
