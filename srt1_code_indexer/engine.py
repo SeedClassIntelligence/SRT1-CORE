@@ -462,6 +462,38 @@ class SRT1Engine:
         except Exception as exc:
             return {"status": "error", "error": str(exc), "repositories": registry.list_repositories()}
 
+    def _browse_repository_folder(self) -> Dict[str, Any]:
+        """Open a local folder picker and register the selected repository path."""
+        registry = self._get_repository_registry()
+        if not registry:
+            return {"status": "unavailable", "error": "Repository Activation registry unavailable"}
+        try:
+            import tkinter as tk
+            from tkinter import filedialog
+
+            root = tk.Tk()
+            root.withdraw()
+            root.attributes("-topmost", True)
+            selected = filedialog.askdirectory(
+                title="Select repository for SRT-1",
+                initialdir=os.path.dirname(os.path.realpath(self.repo_path)),
+            )
+            root.destroy()
+            if not selected:
+                return {
+                    "status": "cancelled",
+                    "active_repository": registry.active_repository(),
+                    "repositories": registry.list_repositories(),
+                }
+            return self._register_repository_path(selected)
+        except Exception as exc:
+            return {
+                "status": "error",
+                "error": f"Folder picker unavailable: {exc}",
+                "active_repository": registry.active_repository(),
+                "repositories": registry.list_repositories(),
+            }
+
     def _log_event(self, category: str, message: str, data: Optional[Dict] = None) -> None:
         """Record a real, timestamped engine event. External signing is optional."""
         event = {
@@ -3935,6 +3967,11 @@ class SRT1Engine:
                 elif path == "/api/v1/repositories/register-path":
                     result = engine._register_repository_path(body.get("path"))
                     status_code = 200 if result.get("status") in {"ready", "registered"} else 400
+                    return self._json(result, status_code)
+
+                elif path == "/api/v1/repositories/browse-folder":
+                    result = engine._browse_repository_folder()
+                    status_code = 200 if result.get("status") in {"ready", "registered", "cancelled"} else 400
                     return self._json(result, status_code)
 
                 elif path == "/api/v1/repositories/activate":

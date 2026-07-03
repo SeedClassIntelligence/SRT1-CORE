@@ -615,6 +615,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
     </div>
     <div class="repo-manager-actions">
       <input type="text" class="repo-path-input" id="repoPathInput" placeholder="Paste local repository path..." />
+      <button type="button" class="workcell-package-btn" onclick="browseRepositoryFolder()">Browse folder</button>
       <button type="button" class="workcell-package-btn" onclick="registerRepositoryPath()">Register path</button>
       <button type="button" class="workcell-package-btn" onclick="registerCurrentRepository()">Register current repository</button>
       <button type="button" class="workcell-package-btn" onclick="loadDashboardSummary()">Refresh repository state</button>
@@ -2016,6 +2017,44 @@ async function registerRepositoryPath() {
   } catch (e) {
     if (statusEl) {
       statusEl.textContent = 'error';
+      statusEl.classList.remove('ready');
+    }
+  }
+}
+
+async function browseRepositoryFolder() {
+  const statusEl = document.getElementById('repositoryManagerStatus');
+  const input = document.getElementById('repoPathInput');
+  if (statusEl) {
+    statusEl.textContent = 'opening folder picker';
+    statusEl.classList.remove('ready');
+  }
+  try {
+    const response = await fetch(API + '/api/v1/repositories/browse-folder', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({})
+    });
+    const result = await response.json();
+    if (result.status === 'cancelled') {
+      if (statusEl) statusEl.textContent = 'cancelled';
+      renderRepositoryManager(result, null);
+      return;
+    }
+    if (!response.ok || ['error', 'unavailable'].includes(result.status)) {
+      throw new Error(result.error || 'Folder picker failed');
+    }
+    const selectedPath = result.registered_repository?.path || result.active_repository?.path || '';
+    if (input && selectedPath) input.value = selectedPath;
+    renderRepositoryManager(result, null);
+    await loadDashboardSummary();
+    if (statusEl && result.status === 'registered') {
+      statusEl.textContent = 'registered';
+      statusEl.classList.remove('ready');
+    }
+  } catch (e) {
+    if (statusEl) {
+      statusEl.textContent = 'picker unavailable';
       statusEl.classList.remove('ready');
     }
   }
