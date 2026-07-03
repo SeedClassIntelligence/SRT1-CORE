@@ -1326,6 +1326,7 @@ const API = (window.location.port && window.location.port !== '8080' && window.l
   : (localStorage.getItem('srt1_engine_origin') || 'http://127.0.0.1:8475');
 let manifest = null;
 let manifestLoaded = false;
+let manifestLoading = false;
 let currentTab = 'files';
 
 // Navigate to a page using engine routes or static file paths depending on context
@@ -1401,6 +1402,13 @@ function setNeuralMapState(message, tone = 'muted') {
   }
   const nodeCountEl = document.getElementById('mapNodeCount');
   if (nodeCountEl) nodeCountEl.textContent = '';
+}
+
+function setSynopsisState(preview, detail) {
+  const synPreview = document.getElementById('synopsisPreview');
+  if (synPreview) synPreview.textContent = preview || '';
+  const synFull = document.getElementById('synopsisExpanded');
+  if (synFull && detail) synFull.innerHTML = detail;
 }
 
 function getFileIcon(fidelity, ext) {
@@ -1613,7 +1621,12 @@ function autoFitMapView() { /* no-op for card grid */ }
 function resetMapView() { closeFileDetail(); }
 function setupPanZoom() { /* no-op for card grid */ }
 
-async function loadManifest() {
+async function loadManifest(options = {}) {
+  const renderExplorer = options.renderExplorer !== false;
+  if (manifestLoading) return;
+  manifestLoading = true;
+  setNeuralMapState('Loading repo intelligence...', 'muted');
+  setSynopsisState('Loading Project Synopsis...', 'Project Synopsis is loading from the local SRT-1 engine.');
   try {
     const r = await fetch(API + '/manifest');
     if (!r.ok) throw new Error(`manifest ${r.status}`);
@@ -1650,10 +1663,7 @@ async function loadManifest() {
       }
     } catch(e) {
       manifest.project_synopsis = "";
-      const synPreview = document.getElementById('synopsisPreview');
-      if (synPreview) synPreview.textContent = "Synopsis unavailable";
-      const synFull = document.getElementById('synopsisExpanded');
-      if (synFull) synFull.innerHTML = "Project Synopsis is unavailable because the local SRT-1 engine did not return synopsis data.";
+      setSynopsisState("Synopsis unavailable", "Project Synopsis is unavailable because the local SRT-1 engine did not return synopsis data.");
     }
 
     const m = manifest.metadata || {};
@@ -1709,15 +1719,12 @@ async function loadManifest() {
     `;
 
     renderNeuralMapGrid();
-    showTab(currentTab);
+    if (renderExplorer) showTab(currentTab);
   } catch(e) {
     manifest = null;
     manifestLoaded = false;
     setNeuralMapState('SRT-1 engine offline or manifest unavailable. Start the repository runtime, then refresh this dashboard.', 'error');
-    const synPreview = document.getElementById('synopsisPreview');
-    if (synPreview) synPreview.textContent = "Engine offline";
-    const synFull = document.getElementById('synopsisExpanded');
-    if (synFull) synFull.innerHTML = "Project Synopsis is unavailable until the SRT-1 engine is running and the repository manifest is loaded.";
+    setSynopsisState("Engine offline", "Project Synopsis is unavailable until the SRT-1 engine is running and the repository manifest is loaded.");
     document.getElementById('repoStats').innerHTML = `<span style="color:var(--red);">Could not load manifest. Is the SRT-1 engine running at ${API}?</span>`;
     // Show graceful offline state in stat cards
     ['statFiles','statSymbols','statReflections'].forEach(id => {
@@ -1734,6 +1741,8 @@ async function loadManifest() {
     document.getElementById('statSymbolsSub').textContent = 'Start: python srt1_code_indexer_engine.py';
     document.getElementById('statReflectionsSub').textContent = `${API} not responding`;
     document.getElementById('statTrustSub').textContent = 'Engine offline';
+  } finally {
+    manifestLoading = false;
   }
 }
 
@@ -3304,11 +3313,13 @@ function organizePanels() {
 organizePanels();
 // Then start loading data from engine
 loadDashboardSummary();
-loadManifest();
 loadStatus();
 loadWorkCells();
 loadSeedQueue();
 loadSavedKeys();
+setNeuralMapState('Loading repo intelligence...', 'muted');
+setSynopsisState('Loading Project Synopsis...', 'Project Synopsis will load after the dashboard shell is ready.');
+setTimeout(() => loadManifest({ renderExplorer: false }), 350);
 // Refresh every 30 seconds
 setInterval(loadDashboardSummary, 30000);
 setInterval(loadStatus, 30000);
