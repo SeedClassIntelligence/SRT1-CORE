@@ -207,6 +207,12 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 .repo-activation-step.ready{border-color:var(--green-border);background:var(--green-bg);}
 .repo-activation-step-label{font-size:10px;color:var(--text4);text-transform:uppercase;font-weight:800;margin-bottom:4px;}
 .repo-activation-step-value{font-size:12px;color:var(--text2);line-height:1.35;}
+.repo-readiness-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin:10px 0 12px;}
+.repo-readiness-item{min-width:0;border:1px solid var(--border);border-radius:7px;background:var(--bg);padding:9px;}
+.repo-readiness-label{font-size:10px;color:var(--text4);text-transform:uppercase;font-weight:800;margin-bottom:5px;}
+.repo-readiness-value{font-family:var(--mono);font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.repo-readiness-value.ready{color:var(--green);}
+.repo-readiness-value.warn{color:var(--amber);}
 .repo-library{margin-top:10px;border-top:1px solid var(--border);padding-top:10px;}
 .repo-library-title{font-size:10px;color:var(--text4);text-transform:uppercase;font-weight:800;margin-bottom:6px;}
 .repo-library-list{display:grid;gap:6px;}
@@ -522,7 +528,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
     <div class="nav-section">
       <div class="nav-section-label">Quick Links</div>
       <a class="nav-item" href="#architecture-blueprint"><span class="icon">▦</span> File Tree</a>
-      <a class="nav-item" href="#seed-farm"><span class="icon">▣</span> Violations</a>
+      <a class="nav-item" href="#seed-farm"><span class="icon">▣</span> Findings</a>
       <a class="nav-item" href="Install-SRT1.ps1" download><span class="icon">⬇️</span> Download Installer</a>
     </div>
 
@@ -591,6 +597,25 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
         <div class="repo-activation-step-value">Plant Seed in WorkCell</div>
       </div>
     </div>
+    <div class="repo-library-title">Repository Readiness</div>
+    <div class="repo-readiness-strip" id="repoReadinessStrip">
+      <div class="repo-readiness-item">
+        <div class="repo-readiness-label">Repository</div>
+        <div class="repo-readiness-value warn" id="repoReadyRepository">not selected</div>
+      </div>
+      <div class="repo-readiness-item">
+        <div class="repo-readiness-label">Understanding</div>
+        <div class="repo-readiness-value warn" id="repoReadyUnderstanding">manifest unknown</div>
+      </div>
+      <div class="repo-readiness-item">
+        <div class="repo-readiness-label">Execution Boundary</div>
+        <div class="repo-readiness-value warn" id="repoReadyWorkCells">workcells unavailable</div>
+      </div>
+      <div class="repo-readiness-item">
+        <div class="repo-readiness-label">Runtime</div>
+        <div class="repo-readiness-value warn" id="repoReadyRuntime">engine pending</div>
+      </div>
+    </div>
     <div class="repo-manager-grid">
       <div class="repo-manager-item">
         <div class="repo-manager-label">Active Repository</div>
@@ -645,7 +670,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
       <div class="stat-sub" id="statSymbolsSub">Loading from engine...</div>
     </div>
     <div class="stat-card amber">
-      <div class="stat-label">Active Violations</div>
+      <div class="stat-label">Reflection Findings</div>
       <div class="stat-value" id="statReflections" style="color:var(--amber);">—</div>
       <div class="stat-sub" id="statReflectionsSub">Loading from engine...</div>
     </div>
@@ -713,10 +738,10 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 
   <!-- CODE INTELLIGENCE + VERIFICATION -->
   <div class="grid-2" id="seed-farm" style="scroll-margin-top: 80px;">
-    <!-- CODE INTELLIGENCE (Violations) -->
+    <!-- CODE INTELLIGENCE (Reflection Findings) -->
     <div class="panel">
       <div class="panel-header">
-        <div class="panel-title">Enforcement Guardrails <span class="info-icon" data-tooltip="The engine of SRT-1 curation. Sweeps your codebase dynamically for duplicate functions, unauthorized file overrides, and architectural drift, halting AI workflows if it detects major integrity risks.">?</span></div>
+        <div class="panel-title">Reflection Guardrails <span class="info-icon" data-tooltip="Detective-first surface for duplicate functions, overlap, unused code, risk scope, and architectural drift. Core reports and proposes; it does not autonomously rewrite code.">?</span></div>
         <div style="display:flex; gap: 12px; align-items:center;">
           <label style="font-size: 11px; display:flex; align-items:center; gap: 6px; cursor: pointer; color: var(--text3);">
              Auto-Nudge (30m)
@@ -726,7 +751,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
         </div>
       </div>
       <div class="seed-list" id="seedFarmList">
-        <div style="padding:24px;text-align:center;color:var(--text4);font-size:13px;">Loading violations from engine...</div>
+        <div style="padding:24px;text-align:center;color:var(--text4);font-size:13px;">Loading reflection findings from engine...</div>
       </div>
     </div>
 
@@ -1887,6 +1912,14 @@ function setRepositoryActivationStep(id, state) {
   if (state) el.classList.add(state);
 }
 
+function setRepositoryReadiness(id, value, ready) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = value;
+  el.classList.toggle('ready', !!ready);
+  el.classList.toggle('warn', !ready);
+}
+
 function renderRepositoryLibraryLegacy(repositories, activeRepoId) {
   const listEl = document.getElementById('repoLibraryList');
   if (!listEl) return;
@@ -1984,6 +2017,15 @@ function renderRepositoryManager(activation, summary) {
   fileCellsEl.textContent = String(active?.filecell_count ?? summary?.files_indexed ?? 0);
   workCellsEl.textContent = String(active?.workcell_count ?? summary?.workcells?.workcell_count ?? 0);
   freshnessEl.textContent = active?.freshness_state || summary?.manifest_freshness || 'unknown';
+  setRepositoryReadiness('repoReadyRepository', ready ? 'active repository' : 'select repository', ready);
+  setRepositoryReadiness('repoReadyUnderstanding', hasManifest ? 'manifest ready' : 'manifest needed', hasManifest);
+  setRepositoryReadiness('repoReadyWorkCells', hasCells ? 'workcells ready' : 'boundary pending', hasCells);
+  const runtimeOnline = !!summary || !!activation;
+  setRepositoryReadiness(
+    'repoReadyRuntime',
+    runtimeOnline ? `port ${active?.runtime_port || summary?.port || window.location.port || 'local'}` : 'engine offline',
+    runtimeOnline
+  );
   setRepositoryActivationStep('repoStepRegister', ready ? 'ready' : 'active');
   setRepositoryActivationStep('repoStepUnderstand', hasManifest ? 'ready' : (ready ? 'active' : ''));
   setRepositoryActivationStep('repoStepCells', hasCells ? 'ready' : (hasManifest ? 'active' : ''));
@@ -2557,11 +2599,11 @@ async function loadStatus() {
       trustEl.style.fontSize = '22px';
       const ci = engineStatus.code_intelligence || {};
       document.getElementById('statTrustSub').textContent = trusted
-        ? `trust: local · verified: local health · ${ci.violations_total || 0} violations`
+        ? `trust: local · verified: local health · ${ci.violations_total || 0} findings`
         : 'Check engine status';
     }
 
-    // --- Code Intelligence (replaces Seed Farm) ---
+    // --- Code Intelligence / Reflection Findings ---
     const ci = engineStatus.code_intelligence || {};
     const enforcement = engineStatus.enforcement || {};
     const violations = ci.violations_total || 0;
@@ -2569,7 +2611,7 @@ async function loadStatus() {
     const curationItems = ci.curation_items || [];
     renderWorkCells(engineStatus.workcells, engineStatus.active_seed);
 
-    // --- Update top-level Active Violations card dynamically ---
+    // --- Update top-level Reflection Findings card dynamically ---
     const activeBlocks = enforcement.active_blocks !== undefined ? enforcement.active_blocks : violations;
     const statRef = document.getElementById('statReflections');
     if (statRef) {
@@ -2584,7 +2626,7 @@ async function loadStatus() {
     const badge = document.getElementById('seedFarmBadge');
     if (badge) {
       if (violations > 0) {
-        badge.textContent = `${violations} violations`;
+        badge.textContent = `${violations} findings`;
         badge.style.background = 'rgba(239,68,68,0.08)';
         badge.style.color = 'var(--red)';
         badge.style.border = '1px solid rgba(239,68,68,0.2)';
@@ -2602,18 +2644,18 @@ async function loadStatus() {
       const unusedItems = ci.unused_items || [];
 
       if (violations === 0 && overlaps === 0 && unusedCount === 0) {
-        list.innerHTML = '<div style="padding:24px;text-align:center;color:var(--green);font-size:14px;font-weight:600;">\u2713 No violations detected. Codebase clean.</div>';
+        list.innerHTML = '<div style="padding:24px;text-align:center;color:var(--green);font-size:14px;font-weight:600;">No reflection findings detected. Codebase clean.</div>';
       } else {
         let html = '';
         // Summary row
         html += `<div style="padding:8px 12px;margin-bottom:4px;background:var(--bg);border-radius:8px;display:flex;gap:16px;font-size:12px;border:1px solid var(--border);flex-wrap:wrap;">
-          <span style="color:var(--red);font-weight:700;">${violations} HARD_STOP violations</span>
+          <span style="color:var(--red);font-weight:700;">${violations} duplicate findings</span>
           <span style="color:var(--amber);font-weight:600;">${overlaps} functional overlaps</span>
           ${unusedCount > 0 ? `<span style="color:var(--purple, #a78bfa);font-weight:600;">${unusedCount} unused functions</span>` : ''}
-          <span style="color:var(--text4);margin-left:auto;">Enforcement: ${enforcement.level || 'ACTIVE'}</span>
+          <span style="color:var(--text4);margin-left:auto;">Reflection mode: ${enforcement.level || 'ACTIVE'}</span>
         </div>`;
 
-        // Individual violation rows (duplicates)
+        // Individual finding rows (duplicates)
         curationItems.slice(0, 15).forEach(item => {
           const locs = (item.locations || []).join(', ');
           html += `<div class="violation-row critical">
@@ -2627,7 +2669,7 @@ async function loadStatus() {
         });
 
         if (curationItems.length > 15) {
-          html += `<div style="padding:10px 12px;text-align:center;color:var(--text4);font-size:12px;cursor:pointer;text-decoration:underline;" onclick="this.nextElementSibling.style.display='block';this.style.display='none'">+ ${curationItems.length - 15} more violations (Click to expand)</div><div style="display:none;">`;
+          html += `<div style="padding:10px 12px;text-align:center;color:var(--text4);font-size:12px;cursor:pointer;text-decoration:underline;" onclick="this.nextElementSibling.style.display='block';this.style.display='none'">+ ${curationItems.length - 15} more findings (Click to expand)</div><div style="display:none;">`;
           curationItems.slice(15).forEach(item => {
             const locs = (item.locations || []).join(', ');
             html += `<div class="violation-row critical">
