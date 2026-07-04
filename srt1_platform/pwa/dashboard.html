@@ -32,7 +32,7 @@
 :root{
   --bg:#060a0f;--bg2:#0b1018;--bg3:#111820;--bg4:#1a222e;--bg5:#222d3a;
   --border:#1e2a38;--border2:#2a3a4e;--border3:#384860;
-  --text:#e8edf4;--text2:#a0aec0;--text3:#6b7a8d;--text4:#4a5568;
+  --text:#f1f5f9;--text2:#cbd5e1;--text3:#94a3b8;--text4:#64748b;
   --green:#22c55e;--green2:#16a34a;--green-bg:rgba(34,197,94,0.08);--green-border:rgba(34,197,94,0.2);
   --cyan:#06b6d4;--cyan-bg:rgba(6,182,212,0.08);--cyan-border:rgba(6,182,212,0.2);
   --amber:#f59e0b;--amber-bg:rgba(245,158,11,0.08);--amber-border:rgba(245,158,11,0.2);
@@ -40,6 +40,15 @@
   --serif:'Instrument Serif',Georgia,serif;
   --sans:'DM Sans',system-ui,sans-serif;
   --mono:'JetBrains Mono',monospace;
+}
+body.theme-light{
+  --bg:#f6f8fb;--bg2:#ffffff;--bg3:#eef3f8;--bg4:#e2e8f0;--bg5:#cbd5e1;
+  --border:#d5dee9;--border2:#b8c4d4;--border3:#94a3b8;
+  --text:#0f172a;--text2:#334155;--text3:#64748b;--text4:#8796a8;
+  --green:#15803d;--green2:#166534;--green-bg:rgba(21,128,61,0.09);--green-border:rgba(21,128,61,0.22);
+  --cyan:#087990;--cyan-bg:rgba(8,121,144,0.09);--cyan-border:rgba(8,121,144,0.22);
+  --amber:#b45309;--amber-bg:rgba(180,83,9,0.09);--amber-border:rgba(180,83,9,0.24);
+  --red:#dc2626;--purple:#7c3aed;--purple-bg:rgba(124,58,237,0.08);--purple-border:rgba(124,58,237,0.22);
 }
 html{-webkit-font-smoothing:antialiased;}
 body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;display:flex;}
@@ -116,6 +125,8 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 .download-btn{padding:8px 16px;border-radius:8px;font-size:12px;font-weight:700;border:1px solid var(--border2);background:var(--bg3);color:var(--text);cursor:pointer;font-family:var(--sans);transition:all 0.2s;text-decoration:none;}
 .download-btn:hover{background:var(--bg4);border-color:var(--border3);}
 .download-btn.locked{opacity:0.4;cursor:not-allowed;}
+.theme-toggle{padding:8px 12px;border-radius:8px;font-size:12px;font-weight:800;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);cursor:pointer;font-family:var(--sans);transition:all 0.2s;}
+.theme-toggle:hover{background:var(--bg4);border-color:var(--cyan-border);color:var(--text);}
 
 /* === CODE INTELLIGENCE === */
 .seed-list{display:flex;flex-direction:column;gap:6px;}
@@ -474,6 +485,46 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
   height: 6px;
   border-radius: 50%;
 }
+.file-intel-trigger{
+  position:absolute;
+  right:12px;
+  top:12px;
+  width:10px;
+  height:10px;
+  border-radius:50%;
+  border:1px solid var(--cyan-border);
+  background:var(--cyan);
+  box-shadow:0 0 0 3px var(--cyan-bg);
+  z-index:2;
+}
+.file-intel-popover{
+  position:absolute;
+  right:10px;
+  top:30px;
+  width:min(310px, calc(100% - 20px));
+  padding:12px;
+  border:1px solid var(--border2);
+  border-radius:8px;
+  background:var(--bg2);
+  box-shadow:0 16px 36px rgba(0,0,0,0.35);
+  opacity:0;
+  pointer-events:none;
+  transform:translateY(6px);
+  transition:opacity .16s ease, transform .16s ease;
+  z-index:20;
+}
+body.theme-light .file-intel-popover{box-shadow:0 16px 36px rgba(15,23,42,0.16);}
+.file-card:hover .file-intel-popover,
+.file-card:focus-within .file-intel-popover,
+.file-intel-trigger:hover + .file-intel-popover{
+  opacity:1;
+  transform:translateY(0);
+}
+.file-intel-title{font-family:var(--mono);font-size:11px;font-weight:800;color:var(--text);margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.file-intel-row{display:flex;justify-content:space-between;gap:10px;border-top:1px solid var(--border);padding-top:6px;margin-top:6px;font-size:10px;color:var(--text3);}
+.file-intel-row strong{color:var(--text2);font-weight:800;}
+.file-intel-list{margin-top:7px;display:flex;flex-direction:column;gap:4px;}
+.file-intel-pill{font-family:var(--mono);font-size:10px;color:var(--text2);border:1px solid var(--border);background:var(--bg3);border-radius:5px;padding:4px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 #repoFileDetail.open {
   width: 380px;
 }
@@ -564,6 +615,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
       <p id="mainDashboardSubtitle">Repo continuity, alignment, recall, reinjection, verification, and human review cockpit</p>
     </div>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end;">
+      <button type="button" id="themeToggle" onclick="toggleDashboardTheme()" class="theme-toggle">Light Mode</button>
       <button onclick="showIntroModal(true)" class="download-btn" style="font-size:12px;padding:8px 12px;">Core Help</button>
       <a href="/observatory" onclick="event.preventDefault();navPage('observatory')" style="display:inline-flex;align-items:center;padding:8px 16px;background:var(--bg3);border:1px solid var(--border2);color:var(--text);border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;transition:all 0.15s;">
         Open Observatory
@@ -1369,6 +1421,26 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
   </style>
 
 <script>
+function applyDashboardTheme(theme) {
+  const normalized = theme === 'light' ? 'light' : 'dark';
+  if (document.body) {
+    document.body.classList.toggle('theme-light', normalized === 'light');
+  }
+  const btn = document.getElementById('themeToggle');
+  if (btn) btn.textContent = normalized === 'light' ? 'Dark Mode' : 'Light Mode';
+}
+
+function toggleDashboardTheme() {
+  const current = localStorage.getItem('srt1_dashboard_theme') || 'dark';
+  const next = current === 'light' ? 'dark' : 'light';
+  localStorage.setItem('srt1_dashboard_theme', next);
+  applyDashboardTheme(next);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  applyDashboardTheme(localStorage.getItem('srt1_dashboard_theme') || 'dark');
+});
+
 // Simple markdown to HTML parser
 function renderMarkdown(text) {
   if (!text) return "";
@@ -1528,6 +1600,7 @@ function renderNeuralMapGrid() {
     // Determine dominant role and risk indicators
     const roles = {};
     const risks = new Set();
+    const deps = new Set();
     syms.forEach(s => {
       const ref = s.reflection || {};
       if (ref.architectural_role) {
@@ -1538,6 +1611,7 @@ function renderNeuralMapGrid() {
           if (r !== 'LOW_RISK') risks.add(r);
         });
       }
+      (s.dependencies || []).forEach(dep => deps.add(dep));
     });
 
     let dominantRole = 'GENERAL';
@@ -1552,9 +1626,27 @@ function renderNeuralMapGrid() {
     const roleColorClass = roleClass(dominantRole);
     const selectedClass = selectedMapFileId === f.file_path ? 'selected' : '';
     const escapedPath = f.file_path.replace(/\\/g, '\\\\');
+    const topSymbols = syms.slice(0, 4).map(s => `${s.name || 'unknown'}${s.type ? `:${s.type}` : ''}`);
+    const topDeps = Array.from(deps).slice(0, 3);
+    const riskList = Array.from(risks);
+    const freshness = f.freshness_state || manifest.manifest_freshness || (manifest.integrity?.manifest_hash ? 'fresh' : 'unknown');
+    const trust = f.trust_state || { signature: 'unsigned', verification: manifest.integrity?.manifest_hash ? 'verified' : 'unverified', lineage: manifest.integrity?.manifest_hash ? 'present' : 'missing' };
 
     html += `
-      <div class="file-card ${fidelity} ${selectedClass}" onclick="selectNeuralMapFile('${escapedPath}')" title="${f.file_path}">
+      <div class="file-card ${fidelity} ${selectedClass}" onclick="selectNeuralMapFile('${escapedPath}')" tabindex="0" aria-label="Open ${escapeHtml(f.file_path)} FileCell">
+        <span class="file-intel-trigger" aria-hidden="true"></span>
+        <div class="file-intel-popover">
+          <div class="file-intel-title">${escapeHtml(fileName)}</div>
+          <div class="file-intel-row"><strong>Role</strong><span>${escapeHtml(dominantRole)}</span></div>
+          <div class="file-intel-row"><strong>Symbols</strong><span>${syms.length}</span></div>
+          <div class="file-intel-row"><strong>Freshness</strong><span>${escapeHtml(freshness)}</span></div>
+          <div class="file-intel-row"><strong>Trust</strong><span>${escapeHtml(trust.signature || 'unsigned')} / ${escapeHtml(trust.verification || 'unverified')}</span></div>
+          <div class="file-intel-list">
+            ${(topSymbols.length ? topSymbols : ['No symbols indexed']).map(item => `<span class="file-intel-pill">${escapeHtml(item)}</span>`).join('')}
+            ${riskList.length ? `<span class="file-intel-pill">Risk: ${escapeHtml(riskList.slice(0, 3).join(', '))}</span>` : '<span class="file-intel-pill">Risk: none flagged</span>'}
+            ${topDeps.length ? `<span class="file-intel-pill">Deps: ${escapeHtml(topDeps.join(', '))}</span>` : '<span class="file-intel-pill">Deps: none indexed</span>'}
+          </div>
+        </div>
         <div class="file-card-header">
           <span class="file-card-title">${fileName}</span>
           <span class="file-card-badge ${fidelity}">${fidelity.toUpperCase()}</span>
