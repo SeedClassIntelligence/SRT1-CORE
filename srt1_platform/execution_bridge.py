@@ -166,6 +166,11 @@ class SCIADispatchBridge:
             self.assistant_adapters = assistant_adapters
             if self.assistant_adapters and DispatchMethod.ASSISTANT_ADAPTER not in self.dispatch_methods:
                 self.dispatch_methods.append(DispatchMethod.ASSISTANT_ADAPTER)
+            if not self.assistant_adapters and DispatchMethod.ASSISTANT_ADAPTER in self.dispatch_methods:
+                self.dispatch_methods = [
+                    method for method in self.dispatch_methods
+                    if method != DispatchMethod.ASSISTANT_ADAPTER
+                ]
 
         self._save_config()
 

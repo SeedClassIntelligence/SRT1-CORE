@@ -1108,6 +1108,64 @@ body.theme-light .file-intel-popover{box-shadow:0 16px 36px rgba(15,23,42,0.16);
     </div>
   </div>
 
+  <div class="panel" id="assistant-adapters" style="margin-bottom:32px;scroll-margin-top:80px;">
+    <div class="panel-header">
+      <div class="panel-title">Assistant Adapters <span class="info-icon" data-tooltip="Choose which bounded WorkCell handoff SRT-1 uses when a seed is dispatched. Adapters receive WorkCell packages; they do not own repository truth or seed lifecycle.">?</span></div>
+      <div class="panel-badge info" id="assistantAdapterBadge">LOADING</div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;">
+      <label style="display:flex;gap:10px;align-items:flex-start;padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;cursor:pointer;">
+        <input type="checkbox" id="adapterCodex" style="margin-top:3px;">
+        <span>
+          <span style="display:block;font-size:13px;font-weight:800;color:var(--text);">Codex WorkCell Handoff</span>
+          <span style="display:block;font-size:11px;color:var(--text3);line-height:1.45;margin-top:4px;">Writes bounded Codex instructions into <code style="font-family:var(--mono);">.srt1/adapters/codex/</code>.</span>
+        </span>
+      </label>
+      <label style="display:flex;gap:10px;align-items:flex-start;padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;cursor:pointer;">
+        <input type="checkbox" id="adapterFile" style="margin-top:3px;">
+        <span>
+          <span style="display:block;font-size:13px;font-weight:800;color:var(--text);">Generic File Handoff</span>
+          <span style="display:block;font-size:11px;color:var(--text3);line-height:1.45;margin-top:4px;">Creates model-agnostic WorkCell request files for any assistant.</span>
+        </span>
+      </label>
+      <div style="padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;">
+        <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer;">
+          <input type="checkbox" id="adapterHttp" style="margin-top:3px;">
+          <span>
+            <span style="display:block;font-size:13px;font-weight:800;color:var(--text);">Custom HTTP Adapter</span>
+            <span style="display:block;font-size:11px;color:var(--text3);line-height:1.45;margin-top:4px;">Posts bounded WorkCell JSON to a developer-controlled endpoint.</span>
+          </span>
+        </label>
+        <input type="text" id="adapterHttpEndpoint" placeholder="http://127.0.0.1:9000/workcell" style="width:100%;margin-top:10px;padding:8px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:11px;">
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px;">
+      <button class="download-btn" onclick="saveAssistantAdapters()">Save adapter selection</button>
+      <span id="assistantAdapterStatus" style="font-size:12px;color:var(--text4);">Adapters dispatch through the existing WorkCell execution bridge.</span>
+    </div>
+  </div>
+
+  <div class="panel" id="slack-seed-surface" style="margin-bottom:32px;scroll-margin-top:80px;">
+    <div class="panel-header">
+      <div class="panel-title">Slack Seed Intake <span class="info-icon" data-tooltip="Slack is a communication surface. Messages plant seeds into the same queue-first WorkCell execution path as the dashboard.">?</span></div>
+      <div class="panel-badge warn" id="slackSeedBadge">LOCAL ENDPOINT</div>
+    </div>
+    <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(220px,.45fr);gap:12px;">
+      <div>
+        <div style="display:flex;gap:8px;">
+          <input type="text" id="slackSeedInput" placeholder="/srt1 improve dashboard contrast..." style="flex:1;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--sans);outline:none;" onkeydown="if(event.key === 'Enter') submitSlackSeed()">
+          <button class="download-btn" onclick="submitSlackSeed()">Test Slack Seed</button>
+        </div>
+        <div id="slackSeedStatus" style="margin-top:8px;font-size:12px;color:var(--text4);">Use this to test the same payload shape a Slack slash command would send.</div>
+      </div>
+      <div style="padding:10px;background:var(--bg);border:1px solid var(--border);border-radius:8px;font-size:11px;color:var(--text3);line-height:1.55;">
+        <div style="font-weight:800;color:var(--text);font-size:12px;margin-bottom:4px;">Endpoint</div>
+        <code id="slackSeedEndpoint" style="font-family:var(--mono);word-break:break-all;">/api/v1/slack/seed</code>
+        <div style="margin-top:8px;color:var(--text4);">Slack/team authorization remains an external integration; Core accepts local seed intake and fails through normal seed enforcement.</div>
+      </div>
+    </div>
+  </div>
+
   <!-- AUTHORITY TRUTH SURFACE - recovered SRT-1 organs made visible -->
   <div class="grid-2" id="authority-surface" style="margin-bottom:32px;scroll-margin-top:80px;">
     <div class="panel" style="grid-column:1 / -1;">
@@ -1201,7 +1259,7 @@ body.theme-light .file-intel-popover{box-shadow:0 16px 36px rgba(15,23,42,0.16);
       <div style="display:flex;flex-direction:column;gap:8px;font-size:13px;">
         <div style="padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text2);"><strong style="color:var(--cyan);">Constellation:</strong> independent SRT-1 engine awareness; no shared context by default.</div>
         <div style="padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text2);"><strong style="color:var(--amber);">SION:</strong> planned in-house assistant; inactive in current Core runtime.</div>
-        <div style="padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text2);"><strong style="color:var(--amber);">Slack/team/cloud:</strong> Enterprise/private integration; not active in public Core dashboard.</div>
+        <div style="padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text2);"><strong style="color:var(--amber);">Slack/team/cloud:</strong> local Slack-style seed intake is available; team auth, cloud routing, and workspace backend remain external integrations.</div>
         <div style="padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text2);"><strong style="color:var(--amber);">Seed Signature:</strong> external signing authority can sign across tiers when configured.</div>
       </div>
     </div>
@@ -2861,7 +2919,7 @@ async function loadStatus() {
         licenseBadge.textContent = 'FREE TIER';
         licenseBadge.style.background = 'var(--bg3)';
         licenseBadge.style.color = 'var(--text3)';
-        licenseText.innerHTML = `Core Local<span>Repo intelligence, continuity, recall, reinjection, workcell review, and verification surfaces. Team/cloud/Slack remain external.</span>`;
+        licenseText.innerHTML = `Core Local<span>Repo intelligence, continuity, recall, reinjection, workcell review, verification surfaces, and local Slack-style seed intake. Team/cloud backend remains external.</span>`;
         licenseDot.style.background = 'var(--text4)';
       }
 
@@ -3056,6 +3114,115 @@ function toggleKeyVisibility(provider) {
   } else {
     input.type = 'password';
     btn.textContent = '👁';
+  }
+}
+
+// ============================================================
+// ASSISTANT ADAPTERS + SLACK SEED INTAKE
+// ============================================================
+async function loadAssistantAdapters() {
+  const badge = document.getElementById('assistantAdapterBadge');
+  const status = document.getElementById('assistantAdapterStatus');
+  try {
+    const res = await fetch(API + '/api/v1/assistant-adapters');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    const adapters = data.assistant_adapters || [];
+    const types = new Set(adapters.map(a => a.type));
+    const codex = document.getElementById('adapterCodex');
+    const file = document.getElementById('adapterFile');
+    const http = document.getElementById('adapterHttp');
+    const endpoint = document.getElementById('adapterHttpEndpoint');
+    if (codex) codex.checked = types.has('codex');
+    if (file) file.checked = types.has('file_context') || types.has('file') || types.has('file_handoff');
+    const httpConfig = adapters.find(a => a.type === 'custom_http');
+    if (http) http.checked = !!httpConfig;
+    if (endpoint && httpConfig) endpoint.value = httpConfig.endpoint || '';
+    if (badge) {
+      badge.textContent = adapters.length ? `${adapters.length} ACTIVE` : 'NONE';
+      badge.className = adapters.length ? 'panel-badge' : 'panel-badge warn';
+    }
+    if (status) status.textContent = adapters.length
+      ? 'Configured adapters will receive bounded WorkCell execution requests.'
+      : 'No assistant adapter selected. File/context bridge behavior still remains available.';
+    const slackEndpoint = document.getElementById('slackSeedEndpoint');
+    if (slackEndpoint) slackEndpoint.textContent = window.location.origin + (data.slack_seed_endpoint || '/api/v1/slack/seed');
+  } catch(e) {
+    if (badge) {
+      badge.textContent = 'OFFLINE';
+      badge.className = 'panel-badge warn';
+    }
+    if (status) status.textContent = 'Could not load adapter configuration from the engine.';
+  }
+}
+
+async function saveAssistantAdapters() {
+  const adapters = [];
+  if (document.getElementById('adapterCodex')?.checked) adapters.push({ type: 'codex' });
+  if (document.getElementById('adapterFile')?.checked) adapters.push({ type: 'file_context', name: 'file_context' });
+  if (document.getElementById('adapterHttp')?.checked) {
+    const endpoint = document.getElementById('adapterHttpEndpoint')?.value.trim();
+    adapters.push({ type: 'custom_http', endpoint });
+  }
+  const status = document.getElementById('assistantAdapterStatus');
+  try {
+    const res = await fetch(API + '/api/v1/assistant-adapters', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ assistant_adapters: adapters })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Adapter configuration failed');
+    if (status) {
+      status.textContent = `Saved ${data.assistant_adapters.length} assistant adapter(s).`;
+      status.style.color = 'var(--text4)';
+    }
+    await loadAssistantAdapters();
+  } catch(e) {
+    if (status) {
+      status.textContent = e.message || 'Adapter save failed.';
+      status.style.color = 'var(--amber)';
+    }
+  }
+}
+
+async function submitSlackSeed() {
+  const input = document.getElementById('slackSeedInput');
+  const status = document.getElementById('slackSeedStatus');
+  const text = (input?.value || '').trim();
+  if (!text) return;
+  if (status) {
+    status.textContent = 'Planting Slack-originated seed...';
+    status.style.color = 'var(--text3)';
+  }
+  try {
+    const res = await fetch(API + '/api/v1/slack/seed', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        text,
+        source: 'slack',
+        user_name: 'dashboard-test',
+        channel_id: 'local-dashboard'
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Slack seed failed');
+    if (input) input.value = '';
+    if (status) {
+      status.textContent = `Seed planted from Slack surface: ${data.queue_seed_id || data.seed_id}`;
+      status.style.color = 'var(--green)';
+    }
+    setTimeout(() => {
+      loadStatus();
+      loadSeedQueue();
+      loadWorkCells();
+    }, 800);
+  } catch(e) {
+    if (status) {
+      status.textContent = e.message || 'Slack seed failed.';
+      status.style.color = 'var(--amber)';
+    }
   }
 }
 
@@ -3755,8 +3922,12 @@ function organizePanels() {
   // Move AI Connection + Activity into Overview pane
   const overviewPane = document.getElementById('pane-overview');
   const aiConn = document.getElementById('ai-connection');
+  const adapters = document.getElementById('assistant-adapters');
+  const slackSeed = document.getElementById('slack-seed-surface');
   const activity = document.getElementById('analytics-activity');
   if (aiConn && overviewPane) overviewPane.appendChild(aiConn);
+  if (adapters && overviewPane) overviewPane.appendChild(adapters);
+  if (slackSeed && overviewPane) overviewPane.appendChild(slackSeed);
   if (activity && overviewPane) overviewPane.appendChild(activity);
 
   // Move API Keys into Settings (after license/downloads)
@@ -3781,6 +3952,7 @@ loadStatus();
 loadWorkCells();
 loadSeedQueue();
 loadSavedKeys();
+loadAssistantAdapters();
 setNeuralMapState('Loading repo intelligence...', 'muted');
 setSynopsisState('Loading Project Synopsis...', 'Project Synopsis will load after the dashboard shell is ready.');
 setTimeout(() => loadManifest({ renderExplorer: false }), 350);
@@ -3789,6 +3961,7 @@ setInterval(loadDashboardSummary, 30000);
 setInterval(loadStatus, 30000);
 setInterval(loadWorkCells, 30000);
 setInterval(loadSeedQueue, 30000);
+setInterval(loadAssistantAdapters, 30000);
 // Update blueprint preview after status loads
 setInterval(updateBlueprintPreview, 5000);
 

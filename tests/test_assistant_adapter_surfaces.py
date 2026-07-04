@@ -1,0 +1,113 @@
+import tempfile
+import unittest
+from pathlib import Path
+from unittest.mock import Mock
+
+from srt1_code_indexer import engine as engine_module
+from srt1_platform.execution_bridge import DispatchMethod, SCIADispatchBridge
+
+
+class AssistantAdapterSurfaceTests(unittest.TestCase):
+    def test_engine_configures_core_safe_assistant_adapters(self):
+        with tempfile.TemporaryDirectory() as repo:
+            engine = engine_module.SRT1Engine.__new__(engine_module.SRT1Engine)
+            engine.repo_path = repo
+            engine.bridge = SCIADispatchBridge(repo_path=repo)
+
+            result = engine._configure_assistant_adapters([
+                {"type": "codex"},
+                {"type": "file_context", "name": "local_handoff"},
+                {"type": "custom_http", "endpoint": "http://127.0.0.1:9000/workcell"},
+                {"type": "custom_http", "endpoint": ""},
+                {"type": "unknown_model"},
+            ])
+
+            self.assertEqual(result["status"], "configured")
+            self.assertIn(DispatchMethod.ASSISTANT_ADAPTER, result["dispatch_methods"])
+            self.assertEqual(
+                result["assistant_adapters"],
+                [
+                    {"type": "codex", "name": "codex"},
+                    {"type": "file_context", "name": "local_handoff"},
+                    {
+                        "type": "custom_http",
+                        "endpoint": "http://127.0.0.1:9000/workcell",
+                        "timeout": 20.0,
+                    },
+                ],
+            )
+
+            reloaded = SCIADispatchBridge(repo_path=repo)
+            self.assertEqual(reloaded.assistant_adapters, result["assistant_adapters"])
+
+    def test_clearing_assistant_adapters_removes_dispatch_method(self):
+        with tempfile.TemporaryDirectory() as repo:
+            bridge = SCIADispatchBridge(repo_path=repo)
+            bridge.configure(
+                dispatch_methods=[DispatchMethod.FILE_BASED],
+                assistant_adapters=[{"type": "codex"}],
+            )
+            self.assertIn(DispatchMethod.ASSISTANT_ADAPTER, bridge.dispatch_methods)
+
+            bridge.configure(assistant_adapters=[])
+
+            self.assertEqual(bridge.assistant_adapters, [])
+            self.assertNotIn(DispatchMethod.ASSISTANT_ADAPTER, bridge.dispatch_methods)
+
+    def test_slack_seed_intake_uses_canonical_plant_seed_flow(self):
+        engine = engine_module.SRT1Engine.__new__(engine_module.SRT1Engine)
+        engine.task = None
+        engine._plant_seed = Mock(return_value="seed_queue_1")
+        engine._build_task_response = Mock(return_value={
+            "seed_id": "seed_queue_1",
+            "queue_seed_id": "seed_queue_1",
+            "srt_anchor_id": "srt_anchor_1",
+        })
+        engine._generate_context_files = Mock()
+
+        result = engine._plant_slack_seed({
+            "text": "/srt1 improve dashboard adapter selector",
+            "user_name": "darnell",
+            "user_id": "U123",
+            "channel_id": "C123",
+        })
+
+        self.assertEqual(result["status"], "seed_planted")
+        self.assertEqual(result["queue_seed_id"], "seed_queue_1")
+        self.assertEqual(result["source"], "slack")
+        self.assertEqual(result["slack"]["user_name"], "darnell")
+        engine._plant_seed.assert_called_once_with(
+            "improve dashboard adapter selector",
+            source="slack",
+            priority=5,
+            auto_dispatch=True,
+            template_id=None,
+        )
+        engine._build_task_response.assert_called_once_with(
+            task="improve dashboard adapter selector",
+            queue_seed_id="seed_queue_1",
+            auto_dispatch=True,
+        )
+
+    def test_dashboard_contains_assistant_adapter_and_slack_wiring(self):
+        dashboard = (
+            Path(__file__).resolve().parents[1]
+            / "srt1_platform"
+            / "pwa"
+            / "dashboard.html"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("Assistant Adapters", dashboard)
+        self.assertIn("adapterCodex", dashboard)
+        self.assertIn("adapterFile", dashboard)
+        self.assertIn("adapterHttpEndpoint", dashboard)
+        self.assertIn("loadAssistantAdapters", dashboard)
+        self.assertIn("saveAssistantAdapters", dashboard)
+        self.assertIn("/api/v1/assistant-adapters", dashboard)
+        self.assertIn("Slack Seed Intake", dashboard)
+        self.assertIn("submitSlackSeed", dashboard)
+        self.assertIn("/api/v1/slack/seed", dashboard)
+
+
+if __name__ == "__main__":
+    unittest.main()

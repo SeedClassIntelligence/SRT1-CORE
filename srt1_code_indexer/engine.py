@@ -2298,6 +2298,135 @@ class SRT1Engine:
             return {"error": "WorkCell registry unavailable", "status": "error"}
         return registry.read_workcell_md(queue_seed_id)
 
+    def _sanitize_assistant_adapter_config(
+        self, adapters: Optional[List[Dict[str, Any]]]
+    ) -> List[Dict[str, Any]]:
+        """Return Core-safe assistant adapter configs without storing raw API keys."""
+        clean: List[Dict[str, Any]] = []
+        for adapter in adapters or []:
+            adapter_type = str(adapter.get("type") or "").strip().lower()
+            if not adapter_type:
+                continue
+            enabled = adapter.get("enabled", True)
+            if isinstance(enabled, str):
+                enabled = enabled.lower() not in {"0", "false", "no", "off"}
+            if not enabled:
+                continue
+            if adapter_type in {"codex"}:
+                clean.append({"type": "codex", "name": "codex"})
+            elif adapter_type in {"file", "file_context", "file_handoff"}:
+                clean.append({
+                    "type": "file_context",
+                    "name": str(adapter.get("name") or "file_context"),
+                })
+            elif adapter_type in {"custom_http", "http", "webhook"}:
+                endpoint = str(adapter.get("endpoint") or "").strip()
+                if endpoint:
+                    clean.append({
+                        "type": "custom_http",
+                        "endpoint": endpoint,
+                        "timeout": float(adapter.get("timeout") or 20.0),
+                    })
+        return clean
+
+    def _get_assistant_adapter_config(self) -> Dict[str, Any]:
+        """Expose bridge adapter configuration without secrets."""
+        bridge = getattr(self, "bridge", None)
+        adapters = list(getattr(bridge, "assistant_adapters", []) or []) if bridge else []
+        methods = list(getattr(bridge, "dispatch_methods", []) or []) if bridge else []
+        return {
+            "status": "available" if bridge else "not_available",
+            "dispatch_methods": methods,
+            "assistant_adapters": adapters,
+            "available_adapters": [
+                {
+                    "type": "codex",
+                    "label": "Codex WorkCell handoff",
+                    "description": "Writes bounded WorkCell instructions for Codex.",
+                },
+                {
+                    "type": "file_context",
+                    "label": "File handoff",
+                    "description": "Writes a model-agnostic request package into .srt1/adapters/.",
+                },
+                {
+                    "type": "custom_http",
+                    "label": "Custom HTTP model adapter",
+                    "description": "Posts bounded WorkCell JSON to a developer-controlled endpoint.",
+                },
+            ],
+            "slack_seed_endpoint": "/api/v1/slack/seed",
+            "slack_command_endpoint": "/api/v1/slack/command",
+        }
+
+    def _configure_assistant_adapters(
+        self, adapters: Optional[List[Dict[str, Any]]]
+    ) -> Dict[str, Any]:
+        """Persist Core-safe assistant adapter configuration on the bridge."""
+        bridge = getattr(self, "bridge", None)
+        if not bridge:
+            return {"status": "error", "error": "Execution bridge unavailable"}
+        clean = self._sanitize_assistant_adapter_config(adapters)
+        bridge.configure(assistant_adapters=clean)
+        return {
+            "status": "configured",
+            "assistant_adapters": clean,
+            "dispatch_methods": list(bridge.dispatch_methods),
+        }
+
+    def _plant_slack_seed(self, body: Dict[str, Any]) -> Dict[str, Any]:
+        """Plant a Slack-originated seed through the canonical queue-first path."""
+        task = (
+            body.get("task")
+            or body.get("text")
+            or body.get("message")
+            or body.get("command_text")
+            or ""
+        ).strip()
+        if task.startswith("/srt1"):
+            task = task[len("/srt1"):].strip()
+        if not task:
+            return {
+                "status": "error",
+                "error": "Missing Slack seed text",
+                "response_type": "ephemeral",
+                "text": "SRT-1 needs a seed objective. Example: /srt1 improve dashboard contrast",
+            }
+
+        source = body.get("source") or "slack"
+        priority = int(body.get("priority") or 5)
+        auto_dispatch = body.get("auto_dispatch", True)
+        if isinstance(auto_dispatch, str):
+            auto_dispatch = auto_dispatch.lower() not in {"0", "false", "no", "off"}
+
+        queue_seed_id = self._plant_seed(
+            task,
+            source=source,
+            priority=priority,
+            auto_dispatch=auto_dispatch,
+            template_id=body.get("template_id"),
+        )
+        self.task = task
+        threading.Thread(target=self._generate_context_files, daemon=True).start()
+        response = self._build_task_response(
+            task=task,
+            queue_seed_id=queue_seed_id,
+            auto_dispatch=auto_dispatch,
+        )
+        response.update({
+            "status": "seed_planted",
+            "source": source,
+            "slack": {
+                "channel_id": body.get("channel_id"),
+                "user_id": body.get("user_id"),
+                "user_name": body.get("user_name"),
+                "team_id": body.get("team_id"),
+            },
+            "response_type": "ephemeral",
+            "text": f"SRT-1 seed planted: {queue_seed_id}",
+        })
+        return response
+
     def _resolve_queue_seed_id(self, seed_id: Optional[str]) -> Optional[str]:
         """Resolve a public/callback seed id to canonical queue seed id."""
         if not seed_id or not self.seed_queue:
@@ -3053,7 +3182,20 @@ class SRT1Engine:
 
             def _body(self):
                 length = int(self.headers.get("Content-Length", 0))
-                return json.loads(self.rfile.read(length)) if length else {}
+                if not length:
+                    return {}
+                raw = self.rfile.read(length).decode("utf-8", errors="replace")
+                content_type = self.headers.get("Content-Type", "")
+                if "application/x-www-form-urlencoded" in content_type:
+                    parsed = parse_qs(raw, keep_blank_values=True)
+                    return {
+                        key: values[-1] if values else ""
+                        for key, values in parsed.items()
+                    }
+                try:
+                    return json.loads(raw) if raw else {}
+                except json.JSONDecodeError:
+                    return {"text": raw}
 
             def _authenticate_cloud(self):
                 auth_header = self.headers.get('Authorization')
@@ -3465,6 +3607,9 @@ class SRT1Engine:
                         "workcells": [],
                         "executions": [],
                     })
+
+                elif path == "/api/v1/assistant-adapters":
+                    self._json(engine._get_assistant_adapter_config())
 
                 elif path.startswith("/api/v1/workcells/") and path.endswith("/package/workcell-md"):
                     queue_seed_id = path[len("/api/v1/workcells/"):-len("/package/workcell-md")].strip("/")
@@ -4150,6 +4295,16 @@ class SRT1Engine:
                     enabled = body.get("enabled", True)
                     engine.enforcement_nudge_enabled = bool(enabled)
                     return self._json({"status": "success", "nudge_enabled": engine.enforcement_nudge_enabled})
+
+                elif path == "/api/v1/assistant-adapters":
+                    result = engine._configure_assistant_adapters(body.get("assistant_adapters") or body.get("adapters") or [])
+                    status_code = 200 if result.get("status") == "configured" else 400
+                    return self._json(result, status_code)
+
+                elif path in {"/api/v1/slack/seed", "/api/v1/slack/command"}:
+                    result = engine._plant_slack_seed(body)
+                    status_code = 200 if result.get("status") == "seed_planted" else 400
+                    return self._json(result, status_code)
 
                 elif path.startswith("/api/v1/workcells/") and path.endswith("/repair-package"):
                     queue_seed_id = path[len("/api/v1/workcells/"):-len("/repair-package")].strip("/")
