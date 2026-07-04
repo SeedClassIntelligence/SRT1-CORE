@@ -163,6 +163,121 @@ class SCIAMCPEngine:
 
         self.synopsis = " ".join(parts)
 
+    def _manifest_hash(self) -> Optional[str]:
+        return (self.manifest.get("integrity", {}) or {}).get("manifest_hash")
+
+    def _trust_state(self) -> Dict[str, str]:
+        return {
+            "signature": "unsigned",
+            "verification": "verified" if self._manifest_hash() else "unverified",
+            "lineage": "present" if self._manifest_hash() else "missing",
+        }
+
+    def _workcell_registry(self):
+        try:
+            from srt1_platform.workcell import WorkCellRegistry
+            registry = WorkCellRegistry(repo_path=self.repo_path)
+            registry.populate_from_manifest(self.manifest)
+            return registry
+        except Exception:
+            return None
+
+    def get_repository_status(self) -> Dict[str, Any]:
+        """Return Core-safe repository activation and context status."""
+        registry = self._workcell_registry()
+        workcells = registry.summary() if registry else {
+            "workcell_count": 0,
+            "execution_count": 0,
+            "active_executions": [],
+        }
+        file_count = len(self.manifest.get("file_manifest", []) or [])
+        symbol_count = sum(len(symbols) for symbols in self.symbol_table.values())
+        manifest_hash = self._manifest_hash()
+        return {
+            "repository": os.path.basename(self.repo_path),
+            "repo_path": self.repo_path,
+            "file_count": file_count,
+            "symbol_count": symbol_count,
+            "manifest_hash": manifest_hash,
+            "freshness_state": "fresh" if manifest_hash else "unknown",
+            "trust_state": self._trust_state(),
+            "workcell_count": workcells.get("workcell_count", 0),
+            "execution_count": workcells.get("execution_count", 0),
+            "active_execution_count": len(workcells.get("active_executions", []) or []),
+            "context_rule": "Use WorkCell context first. Do not request broad repository context unless the task requires it.",
+        }
+
+    def get_workcell_context(
+        self,
+        queue_seed_id: Optional[str] = None,
+        path: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Return bounded assistant context for one WorkCell or execution."""
+        registry = self._workcell_registry()
+        if not registry:
+            return {
+                "status": "degraded",
+                "reason": "WorkCell registry unavailable",
+                "queue_seed_id": queue_seed_id,
+                "path": path,
+                "trust_state": self._trust_state(),
+            }
+
+        summary = registry.summary()
+        execution = registry.get_execution_for_seed(queue_seed_id) if queue_seed_id else None
+        workcell = None
+        if execution:
+            for candidate in summary.get("workcells", []):
+                if candidate.get("workcell_id") == execution.get("workcell_id"):
+                    workcell = candidate
+                    break
+        elif path:
+            target = path.replace("\\", "/")
+            for candidate in summary.get("workcells", []):
+                owned = [str(item).replace("\\", "/") for item in candidate.get("owned_paths", [])]
+                if target in owned:
+                    workcell = candidate
+                    break
+
+        if not workcell:
+            return {
+                "status": "not_found",
+                "reason": "No matching WorkCell. Select a file WorkCell or activate a seed first.",
+                "queue_seed_id": queue_seed_id,
+                "path": path,
+                "repository_status": self.get_repository_status(),
+            }
+
+        preview = registry.read_workcell_md(queue_seed_id) if queue_seed_id else None
+        filecell = workcell.get("filecell_summary", {}) or {}
+        return {
+            "status": "ready",
+            "repository": os.path.basename(self.repo_path),
+            "queue_seed_id": queue_seed_id,
+            "workcell_id": workcell.get("workcell_id"),
+            "workcell_name": workcell.get("name"),
+            "objective": execution.get("objective") if execution else None,
+            "owned_paths": workcell.get("owned_paths", []),
+            "restricted_paths": workcell.get("restricted_paths", []),
+            "filecell": {
+                "filecell_id": filecell.get("filecell_id"),
+                "path": filecell.get("path"),
+                "parser": filecell.get("parser"),
+                "symbol_count": filecell.get("symbol_count", 0),
+                "symbols": (filecell.get("symbols", []) or [])[:25],
+                "dependencies": (filecell.get("dependencies", []) or [])[:25],
+                "architectural_roles": filecell.get("architectural_roles", {}),
+                "risk_tags": filecell.get("risk_tags", {}),
+                "freshness_state": filecell.get("freshness_state", "unknown"),
+                "trust_state": filecell.get("trust_state") or self._trust_state(),
+            },
+            "package_status": execution.get("package_status") if execution else None,
+            "workcell_md": preview.get("content") if preview and preview.get("status") == "ok" else None,
+            "context_rule": "This is bounded WorkCell context. Do not broaden scope without dependency evidence or human approval.",
+            "manifest_hash": self._manifest_hash(),
+            "trust_state": self._trust_state(),
+        }
+
     def generate_blueprint(self, seed: str) -> Dict:
         """Generate a detailed blueprint prompt from a seed idea."""
         seed_words = set(self._task_keywords())
@@ -387,12 +502,19 @@ class SCIAMCPEngine:
         }
 
     def get_context(self) -> str:
-        """Get the full context injection for the AI right now."""
+        """Get a compact repository-level context injection for the AI right now."""
+        status = self.get_repository_status()
         parts = [
-            "# SRT-1 Codebase Intelligence",
+            "# SRT-1 Repository Context",
             "",
             f"Repository: {os.path.basename(self.repo_path)}",
             f"Synopsis: {self.synopsis}",
+            f"Files: {status['file_count']}",
+            f"Symbols: {status['symbol_count']}",
+            f"WorkCells: {status['workcell_count']}",
+            f"Manifest: {status['manifest_hash'] or 'unknown'}",
+            "Operating rule: begin with repository status and bounded WorkCell context.",
+            "Do not request or infer whole-repo context unless the task requires it.",
             "",
         ]
 
@@ -414,10 +536,13 @@ class SCIAMCPEngine:
                 parts.append(f"  - {w}")
             parts.append("")
 
-        # Key symbols
-        parts.append("CODE MAP:")
+        # Compact symbol sample only; WorkCell context is the normal path.
+        parts.append("COMPACT SYMBOL SAMPLE:")
+        emitted = 0
         for fpath, symbols in self.symbol_table.items():
             for sym in symbols:
+                if emitted >= 25:
+                    break
                 if sym["name"] in ("__init__", "__post_init__"):
                     continue
                 ref = sym.get("reflection", {})
@@ -426,6 +551,11 @@ class SCIAMCPEngine:
                 risk_s = f" [{', '.join(risk)}]" if risk and risk != ["LOW_RISK"] else ""
                 if purpose:
                     parts.append(f"  {sym['name']} ({fpath}:{sym['line']}): {purpose[:80]}{risk_s}")
+                    emitted += 1
+            if emitted >= 25:
+                break
+        parts.append("")
+        parts.append("For execution, call srt1_get_workcell_context with a queue_seed_id or file path.")
 
         return "\n".join(parts)
 
@@ -520,14 +650,45 @@ class MCPServer:
                     {
                         "name": "srt1_get_context",
                         "description": (
-                            "Get SRT-1 codebase intelligence. Call this BEFORE making "
-                            "any changes to understand what already exists in the codebase. "
-                            "Returns a synopsis, code map, warnings about duplicated code, "
-                            "and risk tags. ALWAYS call this before creating new functions."
+                            "Get compact SRT-1 repository context. This is a bounded "
+                            "orientation surface, not a whole-repo dump. Use "
+                            "srt1_get_workcell_context before execution when a file path "
+                            "or queue_seed_id is known."
                         ),
                         "inputSchema": {
                             "type": "object",
                             "properties": {},
+                        },
+                    },
+                    {
+                        "name": "srt1_get_repository_status",
+                        "description": (
+                            "Get active repository, manifest freshness, trust vocabulary, "
+                            "WorkCell counts, and assistant context rules."
+                        ),
+                        "inputSchema": {
+                            "type": "object",
+                            "properties": {},
+                        },
+                    },
+                    {
+                        "name": "srt1_get_workcell_context",
+                        "description": (
+                            "Get bounded WorkCell/FileCell context for a queue_seed_id or "
+                            "file path. Use this as the normal pre-execution context path."
+                        ),
+                        "inputSchema": {
+                            "type": "object",
+                            "properties": {
+                                "queue_seed_id": {
+                                    "type": "string",
+                                    "description": "Canonical queue seed id for an active WorkCell execution",
+                                },
+                                "path": {
+                                    "type": "string",
+                                    "description": "Repository-relative file path for a file WorkCell",
+                                },
+                            },
                         },
                     },
                     {
@@ -631,8 +792,14 @@ class MCPServer:
                     },
                     {
                         "uri": "srt1://context",
-                        "name": "Full SRT-1 Context",
-                        "description": "Complete codebase intelligence for the AI",
+                        "name": "Compact SRT-1 Context",
+                        "description": "Bounded repository orientation for the AI",
+                        "mimeType": "text/plain",
+                    },
+                    {
+                        "uri": "srt1://repository-status",
+                        "name": "Repository Status",
+                        "description": "Active repository, manifest, WorkCell, and trust status",
                         "mimeType": "text/plain",
                     },
                 ],
@@ -654,6 +821,21 @@ class MCPServer:
             context = self.engine.get_context()
             return self._rpc_response(req_id, {
                 "content": [{"type": "text", "text": context}],
+            })
+
+        elif tool_name == "srt1_get_repository_status":
+            result = self.engine.get_repository_status()
+            return self._rpc_response(req_id, {
+                "content": [{"type": "text", "text": json.dumps(result, indent=2)}],
+            })
+
+        elif tool_name == "srt1_get_workcell_context":
+            result = self.engine.get_workcell_context(
+                queue_seed_id=args.get("queue_seed_id"),
+                path=args.get("path"),
+            )
+            return self._rpc_response(req_id, {
+                "content": [{"type": "text", "text": json.dumps(result, indent=2)}],
             })
 
         elif tool_name == "srt1_log_interaction":
@@ -742,6 +924,14 @@ class MCPServer:
                     "uri": uri,
                     "mimeType": "text/plain",
                     "text": self.engine.get_context(),
+                }],
+            })
+        elif uri == "srt1://repository-status":
+            return self._rpc_response(req_id, {
+                "contents": [{
+                    "uri": uri,
+                    "mimeType": "application/json",
+                    "text": json.dumps(self.engine.get_repository_status(), indent=2),
                 }],
             })
 
