@@ -154,11 +154,16 @@ MCP tools should serve bounded repo context, continuity state, and verification 
 
 | Layer | Belongs here |
 | --- | --- |
-| Core | Local repo understanding, continuity, reflection, recall, reinjection, context isolation concepts, verification concepts, human observability shell, trust vocabulary. |
+| Core | Local repo understanding, continuity, reflection, recall, reinjection, WorkCells/FileCells, context isolation concepts, verification concepts, human observability shell, assistant adapter handoff, local Slack-style seed intake, trust vocabulary. |
 | Pro | Workspace connector, constellation coordination, richer context bundling, local multi-folder awareness, public contracts that remain decoupled from private systems. |
-| Enterprise / Private | SCIA memory implementation, SCIA security implementation, private Seed Signature authority, private keys, SION internals, private audit/signing authority, team/cloud/SSO/Slack backend, Enterprise dashboards/processes that expose private flow. |
+| Enterprise / Private | Separate Enterprise dashboard/setup, SCIA memory implementation, SCIA security implementation, private Seed Signature authority, private keys, SION internals, private audit/signing authority, team/cloud/SSO/Slack backend, Enterprise dashboards/processes that expose private flow. |
 
 Enterprise/private systems are optional integrations. Core must remain useful without them and must fail closed when they are unavailable.
+
+Current boundary and Enterprise pickup instructions live in:
+
+- `docs/recovery/SRT1_CORE_ENTERPRISE_BOUNDARY.md`
+- `docs/recovery/SRT1_ENTERPRISE_PICKUP_INSTRUCTIONS.md`
 
 ---
 
