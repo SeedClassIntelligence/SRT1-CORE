@@ -2196,8 +2196,9 @@ class SRT1Engine:
                     seed.srt_anchor_id = self.task_seed_id
                     self.seed_queue._save()
 
+        workcell_execution = None
         if queue_seed_id:
-            self._activate_workcell_execution(queue_seed_id, task)
+            workcell_execution = self._activate_workcell_execution(queue_seed_id, task)
 
         if self.analytics:
             self.analytics.record_seed_planted(applied_template)
@@ -2222,7 +2223,12 @@ class SRT1Engine:
                             blueprint_meta={
                                 "relevant_symbols": bp_result.get("relevant_symbols", 0),
                                 "relevant_files": bp_result.get("relevant_files", 0),
+                                "workcell_package_path": (workcell_execution or {}).get("package_path"),
+                                "allowed_paths": (workcell_execution or {}).get("owned_paths", []),
+                                "restricted_paths": (workcell_execution or {}).get("restricted_paths", []),
+                                "trust_state": (workcell_execution or {}).get("trust_state", {}),
                             },
+                            execution_context=workcell_execution or {},
                         )
                     except Exception as e:
                         logger.error(f"Async dispatch failed for {sid}: {e}")

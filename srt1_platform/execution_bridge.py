@@ -51,6 +51,11 @@ import threading
 from datetime import datetime
 from typing import Dict, List, Any, Optional, Callable
 
+from srt1_platform.assistant_adapters import (
+    AssistantAdapterRegistry,
+    WorkCellExecutionRequest,
+)
+
 logger = logging.getLogger("srt1.bridge")
 
 
@@ -60,6 +65,7 @@ class DispatchMethod:
     CONTEXT_INJECTION = "context"     # Update AGENTS.md, CLAUDE.md, etc.
     WEBHOOK = "webhook"               # POST to a webhook URL
     MCP = "mcp"                       # Model Context Protocol
+    ASSISTANT_ADAPTER = "assistant_adapter"  # Model-agnostic bounded adapters
 
 
 class SCIADispatchBridge:
@@ -102,6 +108,7 @@ class SCIADispatchBridge:
         # Webhook config (optional)
         self.webhook_url: Optional[str] = None
         self.webhook_headers: Dict[str, str] = {}
+        self.assistant_adapters: List[Dict[str, Any]] = []
 
         # Callbacks (set by SRT-1 engine)
         self._on_seed_dispatched: Optional[Callable] = None
@@ -133,7 +140,8 @@ class SCIADispatchBridge:
 
     def configure(self, webhook_url: Optional[str] = None,
                   dispatch_methods: Optional[List[str]] = None,
-                  quiet_period: Optional[int] = None) -> None:
+                  quiet_period: Optional[int] = None,
+                  assistant_adapters: Optional[List[Dict[str, Any]]] = None) -> None:
         """
         Configure the execution bridge.
         
@@ -141,6 +149,7 @@ class SCIADispatchBridge:
             webhook_url: URL to POST completion notifications
             dispatch_methods: List of dispatch methods to use
             quiet_period: Seconds of no changes before considering complete
+            assistant_adapters: Bounded assistant adapter configs
         """
         if webhook_url:
             self.webhook_url = webhook_url
@@ -152,6 +161,11 @@ class SCIADispatchBridge:
 
         if quiet_period:
             self.COMPLETION_QUIET_PERIOD = quiet_period
+
+        if assistant_adapters is not None:
+            self.assistant_adapters = assistant_adapters
+            if self.assistant_adapters and DispatchMethod.ASSISTANT_ADAPTER not in self.dispatch_methods:
+                self.dispatch_methods.append(DispatchMethod.ASSISTANT_ADAPTER)
 
         self._save_config()
 
@@ -179,7 +193,8 @@ class SCIADispatchBridge:
 
     def dispatch_seed(self, seed_id: str, intent: str,
                       blueprint: Optional[str] = None,
-                      blueprint_meta: Optional[Dict] = None) -> Dict[str, Any]:
+                      blueprint_meta: Optional[Dict] = None,
+                      execution_context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
         Dispatch a seed to the code assistant.
         
@@ -191,6 +206,7 @@ class SCIADispatchBridge:
             intent: What the user wants to build
             blueprint: Pre-generated blueprint text (if None, will generate)
             blueprint_meta: Blueprint metadata (relevant_symbols, etc.)
+            execution_context: WorkCell/package metadata for assistant adapters
             
         Returns:
             Dict with dispatch results per method
@@ -226,6 +242,15 @@ class SCIADispatchBridge:
 
                 elif method == DispatchMethod.MCP:
                     results[method] = self._dispatch_mcp(seed_id, intent, blueprint)
+
+                elif method == DispatchMethod.ASSISTANT_ADAPTER:
+                    results[method] = self._dispatch_assistant_adapters(
+                        seed_id=seed_id,
+                        intent=intent,
+                        blueprint=blueprint or "",
+                        blueprint_meta=blueprint_meta or {},
+                        execution_context=execution_context or {},
+                    )
 
             except Exception as e:
                 results[method] = {"success": False, "error": str(e)}
@@ -382,6 +407,62 @@ class SCIADispatchBridge:
         return {
             "success": False,
             "error": "MCP dispatch not yet implemented. Use file-based or context injection.",
+        }
+
+    def _dispatch_assistant_adapters(
+        self,
+        seed_id: str,
+        intent: str,
+        blueprint: str,
+        blueprint_meta: Dict[str, Any],
+        execution_context: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """Dispatch through model-agnostic assistant adapters."""
+        if not self.assistant_adapters:
+            return {
+                "success": False,
+                "error": "No assistant adapters configured",
+                "adapters": {},
+            }
+
+        signal_path = os.path.join(self.signals_dir, f"{seed_id}_done.json")
+        request = WorkCellExecutionRequest(
+            seed_id=seed_id,
+            intent=intent,
+            blueprint=blueprint or "",
+            repo_path=self.repo_path,
+            srt1_dir=self.srt1_dir,
+            workcell_package_path=(
+                execution_context.get("workcell_package_path")
+                or blueprint_meta.get("workcell_package_path")
+                or blueprint_meta.get("package_path")
+            ),
+            allowed_paths=list(
+                execution_context.get("allowed_paths")
+                or blueprint_meta.get("allowed_paths")
+                or []
+            ),
+            restricted_paths=list(
+                execution_context.get("restricted_paths")
+                or blueprint_meta.get("restricted_paths")
+                or [".git/", ".srt1/seeds/", ".srt1/runtime/"]
+            ),
+            completion_signal_path=signal_path,
+            trust_state=dict(
+                execution_context.get("trust_state")
+                or blueprint_meta.get("trust_state")
+                or {"signature": "unsigned", "verification": "unverified", "lineage": "missing"}
+            ),
+            metadata={
+                "blueprint_meta": blueprint_meta,
+                "execution_context": execution_context,
+            },
+        )
+        registry = AssistantAdapterRegistry(self.assistant_adapters)
+        adapter_results = registry.dispatch_all(request)
+        return {
+            "success": any(result.get("status") == "dispatched" for result in adapter_results.values()),
+            "adapters": adapter_results,
         }
 
     def _build_dispatch_document(self, seed_id: str, intent: str,
@@ -753,6 +834,7 @@ class SCIADispatchBridge:
                 self.webhook_url = config.get("webhook_url")
                 self.webhook_headers = config.get("webhook_headers", {})
                 self.dispatch_methods = config.get("dispatch_methods", self.dispatch_methods)
+                self.assistant_adapters = config.get("assistant_adapters", [])
                 self.COMPLETION_QUIET_PERIOD = config.get("quiet_period", self.COMPLETION_QUIET_PERIOD)
                 self.STALE_TIMEOUT = config.get("stale_timeout", self.STALE_TIMEOUT)
             except (json.JSONDecodeError, IOError):
@@ -766,6 +848,7 @@ class SCIADispatchBridge:
                 "webhook_url": self.webhook_url,
                 "webhook_headers": self.webhook_headers,
                 "dispatch_methods": self.dispatch_methods,
+                "assistant_adapters": self.assistant_adapters,
                 "quiet_period": self.COMPLETION_QUIET_PERIOD,
                 "stale_timeout": self.STALE_TIMEOUT,
             }

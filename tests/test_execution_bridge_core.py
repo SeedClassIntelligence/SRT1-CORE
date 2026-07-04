@@ -46,6 +46,62 @@ class ExecutionBridgeCoreTests(unittest.TestCase):
             self.assertEqual(completion["dispatch_info"]["intent"], "Improve app")
             self.assertNotIn("verification", completion)
 
+    def test_codex_assistant_adapter_writes_bounded_workcell_handoff(self):
+        with tempfile.TemporaryDirectory() as repo:
+            workcell_package = Path(repo) / ".srt1" / "workcells" / "seed_1"
+            workcell_package.mkdir(parents=True)
+            bridge = SCIADispatchBridge(repo_path=repo)
+            bridge.configure(
+                dispatch_methods=[DispatchMethod.ASSISTANT_ADAPTER],
+                assistant_adapters=[{"type": "codex"}],
+            )
+
+            result = bridge.dispatch_seed(
+                "seed_1",
+                "Improve app.py only",
+                blueprint="Change app.py safely",
+                blueprint_meta={
+                    "workcell_package_path": str(workcell_package),
+                    "allowed_paths": ["app.py"],
+                    "restricted_paths": [".git/", "private/"],
+                },
+            )
+
+            adapter_result = result["methods"][DispatchMethod.ASSISTANT_ADAPTER]
+            self.assertTrue(adapter_result["success"])
+            codex = adapter_result["adapters"]["codex"]
+            self.assertEqual(codex["status"], "dispatched")
+
+            request_path = Path(codex["request_path"])
+            instruction_path = Path(codex["instruction_path"])
+            self.assertTrue(request_path.exists())
+            self.assertTrue(instruction_path.exists())
+
+            payload = json.loads(request_path.read_text(encoding="utf-8"))
+            self.assertEqual(payload["seed_id"], "seed_1")
+            self.assertEqual(payload["workcell_package_path"], str(workcell_package))
+            self.assertEqual(payload["allowed_paths"], ["app.py"])
+            self.assertTrue(payload["contract"]["must_stay_inside_allowed_paths"])
+
+            instructions = instruction_path.read_text(encoding="utf-8")
+            self.assertIn("SRT-1 Codex WorkCell Handoff", instructions)
+            self.assertIn("Improve app.py only", instructions)
+            self.assertIn("app.py", instructions)
+
+    def test_unknown_assistant_adapter_fails_closed(self):
+        with tempfile.TemporaryDirectory() as repo:
+            bridge = SCIADispatchBridge(repo_path=repo)
+            bridge.configure(
+                dispatch_methods=[DispatchMethod.ASSISTANT_ADAPTER],
+                assistant_adapters=[{"type": "mystery_model"}],
+            )
+
+            result = bridge.dispatch_seed("seed_1", "Improve app")
+
+            adapter_result = result["methods"][DispatchMethod.ASSISTANT_ADAPTER]
+            self.assertFalse(adapter_result["success"])
+            self.assertEqual(adapter_result["adapters"]["mystery_model"]["status"], "degraded")
+
 
 if __name__ == "__main__":
     unittest.main()
