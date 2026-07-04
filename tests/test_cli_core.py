@@ -29,6 +29,18 @@ class CLIPolishTests(unittest.TestCase):
         self.assertIn("http://127.0.0.1:7484/dashboard", out.getvalue())
         browser_open.assert_not_called()
 
+    def test_select_engine_with_missing_port_does_not_fallback(self):
+        engines = [{"port": 7484, "workspace_path": "C:\\repo\\main"}]
+
+        with patch.object(cli, "_active_engines", return_value=engines):
+            self.assertIsNone(cli._select_engine(port=7591))
+
+    def test_select_engine_with_missing_repo_does_not_fallback(self):
+        engines = [{"port": 7484, "workspace_path": "C:\\repo\\main"}]
+
+        with patch.object(cli, "_active_engines", return_value=engines):
+            self.assertIsNone(cli._select_engine(repo_path="C:\\repo\\other"))
+
     def test_status_reports_stopped_when_no_runtime_exists(self):
         with patch.object(cli, "_active_engines", return_value=[]):
             out = io.StringIO()

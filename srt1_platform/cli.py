@@ -56,11 +56,13 @@ def _select_engine(port: Optional[int] = None, repo_path: Optional[str] = None) 
         for engine in engines:
             if int(engine.get("port") or 0) == int(port):
                 return engine
+        return None
     if repo_path:
         target = os.path.realpath(repo_path)
         for engine in engines:
             if os.path.realpath(engine.get("workspace_path", "")) == target:
                 return engine
+        return None
     return engines[0] if engines else None
 
 
