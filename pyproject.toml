@@ -36,6 +36,7 @@ Documentation = "https://srt1.io/documentation.html"
 Repository = "https://github.com/SeedClassIntelligence/SRT1-CORE"
 
 [project.scripts]
+srt1 = "srt1_platform.cli:main"
 srt1-index = "srt1_code_indexer.engine:main"
 srt1-engine = "srt1_code_indexer.engine:main"
 srt1-code-indexer = "srt1_code_indexer.engine:main"
