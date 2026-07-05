@@ -2,7 +2,7 @@
 SRT-1 Platform - Local Governance and Integration Surface
 
 Live middleware, seed queue, mobile access, execution bridge, tracing, and
-optional understanding intelligence. Private/Enterprise systems integrate
+optional understanding intelligence. Private/external systems integrate
 through bounded hooks and must fail closed when unavailable.
 
     from srt1_platform import SCIALiveEngine, SCIASeedQueue, SCIADispatchBridge
@@ -17,7 +17,7 @@ sys.path.insert(0, os.path.abspath(_license_dir))
 
 try:
     from validate_license import validate_license
-    _valid, _message = validate_license("enterprise")
+    _valid, _message = validate_license("core")
     if not _valid:
         raise ImportError(
             f"\n\n  [SRT-1 Platform] License required.\n  {_message}\n"

@@ -4269,18 +4269,21 @@ class SRT1Engine:
                 path = urlparse(self.path).path
                 print(f"DEBUG: do_POST called with path: {path} (raw self.path: {self.path})")
 
-                # Enterprise Proxy Routing
+                # Optional private proxy routing. Public Core fails closed when absent.
                 if path.startswith("/v1/"):
                     try:
                         from srt1_platform.proxy_engine import SCIAProxyEngine
                         # Hand over the HTTP Request object (self) and the engine context
                         SCIAProxyEngine.handle_proxy_request(self, engine)
                     except ImportError:
-                        # Graceful degradation for Core tier
+                        # Graceful degradation for public Core.
                         self.send_response(402)
                         self.send_header("Content-Type", "application/json")
                         self.end_headers()
-                        msg = {"error": "Payment Required", "message": "Enterprise License Required for Proxy Attribution."}
+                        msg = {
+                            "error": "Private proxy integration unavailable",
+                            "message": "Public Core does not ship the managed proxy backend.",
+                        }
                         self.wfile.write(json.dumps(msg).encode("utf-8"))
                     return
 
@@ -4680,6 +4683,8 @@ class SRT1Engine:
                         })
                     else:
                         self._json({"error": f"Seed {seed_id} not found"}, 404)
+
+
 
                 # ── Auth Endpoints ──
 

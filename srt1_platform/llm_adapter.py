@@ -13,7 +13,7 @@ This file is deprecated. Use the jurisdictionally correct imports:
     Shared transport:
         from srt1_platform.llm_providers import LLMProviderRouter, LLMResponse, TokenBudget
 
-    Private/Enterprise (transformation proposals):
+    Private/external (transformation proposals):
         use an external TransformationAdapter integration
 
 This shim aliases IntelligenceAdapter as SCIALLMAdapter for backward
@@ -30,7 +30,7 @@ import warnings
 warnings.warn(
     "srt1_platform.llm_adapter is deprecated. "
     "Use 'from srt1_platform.intelligence_adapter import IntelligenceAdapter' (CORE) "
-    "Use an external private/Enterprise TransformationAdapter for transformation proposals.",
+    "Use an external private TransformationAdapter for transformation proposals.",
     DeprecationWarning,
     stacklevel=2,
 )

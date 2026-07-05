@@ -77,12 +77,16 @@ srt1_platform/proxy_engine.py
 srt1_platform/delta_auditor.py
 srt1_platform/srt1_sion_cli.py
 srt1_code_indexer_engine.py
+srt1_pro/execution_engine.py
+srt1_pro/self_heal.py
 
 # -- PRIVATE IMPLEMENTATIONS (DO NOT TRACK IN CORE) --
 memory/
 scia_memory/
 scia_security/
 docs/SRT1_ENTERPRISE_ARCHITECTURE.md
+docs/recovery/SRT1_CORE_ENTERPRISE_BOUNDARY.md
+docs/recovery/SRT1_ENTERPRISE_*.md
 
 # -- LOCAL RECOVERY / RUNTIME ARTIFACTS --
 debug.log
