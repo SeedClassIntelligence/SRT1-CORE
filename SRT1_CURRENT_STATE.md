@@ -27,13 +27,13 @@ Repository Activation is now recognized as the missing product bootstrapping lay
 - Reflection: ACTIVE / OBSERVATIONAL ONLY. Drift detection, doctrine scanning, consistency auditing, and coherence checkpoints may report divergence but must not self-correct.
 - Recall: PARTIAL. Canonical continuity docs exist; historical walkthroughs remain archival evidence and are not injected by default.
 - Reinjection: PARTIAL. AGENTS.md, CLAUDE.md, Cursor context, MCP, and local APIs are valid reinjection surfaces.
-- Context Isolation: PARTIAL / ADVANCING. FileCell is a local containment concept, not Enterprise-only. WorkCell registry, package readiness, FileCell summaries, and workcell.md preview now exist; Repository Activation must precede them in the first-run user flow.
+- Context Isolation: PARTIAL / ADVANCING. FileCell is a local containment concept, not a private-runtime-only concept. WorkCell registry, package readiness, FileCell summaries, and workcell.md preview now exist; Repository Activation must precede them in the first-run user flow.
 - Verification: PARTIAL. Verification and stitch preparation are public Core/Pro candidates when decoupled from private signing, SION, and private ledger implementation.
 - Human Co-Creation: PARTIAL / ADVANCING. Dashboard/PWA surfaces exist as observability/review surfaces, not direct controllers. The PWA now needs a Repository Manager before the WorkCell cockpit for first-time users.
 - Constellation: PARTIAL. Workspace connector and registry work should federate independent engines without shared context by default.
 - Trust Awareness: VOCABULARY ONLY IN CORE. Core may understand signed/unsigned, verified/unverified, and lineage present/missing states.
 
-## 3. Private / Enterprise Boundary
+## 3. Private / External Boundary
 
 The following do not belong in public Core:
 
@@ -43,9 +43,9 @@ The following do not belong in public Core:
 - SCIA security implementation
 - SION internals
 - private audit chain
-- Enterprise backend, team/cloud/SSO/Slack implementation
+- proprietary team/cloud/SSO/Slack backend implementation
 
-Enterprise/private systems are optional integrations and must fail closed when unavailable.
+Private/external systems are optional integrations and must fail closed when unavailable.
 
 ## 4. Continuity Freshness Definitions
 

@@ -2,70 +2,106 @@
 
 > **Skill ID:** `SRT1-SKILL-008`
 > **Module:** WorkspaceConnector + OperationalRegistry + Engine
-> **Classification:** UNDERSTANDING
-> **Mutates Source:** ❌ Never
-
----
+> **Authority:** Constellation
+> **Classification:** Public Core / Pro Awareness
+> **Mutates Source:** Never
 
 ## Purpose
 
-Maps multiple isolated repo/module sandboxes into a unified architectural view without cross-module state bleed. Each engine is sovereign in its sandbox; this skill provides read-only visibility across the constellation.
+Constellation Mapping gives SRT-1 read-only awareness of multiple independent
+SRT-1 runtimes, repositories, ports, and WorkCell environments. It lets the user
+see how registered engines relate without merging their context or allowing one
+engine to control another.
 
----
+Each SRT-1 runtime remains sovereign over its own repository. Constellation
+Mapping provides visibility, not shared memory and not cross-engine execution.
 
 ## Activation
 
-| Trigger | Source |
-|---------|--------|
-| Engine startup | Registers self in `OperationalRegistry` |
-| `/api/constellation` request | Engine queries registered peers via HTTP |
-| `WorkspaceConnector` scan | CLI-driven cross-module dependency mapping |
-| `/api/status` response | Includes constellation peer data |
+| Trigger | Source | Frequency |
+|---|---|---|
+| Engine startup | Runtime registers itself | Once per runtime start |
+| Repository launch/switch | Repository Manager | On demand |
+| Dashboard constellation view | `/api/constellation` or equivalent | On demand |
+| Status query | `/api/status` | On demand |
+| Workspace scan | WorkspaceConnector | On demand |
+
+## Preconditions
+
+- Current runtime has a repository root and port.
+- Registry or runtime map is accessible.
+- Peer runtimes are contacted only through approved local/status endpoints.
+- Missing peers can be represented as stale/unavailable without blocking the
+  current runtime.
 
 ## Inputs
 
 | Input | Type | Source |
-|-------|------|--------|
-| `OperationalRegistry` | Global `~/.srt1/registry.json` | All engines read/write |
-| Peer engine HTTP endpoints | `http://127.0.0.1:{port}/api/status` | Localhost only |
-| Workspace root directories | `List[str]` | From registry or CLI |
+|---|---|---|
+| Runtime registry | File/dict | Operational registry / Repository Manager |
+| Peer status endpoint | HTTP GET | `http://127.0.0.1:{port}/api/status` |
+| Repository roots | List | Registered repositories |
+| Port map | Dict | Runtime manager |
+| WorkCell status summaries | Dict/list | Each owning runtime |
 
 ## Outputs
 
-| Output | Type |
-|--------|------|
-| Peer list | `List[Dict]` — `{repo_path, port, status, file_count, symbol_count}` |
-| Dependency map | `Dict[module → Set[dependency_modules]]` | WorkspaceConnector |
-| Health report | `Dict` — per-module health with sync status |
-| Architecture digest | Cross-module role/risk aggregation |
+| Output | Type | Meaning |
+|---|---|---|
+| Peer list | List | Repo path, port, status, file/symbol counts |
+| Runtime map | Dict | Which repository/workcell owns which port |
+| Health report | Dict | live, stale, unavailable, degraded |
+| Dependency awareness | Dict | Cross-repo/module awareness when explicitly scanned |
+| Dashboard topology | Dict | User-facing constellation view |
 
-## Isolation Guarantees
+## Runtime Responsibilities
+
+1. Register the local SRT-1 runtime.
+2. Report current runtime status.
+3. Discover registered peers through read-only status calls.
+4. Mark unreachable peers as stale/unavailable.
+5. Preserve per-engine independence.
+6. Expose topology to the dashboard without cross-context contamination.
+7. Avoid automatic re-indexing or execution in peer runtimes.
+
+## Boundary Rules
 
 | Rule | Enforcement |
-|------|-------------|
-| No shared memory | Engines run as separate processes |
-| No cross-import | No `sys.path` injection between engines |
-| Communication via HTTP only | `requests.get(f"http://127.0.0.1:{port}/api/status")` |
-| Read-only queries | Constellation API is GET-only — no mutations |
-| Stale peers tolerated | Dead peers return last-known status, marked as `stale` |
+|---|---|
+| Read-only peer queries | Constellation calls use status/GET-style endpoints only |
+| No shared memory | Engines do not share Python globals, process state, or context stores |
+| No cross-engine triggers | One runtime cannot seed, execute, re-index, or stop another by default |
+| No shared context by default | Peer summaries do not inject peer source/context into local WorkCells |
+| Local-first communication | Runtime awareness is local/registered unless explicitly configured |
+| Stale tolerance | Dead peers are labeled, not treated as fatal |
 
-## Governance
+## Verification
 
-- Each engine only serves its own data
-- No engine can trigger actions in another engine
-- Registry is append/update only — no engine can delete another's entry
-- `WorkspaceConnector` performs directory scans, never modifies source
+| Check | Success condition |
+|---|---|
+| Self-registration | Current runtime appears in registry/status map |
+| Peer discovery safe | Peer calls are read-only |
+| Stale peer handling | Unreachable peers are labeled stale/unavailable |
+| No contamination | Peer context is not injected into local WorkCells by default |
+| Port ownership clear | Dashboard can show which runtime owns each port |
+
+Failure indicators include missing runtime identity, cross-engine mutation,
+automatic peer re-indexing, shared context without approval, or unreachable
+peers blocking the current repository.
 
 ## Events
 
 | Event | Severity | Status |
-|-------|----------|--------|
-| `constellation_peer_discovered` | INFO | ❌ NEEDS_IMPLEMENTATION |
-| `constellation_peer_lost` | WARNING | ❌ NEEDS_IMPLEMENTATION |
-| `workspace_scan_completed` | INFO | ❌ NEEDS_IMPLEMENTATION |
+|---|---|---|
+| `constellation_peer_discovered` | info | planned |
+| `constellation_peer_lost` | warning | planned |
+| `repo_runtime_registered` | info | planned |
+| `repo_runtime_heartbeat` | debug | planned |
+| `workspace_scan_completed` | info | planned |
 
 ## Source of Truth
 
-- [engine.py](file:///c:/Users/SEEDN/Downloads/SRT1%20CODING/srt1_code_indexer/engine.py) — `/api/constellation` endpoint
-- [operational_registry.py](file:///c:/Users/SEEDN/Downloads/SRT1%20CODING/srt1_platform/operational_registry.py) — Global registry
-- [workspace_connector.py](file:///c:/Users/SEEDN/Downloads/SRT1%20CODING/srt1_pro/workspace_connector.py) — Cross-module scanning
+- `srt1_platform/operational_registry.py`
+- `srt1_pro/workspace_connector.py`
+- `srt1_code_indexer/engine.py` status/constellation routes
+- Repository activation/runtime manager state

@@ -2,68 +2,106 @@
 
 > **Skill ID:** `SRT1-SKILL-005`
 > **Module:** FileCellGuard + ManifestDeriver
-> **Classification:** VERIFYING
-> **Mutates Source:** ❌ Never
-
----
+> **Authority:** Context Isolation
+> **Classification:** Public Core / Pro Candidate
+> **Mutates Source:** Never
 
 ## Purpose
 
-Prevents file/folder knowledge bleed across module and sandbox boundaries. Ensures that every read and write operation is scoped to the authorized FileCell. Blocks symlink escapes, forbidden pattern access, and semantic escalation.
+Module Boundary Protection prevents context bleed and unauthorized file access
+inside SRT-1. It ensures reads, writes, context expansion, and WorkCell package
+assembly stay inside the allowed FileCell/WorkCell boundary.
 
----
+FileCells carry persistent repository intelligence. WorkCells define bounded
+execution environments. This skill enforces the boundary between what an
+assistant may know, inspect, or change and what remains outside scope.
 
 ## Activation
 
-| Trigger | Source |
-|---------|--------|
-| Write validation | `FileCellGuard.validate_write(path, manifest)` |
-| Read validation | `FileCellGuard.validate_read(path, manifest)` |
-| Manifest derivation | `LeastPrivilegeManifestDeriver.derive()` |
-| Semantic escalation check | During derivation — `AUTH_SECURITY` / `CRYPTOGRAPHIC` role detection |
+| Trigger | Source | Frequency |
+|---|---|---|
+| WorkCell creation | Manifest derivation / Repository Understanding | Once per WorkCell package |
+| Read validation | `FileCellGuard.validate_read(path, manifest)` | Before governed reads |
+| Write validation | `FileCellGuard.validate_write(path, manifest)` | Before governed writes |
+| Context expansion | Reinjection / WorkCell package generation | Before attaching more files |
+| Semantic escalation check | Role/domain detection | During derivation or expansion |
+
+## Preconditions
+
+- A FileCell or WorkCell boundary has been derived.
+- Incoming paths are canonicalized before validation.
+- Allowed reads, allowed writes, and forbidden paths are known.
+- Protected architectural roles have explicit sponsorship when required.
 
 ## Inputs
 
-| Input | Type |
-|-------|------|
-| Target path | `str` (absolute or relative) |
-| `FileCellManifest` | Dataclass with `allowed_reads`, `allowed_writes`, `forbidden_paths` |
-| `symbol_table` | For dependency walking during derivation |
-| `domains` | List of authorized domain tags |
+| Input | Type | Source |
+|---|---|---|
+| Target path | String | Requested read/write/context expansion |
+| FileCell/WorkCell manifest | Dataclass/dict | Manifest Deriver / WorkCell runtime |
+| `symbol_table` | Dict | Repo Understanding |
+| Dependency map | Dict | Repo Understanding |
+| Domain tags | List | Change proposal / WorkCell scope |
+| Forbidden path rules | List | Context Isolation policy |
 
 ## Outputs
 
-| Output | Type |
-|--------|------|
-| Validation result | `True` or `FileCellBoundaryViolation` exception |
-| `FileCellManifest` | From derivation — includes reasoning log |
+| Output | Type | Meaning |
+|---|---|---|
+| Validation result | Boolean or exception | Allowed or blocked |
+| Boundary violation | Exception/event metadata | Access rejected |
+| Derived manifest | Dataclass/dict | Allowed reads/writes and reasoning |
+| Escalation warning | Dict/event metadata | Protected role requires sponsorship |
 
-## Governance
+## Runtime Responsibilities
 
-- Stateless: no persistent state, no memory between calls
-- Path canonicalization with `os.path.realpath()` — blocks symlink escapes
-- `ALWAYS_FORBIDDEN_PATTERNS` are hardcoded and non-overridable
-- `AGENTS.md` excluded from reads by default
-- Semantic Escalation: files with `AUTH_SECURITY` or `CRYPTOGRAPHIC` roles require matching domain sponsorship or the derivation raises an exception
+1. Canonicalize paths before evaluation.
+2. Block access outside allowed reads/writes.
+3. Block forbidden paths regardless of requested scope.
+4. Prevent symlink/path traversal escapes.
+5. Require explicit sponsorship for protected domains such as authentication,
+   security, cryptographic, or signing-adjacent code.
+6. Keep assistant context bounded to approved FileCells/WorkCells.
+7. Emit or expose violations as evidence for Verification and Trust Awareness.
+
+## Boundary Rules
+
+| Rule | Enforcement |
+|---|---|
+| Read-only enforcer | This skill validates; it does not mutate source files |
+| Path canonicalization | Resolve real paths before validation |
+| Non-overridable forbidden patterns | `.env`, `.git`, keys, secrets, runtime caches |
+| Assistant instruction protection | `AGENTS.md` is excluded unless explicitly authorized with reason |
+| No execution actor bypass | Execution actor is constrained by this skill, not allowed to call/disable it |
+| Semantic escalation | Protected architectural roles require matching approval/sponsorship |
+| No cross-project bleed | WorkCell expansion cannot cross repository boundary without explicit approval |
 
 ## Verification
 
-| Check | Condition |
-|-------|-----------|
-| Boundary holds | Write outside `allowed_writes` raises `FileCellBoundaryViolation` |
-| Forbidden blocked | `.env`, `.git`, `*.key` paths are never in `allowed_reads` or `allowed_writes` |
-| Symlink resolved | `os.path.realpath()` applied before validation |
-| Escalation enforced | Protected role without domain sponsorship raises `Exception` |
+| Check | Success condition |
+|---|---|
+| Boundary holds | Out-of-scope write raises a boundary violation |
+| Forbidden paths blocked | `.env`, `.git`, key/secret paths never enter allowed lists |
+| Symlinks resolved | Real path validation prevents escapes |
+| Protected roles enforced | Sensitive role access requires explicit sponsorship |
+| Violations visible | Blocked attempts produce evidence for status/audit/verification |
+
+Failure indicators include forbidden paths in allowed lists, uncanonicalized
+paths, unauthorized `AGENTS.md` access, silent violation handling, or WorkCell
+scope expansion without evidence.
 
 ## Events
 
 | Event | Severity | Status |
-|-------|----------|--------|
-| `filecell_boundary_violation` | CRITICAL | ✅ EXISTS |
-| `filecell_manifest_derived` | INFO | ❌ NEEDS_IMPLEMENTATION |
-| `filecell_semantic_escalation_blocked` | CRITICAL | ❌ NEEDS_IMPLEMENTATION |
+|---|---|---|
+| `filecell_boundary_violation` | critical | exists/planned depending on runtime path |
+| `filecell_manifest_derived` | info | exists/planned depending on runtime path |
+| `filecell_semantic_escalation_blocked` | critical | planned |
+| `filecell_agents_md_included` | warning | planned |
 
 ## Source of Truth
 
-- [filecell.py](file:///c:/Users/SEEDN/Downloads/SRT1%20CODING/srt1_platform/filecell.py) — Guard + Manifest
-- [manifest_deriver.py](file:///c:/Users/SEEDN/Downloads/SRT1%20CODING/srt1_platform/manifest_deriver.py) — Derivation + escalation
+- `srt1_platform/filecell.py`
+- `srt1_platform/manifest_deriver.py`
+- WorkCell package metadata
+- FileCell/WorkCell boundary contracts

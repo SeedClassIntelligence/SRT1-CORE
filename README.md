@@ -2,7 +2,7 @@
 
 **SRT-1 is a repo-continuity and alignment partner for AI coding assistants.** It helps an assistant understand the project, avoid hallucination, prevent context bleed, preserve architectural coherence, follow the approved seed/build plan, and operate inside the correct local workcell.
 
-SRT-1 CORE is local-first. Its public boundary is repo understanding, continuity, reflection, recall, reinjection, context isolation, verification, human co-creation, constellation awareness, and trust awareness. Private signing, private memory/security implementations, and Enterprise runtime systems are optional integrations outside public Core.
+SRT-1 CORE is local-first. Its public boundary is repo understanding, continuity, reflection, recall, reinjection, context isolation, verification, human co-creation, constellation awareness, assistant handoff, local Slack-style seed intake, and trust awareness. Private signing, private memory/security implementations, team/cloud backends, and proprietary runtime systems stay outside public Core.
 
 ---
 
@@ -37,7 +37,7 @@ Core may understand trust states such as:
 - approval present or missing
 - execution history present or missing
 
-Core does **not** ship private Seed Signature authority, private keys, SCIA memory implementation, SCIA security implementation, SION internals, private audit chain, or Enterprise backend. Public hooks and contracts must fail closed when a private or Enterprise backend is unavailable.
+Core does **not** ship private Seed Signature authority, private keys, SCIA memory implementation, SCIA security implementation, SION internals, private audit chain, or proprietary team/cloud backend. Public hooks and contracts must fail closed when a private backend is unavailable.
 
 ---
 
@@ -46,7 +46,7 @@ Core does **not** ship private Seed Signature authority, private keys, SCIA memo
 SRT-1 is designed around the local workcell: one repo, one engine, one local state boundary.
 
 - Each repo can maintain its own `.srt1` state, manifest, and dashboard/API surface.
-- FileCell is a local containment concept, not Enterprise-only.
+- FileCell is a local containment concept, not a private-runtime-only concept.
 - Manifest-derived boundaries define allowed reads, allowed writes, forbidden paths, and re-index checkpoints.
 - Cross-project context is not shared unless explicitly approved through constellation coordination.
 
@@ -150,20 +150,15 @@ MCP tools should serve bounded repo context, continuity state, and verification 
 
 ---
 
-## Core / Pro / Enterprise Boundary
+## Public Core Boundary
 
 | Layer | Belongs here |
 | --- | --- |
 | Core | Local repo understanding, continuity, reflection, recall, reinjection, WorkCells/FileCells, context isolation concepts, verification concepts, human observability shell, assistant adapter handoff, local Slack-style seed intake, trust vocabulary. |
 | Pro | Workspace connector, constellation coordination, richer context bundling, local multi-folder awareness, public contracts that remain decoupled from private systems. |
-| Enterprise / Private | Separate Enterprise dashboard/setup, SCIA memory implementation, SCIA security implementation, private Seed Signature authority, private keys, SION internals, private audit/signing authority, team/cloud/SSO/Slack backend, Enterprise dashboards/processes that expose private flow. |
+| Private / External | SCIA memory implementation, SCIA security implementation, private Seed Signature authority, private keys, SION internals, private audit/signing authority, team/cloud/SSO/Slack backend, and proprietary dashboards/processes that expose private flow. |
 
-Enterprise/private systems are optional integrations. Core must remain useful without them and must fail closed when they are unavailable.
-
-Current boundary and Enterprise pickup instructions live in:
-
-- `docs/recovery/SRT1_CORE_ENTERPRISE_BOUNDARY.md`
-- `docs/recovery/SRT1_ENTERPRISE_PICKUP_INSTRUCTIONS.md`
+Private/external systems are optional integrations. Core must remain useful without them and must fail closed when they are unavailable.
 
 ---
 
@@ -193,13 +188,13 @@ source or explicitly approved for a future packaging role.
 - Python 3.9+
 - Core indexing uses the Python standard library where possible.
 - SQLite may be used for local persistence.
-- No private signing keys or private Enterprise services are required for public Core operation.
+- No private signing keys or proprietary team/cloud services are required for public Core operation.
 
 ## License
 
 Business Source License 1.1 (BSL 1.1)
 
-The source code is available for reading, auditing, and permitted use under the project license. Production, team, and Enterprise use may require a commercial license.
+The source code is available for reading, auditing, and permitted use under the project license. Production, team, managed, or commercial use may require a commercial license.
 
 ## Author
 

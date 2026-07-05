@@ -1,110 +1,60 @@
 # Repo Sandbox Contract
+
 **Contract ID:** `SRT1-CONTRACT-SANDBOX-001`
-**Between:** Repo Folder ↔ SRT-1 Engine
-**Version:** 1.0.0
-**Status:** CANONICAL
-
----
-
-## Doctrine
-SRT-1 sees. SRT-1 does not mutate source.
-This contract defines exactly what SRT-1 is allowed to observe about a repo sandbox,
-and what identity it assigns that sandbox in the registry.
-
----
+**Between:** Registered Repository and SRT-1 Runtime
+**Status:** Public Core
 
 ## Purpose
-Establish a bounded, observable sandbox around a repository or module.
-Every repo SRT-1 tracks must have one active Repo Sandbox Contract.
-No indexing, scanning, or context injection may occur outside a registered sandbox.
 
----
-
-## Parties
-
-| Party | Role |
-|-------|------|
-| **Repo Folder** | The filesystem root being observed. Read-only to SRT-1. |
-| **SRT-1 Engine** | The observer. Reads, indexes, injects context, detects drift. Never mutates. |
-
----
+Define the local repository boundary SRT-1 may understand. No indexing,
+WorkCell creation, FileCell creation, context serving, or verification may occur
+outside a registered repository sandbox.
 
 ## Contract Fields
 
 ```yaml
-sandbox_id: string              # Unique ID for this sandbox. Format: SBX-{repo_slug}-{timestamp}
-repo_root: path                 # Absolute path to repo root. SRT-1 reads from here only.
-repo_slug: string               # Human-readable repo identifier (e.g., "seedlink-engine")
-registry_entry: string          # Key under which this sandbox is registered in SRT-1 state
-port: integer | null            # Dev server port if applicable. Null if not a running service.
-state: enum                     # ACTIVE | SUSPENDED | ARCHIVED | ERROR
-index_depth: integer            # How many directory levels deep SRT-1 indexes (default: 5)
-excluded_paths: list[path]      # Paths SRT-1 will never read (node_modules, .env, secrets)
-scan_triggers: list[enum]       # MANUAL | FILE_CHANGE | SEED_INTAKE | SCHEDULED
+sandbox_id: string
+repo_root: path
+repo_slug: string
+runtime_port: integer | null
+state: ACTIVE | SUSPENDED | ARCHIVED | ERROR
+excluded_paths: list[path]
+scan_triggers: list[MANUAL | FILE_CHANGE | SEED_INTAKE | SCHEDULED]
 created_at: datetime
 last_indexed_at: datetime | null
-constellation_member: boolean   # Whether this sandbox is part of a multi-repo Constellation
-constellation_id: string | null # Parent Constellation ID if applicable
+manifest_hash: string | null
+constellation_member: boolean
 ```
 
----
+## Guarantees
 
-## Obligations
+- SRT-1 reads only inside `repo_root`.
+- Excluded paths are never read, indexed, summarized, or injected.
+- Runtime/generated folders are skipped unless explicitly approved.
+- Repository identity, manifest hash, and freshness state are visible.
+- A sandbox may be part of a Constellation without sharing context by default.
 
-### SRT-1 Engine SHALL:
-- Register the sandbox in its internal registry before any indexing begins
-- Respect `excluded_paths` absolutely — no reads, no scans, no references
-- Emit `repo_sandbox_registered` event on creation
-- Emit `repo_index_started` and `repo_index_completed` on each scan
-- Set state to `ERROR` and halt if repo root is inaccessible
-- Re-validate the contract on each `scan_trigger` before proceeding
+## Refusal Conditions
 
-### SRT-1 Engine SHALL NOT:
-- Write to any file within `repo_root`
-- Delete any file within `repo_root`
-- Execute code within `repo_root`
-- Pass repo root write access to any other component (execution actor receives FileCell boundaries, not raw paths)
+- `repo_root` is missing, unreadable, or outside the approved local path.
+- Requested scan crosses repository boundary.
+- Requested scan targets forbidden paths such as `.git`, secrets, keys, runtime
+  state, caches, or private implementation folders.
+- Registry collision cannot be resolved safely.
 
-### Repo Folder SHALL:
-- Remain accessible at `repo_root` while contract is ACTIVE
-- Provide consistent filesystem structure between scans
-- Not remove `excluded_paths` entries without contract amendment
+## Events
 
----
-
-## Failure Modes
-
-| Condition | Response |
-|-----------|----------|
-| `repo_root` not found | Set state → ERROR. Emit `sandbox_error`. Block all downstream. |
-| `excluded_paths` violated | CRITICAL. Halt engine. Log violation. Require manual reset. |
-| Scan exceeds `index_depth` | Truncate. Log warning. Complete partial index. |
-| Registry collision | Reject new sandbox. Require explicit deregistration of existing. |
-
----
-
-## Events Emitted
-
-```
+```text
 repo_sandbox_registered
-repo_sandbox_deregistered
+repo_sandbox_state_changed
 repo_index_started
 repo_index_completed
-sandbox_state_changed
+repo_index_failed
 sandbox_error
 ```
 
----
+## Boundary
 
-## Governance
-- This contract may only be amended by the system operator or execution actor with external authorization
-- SRT-1 may not self-amend this contract
-- Constellation membership requires separate Constellation Contract
-
----
-
-## NEEDS_SOURCE
-- [ ] Registry storage backend (in-memory? file-based? Redis?)
-- [ ] Maximum number of concurrent active sandboxes
-- [ ] How `state: SUSPENDED` differs from `state: ARCHIVED` in practice
-- [ ] Whether `scan_triggers: FILE_CHANGE` uses inotify, polling, or webhook
+Public Core owns local repository registration and observation. It does not
+grant broad write access to assistants. Governed writes must pass through
+WorkCell/FileCell scope, verification, and human/assistant execution policy.

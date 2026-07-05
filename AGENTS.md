@@ -1,5 +1,22 @@
 ﻿# SRT-1 CORE Agent Instructions
 
+## 🌱 ACTIVE SEED — seed_0018_e7711dfd
+
+**TASK:** Verification Seed
+
+**STATUS:** Dispatched, awaiting execution
+
+**PRIORITY:** Execute this task NOW. This was planted remotely.
+
+When complete, create a file at `.srt1/signals/seed_0018_e7711dfd_done.json` with:
+```json
+{"seed_id": "seed_0018_e7711dfd", "status": "complete", "files_modified": ["list", "of", "files"], "summary": "what was done"}
+```
+
+---
+
+
+
 You are working inside the SRT-1 CORE repository.
 
 SRT-1 is a repo-continuity and alignment partner for AI coding assistants. It helps the assistant understand the project, avoid hallucination, prevent context bleed, preserve architectural coherence, follow the approved seed/build plan, and operate inside the correct local workcell.
@@ -23,13 +40,13 @@ Do not add, expose, or rely on private implementations in public Core:
 - SCIA security implementation
 - SION internals
 - private audit chain
-- Enterprise backend, team/cloud/SSO/Slack implementation
+- proprietary team/cloud/SSO/Slack backend implementation
 
 Core may understand trust states such as signed/unsigned, verified/unverified, and lineage present/missing. The signing authority and private audit implementation remain outside Core.
 
-FileCell is a local containment concept, not Enterprise-only. Public FileCell, manifest derivation, verification, and operational registry work may belong in Core/Pro when decoupled from SION, private signing, and private ledger code.
+FileCell is a local containment concept, not a private-runtime-only concept. Public FileCell, manifest derivation, verification, and operational registry work may belong in Core/Pro when decoupled from SION, private signing, and private ledger code.
 
-Enterprise/private integrations are optional and must fail closed when unavailable.
+Private/external integrations are optional and must fail closed when unavailable.
 
 Generated symbol maps and full repo intelligence belong in SRT-1 manifests/context outputs, not in this standing instruction file.
 
