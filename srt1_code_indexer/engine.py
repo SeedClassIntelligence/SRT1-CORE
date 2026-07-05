@@ -4063,6 +4063,7 @@ class SRT1Engine:
                     if OperationalRegistry:
                         try:
                             registry = OperationalRegistry()
+                            registry.cleanup_stale()
                             all_data = registry.get_all_engines()
                             now = datetime.now(timezone.utc) if hasattr(datetime, 'now') else datetime.utcnow()
                             
