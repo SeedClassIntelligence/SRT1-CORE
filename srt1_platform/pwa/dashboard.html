@@ -538,7 +538,7 @@ body.theme-light .file-intel-popover{box-shadow:0 16px 36px rgba(15,23,42,0.16);
     <div class="modal-header">Welcome to SRT-1 Dashboard</div>
     <div class="modal-body">
       <p><strong>SRT-1 Core</strong> is a local repo-continuity and alignment cockpit for AI coding assistants.</p>
-      <p style="margin-top: 12px;">It helps you understand the repository, preserve seed continuity, review recall and reinjection context, monitor workcell boundaries, and verify changes without shipping private signing, SION execution, or Enterprise backend services in Core.</p>
+      <p style="margin-top: 12px;">It helps you understand the repository, preserve seed continuity, review recall and reinjection context, monitor workcell boundaries, and verify changes without shipping private signing, private execution runtimes, or proprietary backend services in Core.</p>
       <p style="margin-top: 12px; padding: 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px;">
         Run <code>pip install srt1-core</code> to install the public local Core toolset.
       </p>
@@ -592,7 +592,7 @@ body.theme-light .file-intel-popover{box-shadow:0 16px 36px rgba(15,23,42,0.16);
   <!-- AI-Agnostic indicator -->
   <div style="padding:12px 24px;border-top:1px solid var(--border);margin-top:auto;">
     <div style="font-size:10px;color:var(--text4);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">AI-Agnostic</div>
-    <div style="font-size:11px;color:var(--text3);line-height:1.5;font-style:italic;">Works with external AI assistants.<br>Cursor · Claude · Copilot<br><span style="color:var(--amber);">SION planned / inactive</span></div>
+    <div style="font-size:11px;color:var(--text3);line-height:1.5;font-style:italic;">Works with external AI assistants.<br>Cursor · Claude · Copilot<br><span style="color:var(--amber);">First-party runtime planned / inactive</span></div>
   </div>
 
   <div class="sidebar-footer">
@@ -832,7 +832,7 @@ body.theme-light .file-intel-popover{box-shadow:0 16px 36px rgba(15,23,42,0.16);
       </div>
       <div style="margin-top:16px;padding:12px 16px;background:var(--amber-bg);border:1px solid var(--amber-border);border-radius:8px;font-size:13px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
         <span style="color:var(--amber);font-weight:700;">CORE LOCAL SURFACE ACTIVE</span>
-        <span style="color:var(--text3);font-size:11px;margin-left:auto;">Private signing, SION execution, Slack/team backend, and Enterprise services are external / inactive unless connected.</span>
+        <span style="color:var(--text3);font-size:11px;margin-left:auto;">Private signing, private execution runtime, and Slack/team backend services are external / inactive unless connected.</span>
       </div>
     </div>
   </div>
@@ -887,7 +887,7 @@ body.theme-light .file-intel-popover{box-shadow:0 16px 36px rgba(15,23,42,0.16);
       <!-- Upgrade License CTA (shown for free-tier users) -->
       <div id="licenseUpgrade" style="margin-top:16px;padding:16px;background:linear-gradient(135deg,rgba(88,166,255,.06),rgba(57,208,216,.04));border:1px solid rgba(88,166,255,.2);border-radius:10px;">
         <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:6px;">Unlock Pro Features</div>
-        <div style="font-size:12px;color:var(--text3);line-height:1.6;margin-bottom:12px;">Upgrade to Pro for richer local constellation coordination, multi-workspace observability, and advanced packaging. Core remains local-first and usable without Enterprise services.</div>
+        <div style="font-size:12px;color:var(--text3);line-height:1.6;margin-bottom:12px;">Upgrade to Pro for richer local constellation coordination, multi-workspace observability, and advanced packaging. Core remains local-first and usable without proprietary backend services.</div>
         <a href="https://srt-1.lemonsqueezy.com/checkout/buy/3c7b5b89-fe57-4f36-a664-59d7b69aa04f" class="lemonsqueezy-button" style="display:block;text-align:center;padding:10px;border-radius:8px;font-weight:700;font-size:13px;background:var(--blue,#58a6ff);color:#000;border:none;cursor:pointer;text-decoration:none;">Upgrade to Pro — $9/mo</a>
       </div>
     </div>
@@ -895,11 +895,11 @@ body.theme-light .file-intel-popover{box-shadow:0 16px 36px rgba(15,23,42,0.16);
     <!-- DOWNLOADS -->
     <div class="panel" id="manage-downloads" style="scroll-margin-top: 80px;">
       <div class="panel-header">
-        <div class="panel-title">Ecosystem Installation <span class="info-icon" data-tooltip="SRT-1 Core installs the public local repo-continuity toolset. Pro/Enterprise and private signing integrations are separate boundaries.">?</span></div>
+        <div class="panel-title">Ecosystem Installation <span class="info-icon" data-tooltip="SRT-1 Core installs the public local repo-continuity toolset. Pro and private signing integrations are separate boundaries.">?</span></div>
         <div class="panel-badge info">v2.3.0</div>
       </div>
       <div style="font-size:13px;color:var(--text2);margin-bottom:16px;">
-        SRT-1 Core is a local repo-continuity and alignment cockpit. Core understands trust states such as signed/unsigned, verified/unverified, and lineage present/missing. Seed Signature can sign across developer, Pro, and Enterprise tiers when the external signing authority is configured; private keys and signing services do not ship in public Core.
+        SRT-1 Core is a local repo-continuity and alignment cockpit. Core understands trust states such as signed/unsigned, verified/unverified, and lineage present/missing. Seed Signature can sign artifacts when the external signing authority is configured; private keys and signing services do not ship in public Core.
       </div>
       <div class="download-list">
         <div class="download-item">
@@ -1043,7 +1043,7 @@ body.theme-light .file-intel-popover{box-shadow:0 16px 36px rgba(15,23,42,0.16);
   <!-- AI CONNECTION — Shows which AI is connected to this module -->
   <!-- NOTE: Phase 2 addition. This is the EXECUTE section of the workflow.
        Works with external AI assistants by generating bounded context files and MCP surfaces.
-       SION is planned and inactive in the current Core dashboard. -->
+       A first-party execution runtime is planned and inactive in the current Core dashboard. -->
   <div class="panel" id="ai-connection" style="margin-bottom:32px;scroll-margin-top: 80px;">
     <div class="panel-header">
       <div class="panel-title">AI Connection <span class="info-icon" data-tooltip="Shows which AI code assistant is connected to this module and what context SRT-1 is injecting.">?</span></div>
@@ -1226,7 +1226,7 @@ body.theme-light .file-intel-popover{box-shadow:0 16px 36px rgba(15,23,42,0.16);
 
     <div class="panel">
       <div class="panel-header">
-        <div class="panel-title">Workcell Boundary <span class="info-icon" data-tooltip="Local containment boundary for reads, writes, context, and verification. FileCell is not Enterprise-only.">?</span></div>
+        <div class="panel-title">Workcell Boundary <span class="info-icon" data-tooltip="Local containment boundary for reads, writes, context, and verification. FileCell is not private-runtime-only.">?</span></div>
         <div class="panel-badge info">LOCAL CONTAINMENT</div>
       </div>
       <div style="display:flex;flex-direction:column;gap:8px;font-size:13px;color:var(--text2);">
@@ -1258,7 +1258,7 @@ body.theme-light .file-intel-popover{box-shadow:0 16px 36px rgba(15,23,42,0.16);
       </div>
       <div style="display:flex;flex-direction:column;gap:8px;font-size:13px;">
         <div style="padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text2);"><strong style="color:var(--cyan);">Constellation:</strong> independent SRT-1 engine awareness; no shared context by default.</div>
-        <div style="padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text2);"><strong style="color:var(--amber);">SION:</strong> planned in-house assistant; inactive in current Core runtime.</div>
+        <div style="padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text2);"><strong style="color:var(--amber);">First-party runtime:</strong> planned assistant integration; inactive in current Core runtime.</div>
         <div style="padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text2);"><strong style="color:var(--amber);">Slack/team/cloud:</strong> local Slack-style seed intake is available; team auth, cloud routing, and workspace backend remain external integrations.</div>
         <div style="padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text2);"><strong style="color:var(--amber);">Seed Signature:</strong> external signing authority can sign across tiers when configured.</div>
       </div>
@@ -1282,7 +1282,7 @@ body.theme-light .file-intel-popover{box-shadow:0 16px 36px rgba(15,23,42,0.16);
   </div>
 
   <!-- BLUEPRINT PREVIEW - Shows what the AI will see and what humans can review. -->
-  <!-- NOTE: In Core, this is a context/plan review surface. SION execution is planned and inactive. -->
+  <!-- NOTE: In Core, this is a context/plan review surface. Private execution runtimes are planned/inactive. -->
   <div class="panel" id="blueprint-preview" style="margin-bottom:24px;scroll-margin-top:80px;">
     <div class="panel-header">
       <div class="panel-title">Blueprint Preview <span class="info-icon" data-tooltip="Core review surface for generated context, seed direction, and proposed work. Approval records human intent; it does not directly mutate code.">?</span></div>
@@ -1295,7 +1295,7 @@ body.theme-light .file-intel-popover{box-shadow:0 16px 36px rgba(15,23,42,0.16);
         <div style="font-size:14px;color:var(--text3);margin-bottom:8px;">No blueprint generated yet</div>
         <div style="font-size:12px;color:var(--text4);line-height:1.6;max-width:400px;margin:0 auto;">
           Plant a seed above to generate a context/blueprint preview. Core shows what your assistant receives and what the human can review.
-          SION execution is planned and inactive in this dashboard.
+          Private execution runtime is planned and inactive in this dashboard.
         </div>
       </div>
     </div>
@@ -3670,7 +3670,7 @@ async function submitTask() {
 // ============================================================
 // SEED QUEUE — Phase 4: loads all seeds from /seeds endpoint
 // NOTE: Works for the Core BYOAI review flow.
-// SION execution is planned/inactive and must be explicitly connected later.
+// Private execution runtime is planned/inactive and must be explicitly connected later.
 // ============================================================
 async function loadSeedQueue() {
   const list = document.getElementById('seedQueueList');
@@ -3783,7 +3783,7 @@ function updateBlueprintPreview() {
 }
 
 // Approve/Reject stubs - Core human review only.
-// Enterprise/private execution integrations must be explicitly connected.
+// Private/external execution integrations must be explicitly connected.
 function approveBlueprint() {
   const actions = document.getElementById('blueprintActions');
   const badge = document.getElementById('blueprintBadge');
