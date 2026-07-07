@@ -3712,7 +3712,92 @@ class SRT1Engine:
                         with open(zip_path, "rb") as f:
                             self.wfile.write(f.read())
                     else:
-                        self._json({"error": "Archive not found"}, 404)
+                        import io
+                        import zipfile
+
+                        allowed_roots = {
+                            "docs",
+                            "srt1_code_indexer",
+                            "srt1_platform",
+                            "srt1_pro",
+                            "srt1-skills",
+                            "tests",
+                        }
+                        allowed_files = {
+                            "AGENTS.md",
+                            "BUILD.md",
+                            "CLAUDE.md",
+                            "Install-SRT1.ps1",
+                            "LICENSE",
+                            "MANIFEST.in",
+                            "README.md",
+                            "pyproject.toml",
+                            "setup.py",
+                            "srt1.bat",
+                            "START_SRT1.bat",
+                        }
+                        excluded_dirs = {
+                            ".git",
+                            ".pytest_cache",
+                            ".srt1",
+                            "__pycache__",
+                            "build",
+                            "dist",
+                            "memory",
+                            "scia_memory",
+                            "scia_security",
+                            "scratch",
+                            "scratch_ledger_test",
+                            "sion_output",
+                            "SRT1_CORE.egg-info",
+                        }
+                        excluded_suffixes = {
+                            ".bak",
+                            ".db",
+                            ".log",
+                            ".pyc",
+                        }
+                        excluded_files = {
+                            ".env",
+                            "debug.log",
+                            "project_code.txt",
+                            "pytest_output.txt",
+                            "srt1_audit_delta.json",
+                            "srt1_cloud.db",
+                            "srt1_code_manifest.json",
+                            "scratch.html",
+                            "unknown_to_ast.py",
+                        }
+
+                        buffer = io.BytesIO()
+                        with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archive:
+                            for root_name in sorted(allowed_roots):
+                                root_path = os.path.join(engine.repo_path, root_name)
+                                if not os.path.isdir(root_path):
+                                    continue
+                                for dirpath, dirnames, filenames in os.walk(root_path):
+                                    dirnames[:] = [
+                                        d for d in dirnames
+                                        if d not in excluded_dirs and not d.startswith(".")
+                                    ]
+                                    for filename in filenames:
+                                        if filename in excluded_files or any(filename.endswith(suffix) for suffix in excluded_suffixes):
+                                            continue
+                                        file_path = os.path.join(dirpath, filename)
+                                        rel_path = os.path.relpath(file_path, engine.repo_path)
+                                        archive.write(file_path, rel_path)
+                            for filename in sorted(allowed_files):
+                                file_path = os.path.join(engine.repo_path, filename)
+                                if os.path.isfile(file_path):
+                                    archive.write(file_path, filename)
+
+                        data = buffer.getvalue()
+                        self.send_response(200)
+                        self.send_header("Content-Type", "application/zip")
+                        self.send_header("Content-Disposition", 'attachment; filename="srt1-core.zip"')
+                        self.send_header("Content-Length", str(len(data)))
+                        self.end_headers()
+                        self.wfile.write(data)
 
                 elif path == "/consumer":
                     # Consumer dashboard — seed-reflection/consumer-dashboard.html

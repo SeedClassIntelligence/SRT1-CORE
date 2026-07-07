@@ -596,7 +596,7 @@ body.theme-light .file-intel-popover{box-shadow:0 18px 40px rgba(15,23,42,0.18);
     <!-- Quick Links -->
     <div class="nav-section">
       <div class="nav-section-label">Quick Links</div>
-      <a class="nav-item" href="#architecture-blueprint"><span class="icon">▦</span> File Tree</a>
+      <a class="nav-item" href="#" onclick="openDashboardPanel('intelligence','repoExplorer');event.preventDefault()"><span class="icon">▦</span> File Tree</a>
       <a class="nav-item" href="#" onclick="switchDashTab('reflection');event.preventDefault()"><span class="icon">▣</span> Findings</a>
       <a class="nav-item" href="Install-SRT1.ps1" download><span class="icon">⬇️</span> Download Installer</a>
     </div>
@@ -635,6 +635,7 @@ body.theme-light .file-intel-popover{box-shadow:0 18px 40px rgba(15,23,42,0.18);
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end;">
       <button type="button" id="themeToggle" onclick="toggleDashboardTheme()" class="theme-toggle">Light Mode</button>
       <button onclick="showIntroModal(true)" class="download-btn" style="font-size:12px;padding:8px 12px;">Core Help</button>
+      <a href="/auth.html?mode=signup&type=developer" class="download-btn" style="font-size:12px;padding:8px 12px;text-decoration:none;">Sign Up / Login</a>
       <a href="/observatory" onclick="event.preventDefault();navPage('observatory')" style="display:inline-flex;align-items:center;padding:8px 16px;background:var(--bg3);border:1px solid var(--border2);color:var(--text);border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;transition:all 0.15s;">
         Open Observatory
       </a>
@@ -973,7 +974,7 @@ body.theme-light .file-intel-popover{box-shadow:0 18px 40px rgba(15,23,42,0.18);
         <div class="download-list" id="mobileTokenList">
           <div style="padding:12px;text-align:center;color:var(--text4);font-size:12px;">Checking auth system...</div>
         </div>
-        <button id="generateTokenBtn" style="margin-top: 12px; width: 100%; padding: 10px; background: var(--bg3); border: 1px solid var(--border2); border-radius: 8px; color: var(--text); font-size: 13px; font-weight: 600; cursor: pointer;">+ Generate New Token</button>
+        <button id="generateTokenBtn" onclick="generateRemoteAuthToken()" style="margin-top: 12px; width: 100%; padding: 10px; background: var(--bg3); border: 1px solid var(--border2); border-radius: 8px; color: var(--text); font-size: 13px; font-weight: 600; cursor: pointer;">+ Generate New Token</button>
       </div>
     </div>
   </div>
@@ -1571,6 +1572,14 @@ function navPage(page) {
   window.location.href = isEngine ? '/' + page : page + '.html';
 }
 
+function openDashboardPanel(tabId, targetId) {
+  switchDashTab(tabId);
+  setTimeout(() => {
+    const target = document.getElementById(targetId);
+    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 80);
+}
+
 // ── Download handler for dashboard packages ──
 async function downloadPackage(pkg, filename, btn) {
   const orig = btn.innerText;
@@ -1976,6 +1985,7 @@ async function loadManifest(options = {}) {
 
     renderNeuralMapGrid();
     if (renderExplorer) showTab(currentTab);
+
   } catch(e) {
     manifest = null;
     manifestLoaded = false;
@@ -2988,6 +2998,7 @@ async function loadStatus() {
         </div>`;
       }
     }
+    loadRemoteAuthTokens();
 
   } catch(e) {
     const list = document.getElementById('seedFarmList');
@@ -3150,6 +3161,79 @@ function toggleKeyVisibility(provider) {
   } else {
     input.type = 'password';
     btn.textContent = '👁';
+  }
+}
+
+async function loadRemoteAuthTokens() {
+  const badge = document.getElementById('mobileTokenBadge');
+  const list = document.getElementById('mobileTokenList');
+  if (!badge || !list) return;
+  try {
+    const res = await fetch(API + '/auth/tokens');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    const tokens = data.tokens || [];
+    badge.textContent = tokens.length ? `${tokens.length} token${tokens.length === 1 ? '' : 's'}` : 'no tokens';
+    badge.style.background = tokens.length ? 'var(--green-bg)' : 'var(--bg3)';
+    badge.style.color = tokens.length ? 'var(--green)' : 'var(--text4)';
+    if (!tokens.length) {
+      list.innerHTML = `<div style="padding:16px;font-size:13px;color:var(--text3);">
+        <div style="margin-bottom:8px;color:var(--text2);font-weight:600;">No remote auth tokens yet</div>
+        <div>Generate a token to let a mobile companion or trusted local client connect to this SRT-1 runtime.</div>
+      </div>`;
+      return;
+    }
+    list.innerHTML = tokens.map(token => `<div class="download-item">
+      <div>
+        <div class="download-name">${escapeHtml(token.label || token.token_id || 'remote token')}</div>
+        <div class="download-version">${escapeHtml(token.token_id || '')} - ${token.active ? 'active' : 'inactive'} - uses ${token.use_count || 0}</div>
+      </div>
+      <span class="panel-badge ${token.active ? 'info' : 'warn'}">${token.active ? 'ACTIVE' : 'INACTIVE'}</span>
+    </div>`).join('');
+  } catch (e) {
+    badge.textContent = 'unavailable';
+    badge.style.background = 'var(--bg3)';
+    badge.style.color = 'var(--text4)';
+    list.innerHTML = `<div style="padding:16px;font-size:13px;color:var(--text3);">
+      <div style="margin-bottom:8px;color:var(--text2);font-weight:600;">Token service unavailable</div>
+      <div>Remote/mobile auth is optional in Core. The local dashboard remains usable without it.</div>
+    </div>`;
+  }
+}
+
+async function generateRemoteAuthToken() {
+  const button = document.getElementById('generateTokenBtn');
+  const list = document.getElementById('mobileTokenList');
+  const original = button?.textContent || '+ Generate New Token';
+  if (button) {
+    button.disabled = true;
+    button.textContent = 'Generating...';
+  }
+  try {
+    const res = await fetch(API + '/auth/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ label: 'dashboard_mobile_companion' })
+    });
+    const data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error || 'Token generation failed');
+    if (list) {
+      const token = data.token || '';
+      list.innerHTML = `<div style="padding:16px;background:var(--green-bg);border:1px solid var(--green-border);border-radius:8px;color:var(--text2);font-size:13px;">
+        <div style="font-weight:800;color:var(--green);margin-bottom:8px;">Token generated. Copy it now; it will not be shown again.</div>
+        <code style="display:block;word-break:break-all;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:10px;color:var(--text);font-family:var(--mono);">${escapeHtml(token)}</code>
+        <button class="download-btn" style="margin-top:10px;" onclick="navigator.clipboard.writeText('${escapeHtml(token)}')">Copy token</button>
+      </div>`;
+    }
+  } catch (e) {
+    if (list) {
+      list.innerHTML = `<div style="padding:16px;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.2);border-radius:8px;color:var(--red);font-size:13px;">${escapeHtml(e.message || 'Token generation failed')}</div>`;
+    }
+  } finally {
+    if (button) {
+      button.disabled = false;
+      button.textContent = original;
+    }
   }
 }
 
