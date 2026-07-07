@@ -587,6 +587,7 @@ body.theme-light .file-intel-popover{box-shadow:0 18px 40px rgba(15,23,42,0.18);
       <a class="nav-item active" href="#" onclick="switchDashTab('overview');event.preventDefault()"><span class="icon">◆</span> Overview</a>
       <a class="nav-item" href="#" onclick="switchDashTab('workcells');event.preventDefault()"><span class="icon">◉</span> WorkCells</a>
       <a class="nav-item" href="#" onclick="switchDashTab('intelligence');event.preventDefault()"><span class="icon">◈</span> Intelligence</a>
+      <a class="nav-item" href="#" onclick="switchDashTab('reflection');event.preventDefault()"><span class="icon">▣</span> Reflection</a>
       <a class="nav-item" href="#" onclick="switchDashTab('seeds');event.preventDefault()"><span class="icon">◇</span> Seeds</a>
       <a class="nav-item" href="#" onclick="switchDashTab('connections');event.preventDefault()"><span class="icon">◌</span> Connections</a>
       <a class="nav-item" href="#" onclick="switchDashTab('settings');event.preventDefault()"><span class="icon">○</span> Settings</a>
@@ -596,7 +597,7 @@ body.theme-light .file-intel-popover{box-shadow:0 18px 40px rgba(15,23,42,0.18);
     <div class="nav-section">
       <div class="nav-section-label">Quick Links</div>
       <a class="nav-item" href="#architecture-blueprint"><span class="icon">▦</span> File Tree</a>
-      <a class="nav-item" href="#seed-farm"><span class="icon">▣</span> Findings</a>
+      <a class="nav-item" href="#" onclick="switchDashTab('reflection');event.preventDefault()"><span class="icon">▣</span> Findings</a>
       <a class="nav-item" href="Install-SRT1.ps1" download><span class="icon">⬇️</span> Download Installer</a>
     </div>
 
@@ -799,6 +800,7 @@ body.theme-light .file-intel-popover{box-shadow:0 18px 40px rgba(15,23,42,0.18);
     <button class="dash-tab active" onclick="switchDashTab('overview',this)">Overview</button>
     <button class="dash-tab" onclick="switchDashTab('workcells',this)">WorkCells</button>
     <button class="dash-tab" onclick="switchDashTab('intelligence',this)">Intelligence</button>
+    <button class="dash-tab" onclick="switchDashTab('reflection',this)">Reflection</button>
     <button class="dash-tab" onclick="switchDashTab('seeds',this)">Seeds</button>
     <button class="dash-tab" onclick="switchDashTab('connections',this)">Connections</button>
     <button class="dash-tab" onclick="switchDashTab('settings',this)">Settings</button>
@@ -877,6 +879,11 @@ body.theme-light .file-intel-popover{box-shadow:0 18px 40px rgba(15,23,42,0.18);
   </div>
 
   </div><!-- end pane-intelligence (repo explorer will be moved here via JS) -->
+
+  <!-- TAB: REFLECTION -->
+  <div class="dash-pane" id="pane-reflection">
+
+  </div><!-- end pane-reflection (reflection guardrails will be moved here via JS) -->
 
   <!-- TAB: SEEDS -->
   <div class="dash-pane" id="pane-seeds">
@@ -3847,7 +3854,7 @@ function switchDashTab(tabId, btn) {
   if (pane) pane.classList.add('active');
 
   // Sync header tab buttons
-  const tabNames = ['overview', 'workcells', 'intelligence', 'seeds', 'connections', 'settings'];
+  const tabNames = ['overview', 'workcells', 'intelligence', 'reflection', 'seeds', 'connections', 'settings'];
   const headerTabs = document.querySelectorAll('.dash-tab');
   headerTabs.forEach(b => b.classList.remove('active'));
   const idx = tabNames.indexOf(tabId);
@@ -3935,6 +3942,7 @@ function organizePanels() {
   const overviewPane = document.getElementById('pane-overview');
   const workcellPane = document.getElementById('pane-workcells');
   const intPane = document.getElementById('pane-intelligence');
+  const reflectionPane = document.getElementById('pane-reflection');
   const seedPane = document.getElementById('pane-seeds');
   const connectionsPane = document.getElementById('pane-connections');
   const settingsPane = document.getElementById('pane-settings');
@@ -3944,9 +3952,16 @@ function organizePanels() {
   const statsRow = document.querySelector('.stats-row');
   const codebaseMap = document.getElementById('codebase-map');
   const seedFarm = document.getElementById('seed-farm');
+  const systemVerification = document.getElementById('manage-verify');
   if (overviewPane) {
     [repoManager, statsRow, codebaseMap].filter(Boolean).reverse().forEach(el => overviewPane.insertBefore(el, overviewPane.firstChild));
-    if (seedFarm) overviewPane.appendChild(seedFarm);
+    if (systemVerification) overviewPane.appendChild(systemVerification);
+  }
+
+  // Reflection Guardrails are diagnostic/reflection authority, not overview or repo map.
+  if (seedFarm && reflectionPane) {
+    seedFarm.style.gridTemplateColumns = '1fr';
+    reflectionPane.appendChild(seedFarm);
   }
 
   // Move WorkCell and authority cockpit panels into the WorkCells tab.
