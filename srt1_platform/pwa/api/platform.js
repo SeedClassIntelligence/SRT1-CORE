@@ -446,7 +446,7 @@
       } else {
         container.innerHTML = `
           <a href="/website/auth.html" class="nav-link">Log in</a>
-          <a href="/website/auth.html?mode=signup" class="btn-primary btn-sm">Get Started</a>
+          <a href="/website/auth.html?mode=signup&type=developer&next=dashboard.html" class="btn-primary btn-sm">Get Started</a>
         `;
       }
     };

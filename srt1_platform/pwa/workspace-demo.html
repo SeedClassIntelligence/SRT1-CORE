@@ -355,7 +355,7 @@
     <a href="srt1-core.html" class="nav-logo">SRT<em>-1</em> <span style="font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;margin-left:4px">CORE</span></a>
     <div class="nav-top-right" id="nav-auth">
       <a href="auth.html?mode=login" class="signin">Sign In</a>
-      <a href="auth.html?mode=signup" class="signup">Sign Up</a>
+      <a href="auth.html?mode=signup&type=developer&next=dashboard.html" class="signup">Sign Up</a>
     </div>
   </div>
   <div class="nav-bottom">
@@ -381,7 +381,7 @@
       <p>When you ask the AI to "fix the login flow," it only sees auth code. No bleed from payments. No confusion from frontend CSS. Pure, isolated intelligence.</p>
       <div style="margin-top:20px;background:var(--bg-surface);border:1px solid var(--border);border-radius:10px;padding:20px;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.8">
         <div style="color:var(--text4);margin-bottom:8px">── Your machine ──</div>
-        <div><span style="color:var(--green)">●</span> <span style="color:var(--cyan)">auth-module/</span> → Engine on <span style="color:var(--amber)">port 7483</span> &nbsp;· 12 files, 47 functions</div>
+        <div><span style="color:var(--green)">●</span> <span style="color:var(--cyan)">auth-module/</span> → WorkCell runtime on <span style="color:var(--amber)">assigned port</span> &nbsp;· 12 files, 47 functions</div>
         <div><span style="color:var(--green)">●</span> <span style="color:var(--cyan)">payments/</span> → Engine on <span style="color:var(--amber)">port 8192</span> &nbsp;&nbsp;· 8 files, 31 functions</div>
         <div><span style="color:var(--green)">●</span> <span style="color:var(--cyan)">frontend/</span> → Engine on <span style="color:var(--amber)">port 9104</span> &nbsp;&nbsp;· 24 files, 89 functions</div>
         <div><span style="color:var(--green)">●</span> <span style="color:var(--cyan)">api-gateway/</span> → Engine on <span style="color:var(--amber)">port 7821</span> · 6 files, 22 functions</div>
@@ -425,7 +425,7 @@
 
 Discovering running engines...
 
-<span class="c-green">●</span> Engine → :7483  │ 6 files, 15 classes, 105 functions
+<span class="c-green">●</span> Engine → :7484  │ 6 files, 15 classes, 105 functions
 <span class="c-green">●</span> Platform → :8192 │ 17 files, 30 classes, 202 functions
 <span class="c-green">●</span> Pro → :9104      │ 9 files, 18 classes, 104 functions
 <span class="c-green">●</span> Memory → :7821   │ 9 files, 25 classes, 99 functions
@@ -438,7 +438,7 @@ Analyzing cross-module dependencies...
 │                                                             │
 │  Module          Port    Files   Classes   Functions        │
 │  ────────────── ────── ────── ───────── ───────────        │
-│  Engine          :7483      6        15         105        │
+│  Engine          :7484      6        15         105        │
 │  Platform        :8192     17        30         202        │
 │  Pro             :9104      9        18         104        │
 │  Memory          :7821      9        25          99        │
@@ -450,9 +450,9 @@ Analyzing cross-module dependencies...
 
 ┌─ Cross-Module Dependencies ─────────────────────────────────┐
 │                                                             │
-│  Engine :7483   → Platform :8192, Pro :9104                │
-│  Platform :8192 → Engine :7483, Pro :9104                  │
-│  Pro :9104      → Engine :7483                             │
+│  Engine :7484   → Platform :8192, Pro :9104                │
+│  Platform :8192 → Engine :7484, Pro :9104                  │
+│  Pro :9104      → Engine :7484                             │
 │  Memory :7821     <span class="c-dim">(standalone — no cross-module deps)</span>     │
 │  Website :8640    <span class="c-dim">(standalone — no cross-module deps)</span>     │
 │                                                             │
@@ -464,8 +464,8 @@ Analyzing cross-module dependencies...
 │  🔗 Connected modules:  Engine, Platform, Pro                │
 │                                                             │
 │  <span class="c-warn">⚠️  Circular dependencies detected:</span>                        │
-│     Engine :7483 ↔ Platform :8192                           │
-│     Engine :7483 ↔ Pro :9104                                │
+│     Engine :7484 ↔ Platform :8192                           │
+│     Engine :7484 ↔ Pro :9104                                │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
 
@@ -479,7 +479,7 @@ Analyzing cross-module dependencies...
     <a href="srt1-core.html">Home</a>
     <a href="comparison.html">Compare</a>
     <a href="documentation.html">Docs</a>
-    <a href="https://github.com/SeedClassIntelligence/SRT1">GitHub</a>
+    <a href="https://github.com/SeedClassIntelligence/SRT1-CORE">GitHub</a>
   </div>
 </footer>
 

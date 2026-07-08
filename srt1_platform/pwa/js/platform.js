@@ -486,7 +486,7 @@
       } else {
         container.innerHTML = `
           <a href="auth.html" class="nav-link">Log in</a>
-          <a href="auth.html?mode=signup" class="btn-primary btn-sm">Get Started</a>
+          <a href="auth.html?mode=signup&type=developer&next=dashboard.html" class="btn-primary btn-sm">Get Started</a>
         `;
       }
     };

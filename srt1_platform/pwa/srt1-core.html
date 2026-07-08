@@ -204,7 +204,7 @@
     <a href="srt1-core.html" class="nav-logo">SRT<em>-1</em> <span style="font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;margin-left:4px">CORE</span></a>
     <div class="nav-top-right" id="nav-auth">
       <a href="auth.html?mode=login" class="signin">Sign In</a>
-      <a href="auth.html?mode=signup&type=developer" class="signup">Sign Up</a>
+      <a href="auth.html?mode=signup&type=developer&next=dashboard.html" class="signup">Sign Up</a>
     </div>
   </div>
   <div class="nav-bottom">
@@ -281,7 +281,7 @@
         <div class="ddot" style="background:#ff5f57"></div>
         <div class="ddot" style="background:#febc2e"></div>
         <div class="ddot" style="background:#28c840"></div>
-        <span class="demo-url-text">localhost:7605 — SRT-1 Engine</span>
+        <span class="demo-url-text">localhost:7484 — SRT-1 Engine</span>
         <div style="margin-left:auto;display:flex;gap:6px;align-items:center;">
           <button class="demo-ctrl" onclick="toggleDemoPause()" id="demoPauseBtn" title="Pause/Play">⏸</button>
         </div>
@@ -473,7 +473,7 @@
 (function(){
   const SCENE_DURATION = 5500;
   let currentScene = 0, paused = false, progressTimer = null, progressStart = 0;
-  const termText = `$ srt1-index --repo_path ./\n\n  [1/6] Indexing codebase...\n         166 files, 635 symbols indexed.\n  [2/6] Mapping call flow...\n         510 call chains mapped.\n  [3/6] Analyzing codebase...\n         Synopsis generated.\n  [4/6] Generating AI context files...\n         ✓ AGENTS.md proactively updated\n  [5/6] Generating build plan...\n         Project: SRT1 CODING\n         Health:  healthy\n  [6/6] Starting live server...\n\n  ✓ SRT-1 is ready.\n  Dashboard: http://localhost:7605/dashboard`;
+  const termText = `$ srt1 start --repo ./ --port 7484\n\n  [1/6] Registering repository...\n         Repository Activation ready.\n  [2/6] Indexing codebase...\n         166 files, 635 symbols indexed.\n  [3/6] Creating FileCells and WorkCells...\n         WorkCell boundaries prepared.\n  [4/6] Generating AI context files...\n         ✓ AGENTS.md proactively updated\n  [5/6] Preparing dashboard cockpit...\n         Project: SRT1 CODING\n         Health: healthy\n  [6/6] Starting live server...\n\n  ✓ SRT-1 is ready.\n  Dashboard: http://localhost:7484/dashboard`;
   function typeText(){
     const el=document.getElementById('dsTyping');
     if(!el)return; let i=0; el.textContent='';
@@ -647,7 +647,7 @@
           <div class="cc-dot" style="background:#ff5f57"></div>
           <div class="cc-dot" style="background:#febc2e"></div>
           <div class="cc-dot" style="background:#28c840"></div>
-          <span style="margin-left:8px;font-size:11px;color:var(--text3);font-family:&#39;JetBrains Mono&#39;,monospace">localhost:7605/dashboard — SRT-1</span>
+          <span style="margin-left:8px;font-size:11px;color:var(--text3);font-family:&#39;JetBrains Mono&#39;,monospace">localhost:7484/dashboard — SRT-1</span>
         </div>
         <div class="cc-body">
           <div class="cc-stat-row">
@@ -753,7 +753,7 @@
           <li>Install as a PWA — runs like a native app, no app store required</li>
         </ul>
         <div class="cc-btns">
-          <a href="auth.html?mode=signup&type=developer" class="btn btn-blue btn-sm">Start Free →</a>
+          <a href="auth.html?mode=signup&type=developer&next=dashboard.html" class="btn btn-blue btn-sm">Start Free →</a>
           <a href="#mobile" class="btn btn-outline btn-sm">PWA setup guide →</a>
         </div>
       </div>

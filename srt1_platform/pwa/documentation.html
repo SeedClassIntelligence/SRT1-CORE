@@ -365,7 +365,7 @@
     <a href="srt1-core.html" class="nav-logo">SRT<em>-1</em> <span style="font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;margin-left:4px">CORE</span></a>
     <div class="nav-top-right" id="nav-auth">
       <a href="auth.html?mode=login" class="signin">Sign In</a>
-      <a href="auth.html?mode=signup" class="signup">Sign Up</a>
+      <a href="auth.html?mode=signup&type=developer&next=dashboard.html" class="signup">Sign Up</a>
     </div>
   </div>
   <div class="nav-bottom">
@@ -399,7 +399,7 @@
     <div class="badge">Documentation</div>
     <h1>SRT-1 Docs</h1>
     <p>SRT-1 is a 7-stage codebase intelligence pipeline that produces a verified Code Manifest. It gives any AI assistant a ground-truth map of your codebase — with every function tagged by architectural role and risk profile.</p>
-    <p>Start with the <a href="#quickstart">Quickstart</a> to get indexed in under a minute, then read the <a href="#architecture">Architecture</a> guide to understand the pipeline stages.</p>
+    <p>Start with the <a href="#quickstart">Quickstart</a> to register a repository and open the dashboard cockpit, then read the <a href="#architecture">Architecture</a> guide to understand the pipeline stages.</p>
 
     <h2 id="overview">Guides</h2>
     <div class="card-grid">
@@ -437,7 +437,7 @@
       </a>
       <a href="#engine-api" class="doc-card" style="color:inherit">
         <h3>⚡ Engine API</h3>
-        <p>HTTP endpoints on port 7483 for dashboard and automation.</p>
+        <p>HTTP endpoints on the active SRT-1 engine port, defaulting to 7484.</p>
       </a>
     </div>
 
@@ -530,8 +530,8 @@
     </div>
 
     <!-- ── ENGINE API ── -->
-    <h2 id="engine-api">⚡ Engine API (Port 7483)</h2>
-    <p>The SRT-1 engine exposes a local HTTP API on port 7483. The developer dashboard and mobile PWA communicate through these endpoints.</p>
+    <h2 id="engine-api">⚡ Engine API</h2>
+    <p>The SRT-1 engine exposes a local HTTP API on the active runtime port. The default local port is 7484, and launched repository runtimes may receive their own ports.</p>
     <h3>GET Endpoints</h3>
     <div style="overflow-x:auto;margin-bottom:24px">
     <table style="width:100%;border-collapse:collapse;font-size:14px;color:var(--text2)">
@@ -575,7 +575,7 @@
     <a href="srt1-core.html">Home</a>
     <a href="comparison.html">Compare</a>
     <a href="documentation.html">Docs</a>
-    <a href="https://github.com/SeedClassIntelligence/SRT1">GitHub</a>
+    <a href="https://github.com/SeedClassIntelligence/SRT1-CORE">GitHub</a>
   </div>
 </footer>
 

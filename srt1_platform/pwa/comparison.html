@@ -209,7 +209,7 @@
     
     <div class="nav-top-right" id="nav-auth">
       <a href="auth.html?mode=login" class="signin">Sign In</a>
-      <a href="auth.html?mode=signup" class="signup">Sign Up</a>
+      <a href="auth.html?mode=signup&type=developer&next=dashboard.html" class="signup">Sign Up</a>
     </div>
   </div>
   <div class="nav-bottom">
@@ -311,7 +311,7 @@
           <div class="feat-row"><span class="fi has">✓</span>Signed manifest — tamper-proof ground truth <span class="excl-pill">ONLY SRT-1</span></div>
           <div class="feat-row"><span class="fi has">✓</span>automated state correction engine: dupes, stale files, gaps <span class="excl-pill">ONLY SRT-1</span></div>
           <div class="feat-row"><span class="fi has">✓</span>CLAUDE.md, .cursorrules, AGENTS.md auto-generated <span class="excl-pill">ONLY SRT-1</span></div>
-          <div class="feat-row"><span class="fi has">✓</span>Live dashboard at localhost:7483 <span class="excl-pill">ONLY SRT-1</span></div>
+          <div class="feat-row"><span class="fi has">✓</span>Live dashboard at localhost:7484 by default <span class="excl-pill">ONLY SRT-1</span></div>
           <div class="feat-row"><span class="fi has">✓</span>MCP server grounded in your actual codebase <span class="excl-pill">ONLY SRT-1</span></div>
         </div>
       </div>
@@ -389,7 +389,7 @@
           <tr><td class="rl">Role &amp; risk tagging</td><td class="us"><span class="yb">✓</span> Every function classified autonomously <span class="only">NATIVE</span></td></tr>
           <tr><td class="rl">automated state correction engine</td><td class="us"><span class="yb">✓</span> Dupes, stale files, gaps auto-detected <span class="only">NATIVE</span></td></tr>
           <tr><td class="rl">AI context file generation</td><td class="us"><span class="yb">✓</span> Continual generation of CLAUDE.md · .cursorrules · AGENTS.md <span class="only">NATIVE</span></td></tr>
-          <tr><td class="rl">Live codebase dashboard</td><td class="us"><span class="yb">✓</span> localhost:7483 — real-time Governance Gateway <span class="only">NATIVE</span></td></tr>
+          <tr><td class="rl">Live codebase dashboard</td><td class="us"><span class="yb">✓</span> localhost:7484 by default — repository cockpit <span class="only">NATIVE</span></td></tr>
 
           <tr class="rc"><td colspan="2">🌱 SEED SYSTEM (DEVELOPER ASSET)</td></tr>
           <tr><td class="rl">Seed planting queue</td><td class="us"><span class="yb">✓</span> Direct developer dashboard planting <span class="only">NATIVE</span></td></tr>
@@ -461,7 +461,7 @@
       <button class="cp" onclick="navigator.clipboard.writeText('pip install SRT1-CORE');this.textContent='Copied!';setTimeout(()=>this.textContent='Copy',1500)">Copy</button>
     </div>
     <div>
-      <a href="auth.html?mode=signup" class="btn-p">🌱 Start Free — No credit card</a>
+      <a href="auth.html?mode=signup&type=developer&next=dashboard.html" class="btn-p">🌱 Start Free — Register Repository</a>
       
     </div>
   </div>
@@ -472,9 +472,9 @@
   <div class="fl">
     <a href="index.html">Home</a>
     
-    <a href="consumer-dashboard.html">Seed Reflection</a>
+    <a href="https://seeds.srt1.io">Seed Reflection</a>
     <a href="documentation.html">Docs</a>
-    <a href="https://github.com/SeedClassIntelligence/SRT1">GitHub</a>
+    <a href="https://github.com/SeedClassIntelligence/SRT1-CORE">GitHub</a>
     <a href="https://pypi.org/project/srt1-core">PyPI</a>
   </div>
 </footer>
