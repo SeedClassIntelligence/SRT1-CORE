@@ -596,8 +596,8 @@ body.theme-light .file-intel-popover{box-shadow:0 18px 40px rgba(15,23,42,0.18);
     <!-- Quick Links -->
     <div class="nav-section">
       <div class="nav-section-label">Quick Links</div>
-      <a class="nav-item" href="#" onclick="openDashboardPanel('intelligence','repoExplorer');event.preventDefault()"><span class="icon">▦</span> File Tree</a>
-      <a class="nav-item" href="#" onclick="switchDashTab('reflection');event.preventDefault()"><span class="icon">▣</span> Findings</a>
+      <a class="nav-item" href="#repoExplorer" onclick="openDashboardPanel('intelligence','repoExplorer',{ explorerTab:'files', hash:'repoExplorer' });event.preventDefault()"><span class="icon">▦</span> File Tree</a>
+      <a class="nav-item" href="#seed-farm" onclick="openDashboardPanel('reflection','seed-farm',{ hash:'seed-farm' });event.preventDefault()"><span class="icon">▣</span> Findings</a>
       <a class="nav-item" href="Install-SRT1.ps1" download><span class="icon">⬇️</span> Download Installer</a>
     </div>
 
@@ -1572,13 +1572,39 @@ function navPage(page) {
   window.location.href = isEngine ? '/' + page : page + '.html';
 }
 
-function openDashboardPanel(tabId, targetId) {
+function openDashboardPanel(tabId, targetId, options = {}) {
   switchDashTab(tabId);
+  if (options.explorerTab && typeof showTab === 'function') {
+    showTab(options.explorerTab);
+  }
+  const hash = options.hash || targetId;
+  if (hash && window.history && window.history.replaceState) {
+    window.history.replaceState(null, '', '#' + hash);
+  }
   setTimeout(() => {
     const target = document.getElementById(targetId);
     if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, 80);
 }
+
+function resolveDashboardHash() {
+  const raw = (window.location.hash || '').replace(/^#/, '');
+  if (!raw) return;
+  const routes = {
+    'architecture-blueprint': { tab: 'workcells', target: 'authority-surface' },
+    'authority-surface': { tab: 'workcells', target: 'authority-surface' },
+    'workcells': { tab: 'workcells', target: 'authority-surface' },
+    'file-tree': { tab: 'intelligence', target: 'repoExplorer', explorerTab: 'files', hash: 'repoExplorer' },
+    'repoExplorer': { tab: 'intelligence', target: 'repoExplorer', explorerTab: 'files', hash: 'repoExplorer' },
+    'findings': { tab: 'reflection', target: 'seed-farm', hash: 'seed-farm' },
+    'seed-farm': { tab: 'reflection', target: 'seed-farm', hash: 'seed-farm' },
+    'reflection': { tab: 'reflection', target: 'seed-farm', hash: 'seed-farm' }
+  };
+  const route = routes[raw];
+  if (route) openDashboardPanel(route.tab, route.target, route);
+}
+
+window.addEventListener('hashchange', resolveDashboardHash);
 
 // ── Download handler for dashboard packages ──
 async function downloadPackage(pkg, filename, btn) {
@@ -4090,6 +4116,7 @@ function organizePanels() {
 // All DOM elements exist since this script is at end of body.
 // Move panels into their correct tab panes FIRST.
 organizePanels();
+resolveDashboardHash();
 // Then start loading data from engine
 loadDashboardSummary();
 loadStatus();
