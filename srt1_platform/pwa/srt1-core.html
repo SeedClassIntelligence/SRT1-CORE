@@ -221,7 +221,7 @@
 <section class="hero">
   <div class="hero-badge">SCIA v4.0 — 7-Stage Intelligence Pipeline</div>
   <h1>Your AI finally understands<br><span>your entire codebase.</span></h1>
-  <p class="hero-sub">AI memory is not enough. SRT-1 gives you local repo intelligence, continuity, workcell boundaries, verification, and trust-aware context for AI coding assistants. External Seed Signature authority can add signed provenance when configured.</p>
+  <p class="hero-sub">AI memory is not enough. SRT-1 gives you local repo intelligence, continuity, workcell boundaries, verification, and trust-aware context for AI coding assistants. Start by registering the repository SRT-1 should manage; then Core builds FileCells, WorkCells, recall context, and the dashboard cockpit around that local project.</p>
   <div class="hero-install" id="install">
     <code>pip install srt1-core</code>
     <div style="display:flex; gap:8px;">
@@ -233,9 +233,28 @@
     </div>
   </div>
   <div class="hero-btns">
-    <a href="auth.html?mode=signup&type=developer" class="btn btn-blue">Start Free — No credit card</a>
+    <a href="auth.html?mode=signup&type=developer&next=dashboard.html" class="btn btn-blue">Start Free — Register Repository</a>
     <a href="#demo-video" class="btn btn-outline" style="border-color:var(--cyan);color:var(--cyan);">▶ Watch Demo</a>
     <a href="documentation.html" class="btn btn-outline">Read the Docs →</a>
+  </div>
+</section>
+
+<!-- FIRST RUN ACTIVATION -->
+<section class="section" id="repository-activation" style="padding-top:48px;padding-bottom:48px;">
+  <div class="section-inner" style="max-width:1100px;">
+    <div class="eyebrow">First Run</div>
+    <h2 class="section-h2">SRT-1 starts with <span>Repository Activation.</span></h2>
+    <p class="section-p">A new developer should not begin by guessing which task to plant. They first tell SRT-1 which local repository to manage. SRT-1 then understands the repo once, creates FileCells and WorkCells, and makes the dashboard the operating cockpit for that project.</p>
+    <div class="features-grid" style="margin-top:28px;">
+      <div class="fcard"><div class="fcard-icon">1</div><h3>Sign up or continue locally</h3><p>Create a developer workspace or use local Core directly. Core remains local-first; private signing and cloud services are optional external integrations.</p></div>
+      <div class="fcard"><div class="fcard-icon">2</div><h3>Register Repository</h3><p>Choose a local folder or paste a path. SRT-1 records the project and prepares it for repo understanding.</p></div>
+      <div class="fcard"><div class="fcard-icon">3</div><h3>Understand Once</h3><p>The engine scans files, hashes content, extracts symbols, builds a manifest, and creates persistent FileCells and WorkCells.</p></div>
+      <div class="fcard"><div class="fcard-icon">4</div><h3>Plant Seeds in WorkCells</h3><p>After the repository is ready, select a WorkCell, plant a seed, hand the package to an assistant, and verify completion.</p></div>
+    </div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:28px;">
+      <a href="auth.html?mode=signup&type=developer&next=dashboard.html" class="btn btn-blue btn-sm">Begin Repository Activation</a>
+      <a href="documentation.html#quickstart" class="btn btn-outline btn-sm">Read Quickstart</a>
+    </div>
   </div>
 </section>
 
@@ -608,18 +627,18 @@
     <div class="cc-copy">
       <div class="eyebrow">Command Center</div>
       <h2>Your entire codebase,<br><span>live in your browser.</span></h2>
-      <p>Run the middleware and open <code style="color:var(--cyan);font-size:13px">localhost:7605/dashboard</code>. The Command Center shows real-time data from your repo — file counts, symbol inventory, seed farm, coherence score — updating as you work.</p>
+      <p>Launch SRT-1, register the local repository, then open the dashboard cockpit. The Command Center shows real-time data from your active repo — repository readiness, file counts, WorkCells, reflection guardrails, seeds, and assistant handoff status.</p>
       <ul class="cc-bullets">
-        <li>File counts, symbol inventory, cross-file call chains — live from your codebase</li>
-        <li>Seed Farm: every task planted, germinating, growing, and bloomed in one view</li>
-        <li>Coherence gauge: circular drift score that updates every 3 operations</li>
-        <li>Risk profile: auth-sensitive functions, file I/O, dynamic execution — by count</li>
-        <li>Warnings: every duplicate function and curation issue, named and linked</li>
-        <li>"Ask SRT-1" chat: type any question about your codebase, get a grounded answer</li>
+        <li>Repository Manager: register, launch, stop, and switch local SRT-1 runtimes</li>
+        <li>Repo Intelligence: file map, symbols, roles, dependencies, and manifest freshness</li>
+        <li>WorkCells: bounded execution packages with FileCell context and verification status</li>
+        <li>Reflection Guardrails: duplicate, unused, overlap, risk, and drift findings</li>
+        <li>Seeds: plant tasks, review blueprints, and track queue lifecycle</li>
+        <li>Connections: configure assistant adapters, Slack-style seed intake, and mobile tokens</li>
       </ul>
       <div class="cc-btns">
-        <a href="dashboard.html" class="btn btn-blue btn-sm">Open Developer Dashboard</a>
-        <a href="documentation.html" class="btn btn-outline btn-sm">Run it locally →</a>
+        <a href="auth.html?mode=signup&type=developer&next=dashboard.html" class="btn btn-blue btn-sm">Start Repository Activation</a>
+        <a href="dashboard.html" class="btn btn-outline btn-sm">Open Local Dashboard</a>
       </div>
     </div>
     <div>

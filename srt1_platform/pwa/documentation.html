@@ -443,11 +443,15 @@
 
     <!-- ── QUICKSTART ── -->
     <h2 id="quickstart">⚡ Quickstart</h2>
-    <p>Get your first verified Code Manifest in under 60 seconds.</p>
+    <p>Register a local repository, build repo understanding, and open the dashboard cockpit.</p>
     <h3>1. Install</h3>
     <pre style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:16px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan);margin-bottom:16px;overflow-x:auto">pip install srt1-core</pre>
-    <h3>2. Index your repository</h3>
-    <pre style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:16px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--text2);margin-bottom:16px;overflow-x:auto">trust_state = {"signature": "unsigned", "verification": "unverified", "lineage": "missing"}`nmanifest["trust_state"] = trust_state</pre>
+    <h3>2. Start SRT-1 for a local repository</h3>
+    <pre style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:16px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--text2);margin-bottom:16px;overflow-x:auto">srt1 start --repo /path/to/your/repository --port 7484</pre>
+    <h3>3. Open the dashboard</h3>
+    <pre style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:16px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--text2);margin-bottom:16px;overflow-x:auto">http://127.0.0.1:7484/dashboard</pre>
+    <h3>4. Register or switch repositories</h3>
+    <p>Use the dashboard Repository Manager to register a local folder, launch its runtime, stop stale runtimes, and select the repository SRT-1 should manage. After activation, SRT-1 builds the manifest, FileCells, WorkCells, recall context, and verification surfaces for that project.</p>
     <h3>What Gets Signed</h3>
     <div style="overflow-x:auto;margin-bottom:24px">
     <table style="width:100%;border-collapse:collapse;font-size:14px;color:var(--text2)">
