@@ -597,7 +597,7 @@ body.theme-light .file-intel-popover{box-shadow:0 18px 40px rgba(15,23,42,0.18);
     <div class="nav-section">
       <div class="nav-section-label">Quick Links</div>
       <a class="nav-item" href="#repoExplorer" onclick="openDashboardPanel('intelligence','repoExplorer',{ explorerTab:'files', hash:'repoExplorer' });event.preventDefault()"><span class="icon">▦</span> File Tree</a>
-      <a class="nav-item" href="#seed-farm" onclick="openDashboardPanel('reflection','seed-farm',{ hash:'seed-farm' });event.preventDefault()"><span class="icon">▣</span> Findings</a>
+      <a class="nav-item" href="#active-findings" onclick="openDashboardPanel('reflection','active-findings',{ hash:'active-findings' });event.preventDefault()"><span class="icon">▣</span> Active Findings</a>
       <a class="nav-item" href="Install-SRT1.ps1" download><span class="icon">⬇️</span> Download Installer</a>
     </div>
 
@@ -824,6 +824,7 @@ body.theme-light .file-intel-popover{box-shadow:0 18px 40px rgba(15,23,42,0.18);
           <div class="panel-badge" id="seedFarmBadge">loading...</div>
         </div>
       </div>
+      <div id="active-findings" style="scroll-margin-top:80px;margin-bottom:10px;font-size:11px;color:var(--text4);font-weight:800;text-transform:uppercase;letter-spacing:.06em;">Current Diagnostic Findings</div>
       <div class="seed-list" id="seedFarmList">
         <div style="padding:24px;text-align:center;color:var(--text4);font-size:13px;">Loading reflection findings from engine...</div>
       </div>
@@ -1596,7 +1597,8 @@ function resolveDashboardHash() {
     'workcells': { tab: 'workcells', target: 'authority-surface' },
     'file-tree': { tab: 'intelligence', target: 'repoExplorer', explorerTab: 'files', hash: 'repoExplorer' },
     'repoExplorer': { tab: 'intelligence', target: 'repoExplorer', explorerTab: 'files', hash: 'repoExplorer' },
-    'findings': { tab: 'reflection', target: 'seed-farm', hash: 'seed-farm' },
+    'findings': { tab: 'reflection', target: 'active-findings', hash: 'active-findings' },
+    'active-findings': { tab: 'reflection', target: 'active-findings', hash: 'active-findings' },
     'seed-farm': { tab: 'reflection', target: 'seed-farm', hash: 'seed-farm' },
     'reflection': { tab: 'reflection', target: 'seed-farm', hash: 'seed-farm' }
   };
