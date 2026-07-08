@@ -163,6 +163,20 @@ class EngineCoreOrchestrationTests(unittest.TestCase):
         self.assertEqual(engine.srt_tool._enforcement_mode, "enforcement")
         self.assertEqual(len(engine.srt_tool.get_active_blocks()), 1)
 
+    def test_remediation_seed_payload_is_allowed_for_finding_actions(self):
+        self.assertTrue(engine_module.SRT1Engine._is_remediation_seed_payload({
+            "source": "dashboard_finding",
+            "context": {"finding_type": "duplicate"},
+        }))
+        self.assertTrue(engine_module.SRT1Engine._is_remediation_seed_payload({
+            "source": "api",
+            "finding_type": "unused",
+        }))
+        self.assertFalse(engine_module.SRT1Engine._is_remediation_seed_payload({
+            "source": "dashboard",
+            "task": "Build unrelated feature",
+        }))
+
 
 if __name__ == "__main__":
     unittest.main()

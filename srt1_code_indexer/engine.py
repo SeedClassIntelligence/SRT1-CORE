@@ -2123,6 +2123,18 @@ class SRT1Engine:
     # TASK MANAGEMENT
     # -----------------------------------------------------------------
 
+    @staticmethod
+    def _is_remediation_seed_payload(body: Dict[str, Any]) -> bool:
+        """Return True when a seed is explicitly created to resolve findings."""
+        source = str(body.get("source") or "").lower()
+        context = body.get("context") if isinstance(body.get("context"), dict) else {}
+        finding_type = body.get("finding_type") or context.get("finding_type")
+        return source in {
+            "dashboard_finding",
+            "reflection_finding",
+            "remediation",
+        } or bool(finding_type)
+
     def _plant_seed(self, task: str, source: str = "api",
                     priority: int = 5, auto_dispatch: bool = False,
                     template_id: Optional[str] = None) -> Optional[str]:
@@ -4500,7 +4512,9 @@ class SRT1Engine:
                     return self._json({"id": file_id, "filename": "idea-upload.json", "size_kb": 1, "created_at": dt})
 
                 elif path == "/task":
-                    block = engine.srt_tool.check_enforcement("seed_dispatch")
+                    source = body.get("source", "api")
+                    is_remediation_seed = engine._is_remediation_seed_payload(body)
+                    block = None if is_remediation_seed else engine.srt_tool.check_enforcement("seed_dispatch")
                     if block is not None:
                         self._json({
                             "error": "Enforcement block active",
@@ -4515,7 +4529,6 @@ class SRT1Engine:
                     if not task:
                         self._json({"error": "Missing 'task'"}, 400)
                         return
-                    source = body.get("source", "api")
                     priority = body.get("priority", 5)
                     auto_dispatch = body.get("auto_dispatch", True)
                     template_id = body.get("template_id")  # Optional: use specific template
@@ -4657,7 +4670,9 @@ class SRT1Engine:
                 # ── Seed Queue POST Endpoints ──
 
                 elif path in ("/seeds", "/task", "/api/v1/task"):
-                    block = engine.srt_tool.check_enforcement("seed_dispatch")
+                    source = body.get("source", "mobile")
+                    is_remediation_seed = engine._is_remediation_seed_payload(body)
+                    block = None if is_remediation_seed else engine.srt_tool.check_enforcement("seed_dispatch")
                     if block is not None:
                         self._json({
                             "error": "Enforcement block active",
@@ -4675,7 +4690,6 @@ class SRT1Engine:
                     if not intent:
                         self._json({"error": "Missing 'intent' (what to build)"}, 400)
                         return
-                    source = body.get("source", "mobile")
                     priority = body.get("priority", 5)
                     tags = body.get("tags", [])
 

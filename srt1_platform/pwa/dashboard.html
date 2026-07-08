@@ -2108,6 +2108,8 @@ async function loadDashboardSummary() {
 // ============================================================
 let engineStatus = null;
 let selectedWorkCellExecutionId = null;
+const findingFixActions = {};
+let findingFixActionSeq = 0;
 let lastWorkCellsPayload = null;
 
 const CATEGORY_DOT = {
@@ -2127,6 +2129,27 @@ function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>"']/g, ch => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
   }[ch]));
+}
+
+function registerFindingFixAction(type, item) {
+  const id = `${type}-${findingFixActionSeq++}`;
+  findingFixActions[id] = { type, item: item || {} };
+  return id;
+}
+
+function buildFindingFixSeed(action) {
+  const item = action?.item || {};
+  const type = action?.type || 'finding';
+  const name = item.function || item.symbol || item.name || 'unknown finding';
+  const locations = Array.isArray(item.locations) ? item.locations : [item.location || item.file || 'location unavailable'];
+  const locationText = locations.filter(Boolean).join(', ') || 'location unavailable';
+  if (type === 'duplicate') {
+    return `Resolve SRT-1 duplicate finding for ${name}. Inspect only the implicated locations: ${locationText}. Preserve behavior, remove unnecessary duplication, and verify the affected WorkCell/FileCell boundary before completion.`;
+  }
+  if (type === 'unused') {
+    return `Review SRT-1 unused function finding for ${name} at ${locationText}. Determine whether it is truly unused, preserve it if it is a public hook or contract, otherwise propose a bounded cleanup with verification.`;
+  }
+  return `Review SRT-1 reflection finding for ${name} at ${locationText}. Create a bounded fix plan, preserve working code, and verify before completion.`;
 }
 
 function setRepositoryActivationStep(id, state) {
@@ -2866,6 +2889,8 @@ async function loadStatus() {
     if (list) {
       const unusedCount = ci.unused_functions || 0;
       const unusedItems = ci.unused_items || [];
+      Object.keys(findingFixActions).forEach(key => delete findingFixActions[key]);
+      findingFixActionSeq = 0;
 
       if (violations === 0 && overlaps === 0 && unusedCount === 0) {
         list.innerHTML = '<div style="padding:24px;text-align:center;color:var(--green);font-size:14px;font-weight:600;">No reflection findings detected. Codebase clean.</div>';
@@ -2877,16 +2902,22 @@ async function loadStatus() {
           <span style="color:var(--amber);font-weight:600;">${overlaps} functional overlaps</span>
           ${unusedCount > 0 ? `<span style="color:var(--purple, #a78bfa);font-weight:600;">${unusedCount} unused functions</span>` : ''}
           <span style="color:var(--text4);margin-left:auto;">Reflection mode: ${enforcement.level || 'ACTIVE'}</span>
+          <span style="flex-basis:100%;color:var(--text3);font-size:11px;">Create Fix Seed turns a finding into a tracked Seed and WorkCell package visible in Seed Queue and WorkCells.</span>
         </div>`;
 
         // Individual finding rows (duplicates)
         curationItems.slice(0, 15).forEach(item => {
+          const actionId = registerFindingFixAction('duplicate', item);
           const locs = (item.locations || []).join(', ');
           html += `<div class="violation-row critical">
             <div class="violation-icon">⚠️</div>
             <div class="violation-detail">
-              <div class="violation-func">${item.function || 'unknown'}</div>
-              <div class="violation-locs">${locs}</div>
+              <div class="violation-func">${escapeHtml(item.function || 'unknown')}</div>
+              <div class="violation-locs">${escapeHtml(locs)}</div>
+              <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+                <button type="button" class="workcell-package-btn" onclick="createFindingFixSeed('${actionId}', this)">Create Fix Seed</button>
+                <span style="font-size:11px;color:var(--text4);">Tracked through Seed Queue and WorkCells</span>
+              </div>
             </div>
             <div class="violation-badge hard">DUPLICATE</div>
           </div>`;
@@ -2895,12 +2926,17 @@ async function loadStatus() {
         if (curationItems.length > 15) {
           html += `<div style="padding:10px 12px;text-align:center;color:var(--text4);font-size:12px;cursor:pointer;text-decoration:underline;" onclick="this.nextElementSibling.style.display='block';this.style.display='none'">+ ${curationItems.length - 15} more findings (Click to expand)</div><div style="display:none;">`;
           curationItems.slice(15).forEach(item => {
+            const actionId = registerFindingFixAction('duplicate', item);
             const locs = (item.locations || []).join(', ');
             html += `<div class="violation-row critical">
               <div class="violation-icon">⚠️</div>
               <div class="violation-detail">
-                <div class="violation-func">${item.function || 'unknown'}</div>
-                <div class="violation-locs">${locs}</div>
+                <div class="violation-func">${escapeHtml(item.function || 'unknown')}</div>
+                <div class="violation-locs">${escapeHtml(locs)}</div>
+                <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+                  <button type="button" class="workcell-package-btn" onclick="createFindingFixSeed('${actionId}', this)">Create Fix Seed</button>
+                  <span style="font-size:11px;color:var(--text4);">Tracked through Seed Queue and WorkCells</span>
+                </div>
               </div>
               <div class="violation-badge hard">DUPLICATE</div>
             </div>`;
@@ -2912,11 +2948,16 @@ async function loadStatus() {
         if (unusedItems.length > 0) {
           html += `<div style="padding:8px 12px;margin-top:8px;margin-bottom:4px;background:rgba(167,139,250,0.05);border:1px solid rgba(167,139,250,0.15);border-radius:8px;font-size:12px;color:#a78bfa;font-weight:700;">Potentially Unused Functions</div>`;
           unusedItems.slice(0, 10).forEach(item => {
+            const actionId = registerFindingFixAction('unused', item);
             html += `<div class="violation-row" style="border-left-color:#a78bfa;">
               <div class="violation-icon">🔍</div>
               <div class="violation-detail">
-                <div class="violation-func">${item.function || 'unknown'}</div>
-                <div class="violation-locs">${item.location || ''}</div>
+                <div class="violation-func">${escapeHtml(item.function || 'unknown')}</div>
+                <div class="violation-locs">${escapeHtml(item.location || '')}</div>
+                <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+                  <button type="button" class="workcell-package-btn" onclick="createFindingFixSeed('${actionId}', this)">Create Review Seed</button>
+                  <span style="font-size:11px;color:var(--text4);">Verify before removing public hooks</span>
+                </div>
               </div>
               <div class="violation-badge" style="background:rgba(167,139,250,0.1);color:#a78bfa;border-color:rgba(167,139,250,0.2);">UNUSED</div>
             </div>`;
@@ -2924,11 +2965,16 @@ async function loadStatus() {
           if (unusedItems.length > 10) {
             html += `<div style="padding:10px 12px;text-align:center;color:var(--text4);font-size:12px;cursor:pointer;text-decoration:underline;" onclick="this.nextElementSibling.style.display='block';this.style.display='none'">+ ${unusedItems.length - 10} more unused (Click to view)</div><div style="display:none;">`;
             unusedItems.slice(10).forEach(item => {
+              const actionId = registerFindingFixAction('unused', item);
               html += `<div class="violation-row" style="border-left-color:#a78bfa;">
                 <div class="violation-icon">🔍</div>
                 <div class="violation-detail">
-                  <div class="violation-func">${item.function || 'unknown'}</div>
-                  <div class="violation-locs">${item.location || ''}</div>
+                  <div class="violation-func">${escapeHtml(item.function || 'unknown')}</div>
+                  <div class="violation-locs">${escapeHtml(item.location || '')}</div>
+                  <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+                    <button type="button" class="workcell-package-btn" onclick="createFindingFixSeed('${actionId}', this)">Create Review Seed</button>
+                    <span style="font-size:11px;color:var(--text4);">Verify before removing public hooks</span>
+                  </div>
                 </div>
                 <div class="violation-badge" style="background:rgba(167,139,250,0.1);color:#a78bfa;border-color:rgba(167,139,250,0.2);">UNUSED</div>
               </div>`;
@@ -3820,6 +3866,69 @@ async function submitTask() {
 // NOTE: Works for the Core BYOAI review flow.
 // Private execution runtime is planned/inactive and must be explicitly connected later.
 // ============================================================
+async function createFindingFixSeed(actionId, button) {
+  const action = findingFixActions[actionId];
+  if (!action) return;
+  const originalText = button ? button.textContent : '';
+  const task = buildFindingFixSeed(action);
+  if (button) {
+    button.disabled = true;
+    button.textContent = 'Planting...';
+  }
+
+  try {
+    const res = await fetch(API + '/api/v1/task', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        task,
+        source: 'dashboard_finding',
+        priority: action.type === 'duplicate' ? 8 : 5,
+        auto_dispatch: false,
+        context: {
+          finding_type: action.type,
+          finding: action.item || {}
+        }
+      })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || data.detail || 'Seed creation failed');
+
+    const queueSeedId = data.queue_seed_id || data.seed_id || 'seed queued';
+    if (button) {
+      button.textContent = `Seed queued: ${queueSeedId}`;
+      button.style.color = 'var(--green)';
+      button.style.borderColor = 'var(--green-border)';
+    }
+
+    const history = document.getElementById('chatHistory');
+    if (history) {
+      if (!chatHistoryCleared) {
+        history.innerHTML = '';
+        chatHistoryCleared = true;
+      }
+      history.innerHTML += `<div style="padding:10px;background:var(--green-bg);border:1px solid var(--green-border);border-radius:8px;">
+        <strong style="color:var(--green);">SRT-1:</strong> Finding converted into tracked work.
+        <span style="font-family:var(--mono);font-size:10px;color:var(--text4);">[${escapeHtml(queueSeedId)}]</span>
+        <button type="button" class="workcell-package-btn" style="margin-left:8px;" onclick="openDashboardPanel('workcells','authority-surface',{ hash:'authority-surface' })">Open WorkCells</button>
+      </div>`;
+      history.scrollTop = history.scrollHeight;
+    }
+
+    await Promise.allSettled([loadSeedQueue(), loadWorkCells(), loadStatus()]);
+  } catch (e) {
+    console.error('Finding seed creation failed', e);
+    const message = e.message || String(e);
+    if (button) {
+      button.disabled = false;
+      button.textContent = `Failed: ${message.slice(0, 48)}`;
+      button.style.color = 'var(--red)';
+      button.style.borderColor = 'rgba(239,68,68,0.2)';
+    }
+  }
+}
+window.createFindingFixSeed = createFindingFixSeed;
+
 async function loadSeedQueue() {
   const list = document.getElementById('seedQueueList');
   const badge = document.getElementById('seedQueueBadge');
