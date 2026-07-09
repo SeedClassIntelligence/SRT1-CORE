@@ -423,6 +423,10 @@ class WorkCellRuntimeTests(unittest.TestCase):
         self.assertIn("controlWorkCell", html)
         self.assertIn("/activity?limit=50", html)
         self.assertIn("/action", html)
+        self.assertIn("Run with Assistant", html)
+        self.assertIn("runWorkCellWithAssistant", html)
+        self.assertIn("dashboard_workcell", html)
+        self.assertIn("buildAssistantCredentialPayload", html)
 
 
 if __name__ == "__main__":

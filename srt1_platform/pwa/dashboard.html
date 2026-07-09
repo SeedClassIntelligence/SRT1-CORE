@@ -2817,6 +2817,7 @@ function renderWorkCellDetail(payload, selectedExecution) {
   const canStop = !['completed', 'terminated'].includes(executionStatus);
   const canApprove = selectedExecution.verification_state === 'verified' && executionStatus !== 'completed';
   const canReject = !['completed', 'terminated', 'returned'].includes(executionStatus);
+  const canRunAssistant = assistantReady && !['completed', 'terminated'].includes(executionStatus);
 
   detailEl.innerHTML = `
     <div class="workcell-detail-head">
@@ -2863,6 +2864,7 @@ function renderWorkCellDetail(payload, selectedExecution) {
         <div class="workcell-package-status ${executionStatus === 'completed' ? 'ready' : ''}">${escapeHtml(executionStatus)}</div>
       </div>
       <div class="workcell-package-buttons">
+        <button type="button" class="workcell-package-btn" data-workcell-assistant-run="${escapeHtml(selectedExecution.queue_seed_id || '')}" ${canRunAssistant ? '' : 'disabled'}>Run with Assistant</button>
         ${canPause ? '<button type="button" class="workcell-package-btn" data-workcell-action="pause">Pause</button>' : ''}
         ${canResume ? '<button type="button" class="workcell-package-btn" data-workcell-action="resume">Resume</button>' : ''}
         ${canStop ? '<button type="button" class="workcell-package-btn" data-workcell-action="stop">Stop WorkCell</button>' : ''}
@@ -2910,6 +2912,12 @@ function renderWorkCellDetail(payload, selectedExecution) {
     button.addEventListener('click', () => controlWorkCell(
       selectedExecution.queue_seed_id,
       button.dataset.workcellAction,
+      button
+    ));
+  });
+  detailEl.querySelectorAll('.workcell-package-btn[data-workcell-assistant-run]').forEach(button => {
+    button.addEventListener('click', () => runWorkCellWithAssistant(
+      button.dataset.workcellAssistantRun,
       button
     ));
   });
@@ -4170,6 +4178,71 @@ async function postFindingSeedPayload(payload) {
     }
   }
   throw lastError || new Error('Seed creation failed');
+}
+
+function findWorkCellExecution(queueSeedId) {
+  const executions = lastWorkCellsPayload?.executions || [];
+  return executions.find(ex => ex.queue_seed_id === queueSeedId) || null;
+}
+
+function findWorkCellForExecution(execution) {
+  const workcells = lastWorkCellsPayload?.workcells || [];
+  return workcells.find(wc => wc.workcell_id === execution?.workcell_id) || {};
+}
+
+function buildWorkCellAssistantSeed(execution, workcell) {
+  const paths = (workcell?.owned_paths || []).slice(0, 8);
+  const pathText = paths.length ? paths.join(', ') : 'the selected WorkCell scope';
+  const objective = execution?.objective || workcell?.purpose || 'Execute the selected WorkCell objective';
+  return `Run assistant inside SRT-1 WorkCell ${execution?.queue_seed_id || 'selected'}. Objective: ${objective}. Stay inside allowed WorkCell paths: ${pathText}. Begin with the generated workcell.md package and report completion through SRT-1 verification.`;
+}
+
+async function runWorkCellWithAssistant(queueSeedId, button) {
+  if (!queueSeedId) return;
+  const execution = findWorkCellExecution(queueSeedId);
+  const workcell = findWorkCellForExecution(execution);
+  const originalText = button ? button.textContent : '';
+  if (button) {
+    button.disabled = true;
+    button.textContent = 'Dispatching...';
+  }
+  try {
+    const data = await postFindingSeedPayload({
+      task: buildWorkCellAssistantSeed(execution, workcell),
+      source: 'dashboard_workcell',
+      priority: 7,
+      auto_dispatch: true,
+      context: {
+        workcell_execution_id: execution?.workcell_execution_id,
+        queue_seed_id: execution?.queue_seed_id,
+        workcell_id: execution?.workcell_id,
+        package_path: execution?.package_path,
+        allowed_paths: workcell?.owned_paths || [],
+      }
+    });
+    if (button) {
+      button.textContent = `Dispatched: ${data.queue_seed_id || data.seed_id || 'seed'}`;
+      button.style.color = 'var(--green)';
+      button.style.borderColor = 'var(--green-border)';
+    }
+    await Promise.allSettled([loadSeedQueue(), loadWorkCells(), loadStatus()]);
+  } catch (e) {
+    if (button) {
+      button.disabled = false;
+      button.textContent = `Failed: ${(e.message || String(e)).slice(0, 42)}`;
+      button.style.color = 'var(--red)';
+      button.style.borderColor = 'rgba(239,68,68,0.2)';
+    }
+  } finally {
+    if (button) {
+      setTimeout(() => {
+        button.disabled = false;
+        button.textContent = originalText || 'Run with Assistant';
+        button.style.color = '';
+        button.style.borderColor = '';
+      }, 2200);
+    }
+  }
 }
 
 async function createFindingFixSeed(actionId, button) {
