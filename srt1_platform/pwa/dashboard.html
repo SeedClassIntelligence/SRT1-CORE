@@ -3866,6 +3866,38 @@ async function submitTask() {
 // NOTE: Works for the Core BYOAI review flow.
 // Private execution runtime is planned/inactive and must be explicitly connected later.
 // ============================================================
+function getFindingSeedApiOrigins() {
+  const origins = [
+    API,
+    window.location.origin,
+    localStorage.getItem('srt1_engine_origin'),
+    'http://127.0.0.1:7484'
+  ];
+  return [...new Set(origins.filter(origin => origin && origin.startsWith('http')))];
+}
+
+async function postFindingSeedPayload(payload) {
+  let lastError = null;
+  for (const origin of getFindingSeedApiOrigins()) {
+    try {
+      const res = await fetch(origin + '/api/v1/task', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error || data.detail || `HTTP ${res.status}`);
+      }
+      localStorage.setItem('srt1_engine_origin', origin);
+      return data;
+    } catch (e) {
+      lastError = e;
+    }
+  }
+  throw lastError || new Error('Seed creation failed');
+}
+
 async function createFindingFixSeed(actionId, button) {
   const action = findingFixActions[actionId];
   if (!action) return;
@@ -3877,22 +3909,16 @@ async function createFindingFixSeed(actionId, button) {
   }
 
   try {
-    const res = await fetch(API + '/api/v1/task', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        task,
-        source: 'dashboard_finding',
-        priority: action.type === 'duplicate' ? 8 : 5,
-        auto_dispatch: false,
-        context: {
-          finding_type: action.type,
-          finding: action.item || {}
-        }
-      })
+    const data = await postFindingSeedPayload({
+      task,
+      source: 'dashboard_finding',
+      priority: action.type === 'duplicate' ? 8 : 5,
+      auto_dispatch: false,
+      context: {
+        finding_type: action.type,
+        finding: action.item || {}
+      }
     });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error || data.detail || 'Seed creation failed');
 
     const queueSeedId = data.queue_seed_id || data.seed_id || 'seed queued';
     if (button) {
