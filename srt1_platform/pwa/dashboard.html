@@ -992,8 +992,8 @@ body.theme-light .file-intel-popover{box-shadow:0 18px 40px rgba(15,23,42,0.18);
   <!-- AI API KEYS -->
   <div class="panel" id="api-keys" style="margin-bottom:32px;scroll-margin-top:80px;">
     <div class="panel-header">
-      <div class="panel-title">AI Provider API Keys <span class="info-icon" data-tooltip="Your private cryptographic vault for AI keys. Keys are encrypted entirely within your browser and strictly injected only when the SRT-1 Execution Bridge specifically dispatches tasks to an AI.">?</span></div>
-      <div class="panel-badge info" id="apiKeysStatus">0 configured</div>
+      <div class="panel-title">AI Provider API Keys <span class="info-icon" data-tooltip="Public Core does not persist provider keys in the browser. Session keys are temporary and are not wired into dispatch until a secure backend vault is configured.">?</span></div>
+      <div class="panel-badge info" id="apiKeysStatus">0 in session</div>
     </div>
 
     <div class="api-keys-grid" id="apiKeysGrid">
@@ -1013,7 +1013,7 @@ body.theme-light .file-intel-popover{box-shadow:0 18px 40px rgba(15,23,42,0.18);
         </div>
         <div class="api-key-actions">
           <span class="key-status-badge" id="status-openai">not set</span>
-          <button class="key-save-btn" id="save-openai" onclick="saveKey('openai')" disabled>Save</button>
+          <button class="key-save-btn" id="save-openai" onclick="saveKey('openai')" disabled>Use this session</button>
           <button class="key-clear-btn" id="clear-openai" onclick="clearKey('openai')">✕</button>
         </div>
       </div>
@@ -1033,7 +1033,7 @@ body.theme-light .file-intel-popover{box-shadow:0 18px 40px rgba(15,23,42,0.18);
         </div>
         <div class="api-key-actions">
           <span class="key-status-badge" id="status-anthropic">not set</span>
-          <button class="key-save-btn" id="save-anthropic" onclick="saveKey('anthropic')" disabled>Save</button>
+          <button class="key-save-btn" id="save-anthropic" onclick="saveKey('anthropic')" disabled>Use this session</button>
           <button class="key-clear-btn" id="clear-anthropic" onclick="clearKey('anthropic')">✕</button>
         </div>
       </div>
@@ -1053,7 +1053,7 @@ body.theme-light .file-intel-popover{box-shadow:0 18px 40px rgba(15,23,42,0.18);
         </div>
         <div class="api-key-actions">
           <span class="key-status-badge" id="status-gemini">not set</span>
-          <button class="key-save-btn" id="save-gemini" onclick="saveKey('gemini')" disabled>Save</button>
+          <button class="key-save-btn" id="save-gemini" onclick="saveKey('gemini')" disabled>Use this session</button>
           <button class="key-clear-btn" id="clear-gemini" onclick="clearKey('gemini')">✕</button>
         </div>
       </div>
@@ -1073,14 +1073,14 @@ body.theme-light .file-intel-popover{box-shadow:0 18px 40px rgba(15,23,42,0.18);
         </div>
         <div class="api-key-actions">
           <span class="key-status-badge" id="status-grok">not set</span>
-          <button class="key-save-btn" id="save-grok" onclick="saveKey('grok')" disabled>Save</button>
+          <button class="key-save-btn" id="save-grok" onclick="saveKey('grok')" disabled>Use this session</button>
           <button class="key-clear-btn" id="clear-grok" onclick="clearKey('grok')">✕</button>
         </div>
       </div>
 
     </div>
     <div style="margin-top:16px;padding:12px 16px;background:var(--bg);border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--text4);display:flex;align-items:center;gap:8px;">
-      <span style="font-size:14px;">■</span> Keys stored in <code style="font-family:var(--mono);color:var(--text3);">localStorage</code> — encrypted at rest by your browser profile. Never transmitted to SRT-1 servers.
+      <span style="font-size:14px;">■</span> Session keys stay in this browser tab only and are cleared on reload. Secure backend provider-key storage is intentionally not shipped in public Core yet.
     </div>
   </div>
 
@@ -3341,7 +3341,7 @@ async function loadStatus() {
 }
 
 // ============================================================
-// AI API KEYS — localStorage-backed key manager
+// AI API KEYS - session-only key manager
 // ============================================================
 async function loadWorkCells() {
   try {
@@ -3355,11 +3355,26 @@ async function loadWorkCells() {
 }
 
 const AI_KEY_PROVIDERS = ['openai','anthropic','gemini','grok'];
+const sessionProviderKeys = {};
+
+function purgePersistedProviderKeys() {
+  if (!window.localStorage) return;
+  AI_KEY_PROVIDERS.forEach(provider => {
+    localStorage.removeItem('srt1_apikey_' + provider);
+  });
+}
+
+function updateSessionKeyCount() {
+  const configured = AI_KEY_PROVIDERS.filter(p => sessionProviderKeys[p]).length;
+  const statusEl = document.getElementById('apiKeysStatus');
+  if (statusEl) statusEl.textContent = `${configured} in session`;
+}
 
 function loadSavedKeys() {
+  purgePersistedProviderKeys();
   let configured = 0;
   AI_KEY_PROVIDERS.forEach(provider => {
-    const saved = localStorage.getItem('srt1_apikey_' + provider);
+    const saved = sessionProviderKeys[provider];
     const input = document.getElementById('key-' + provider);
     const badge = document.getElementById('status-' + provider);
     if (saved && input) {
@@ -3371,7 +3386,7 @@ function loadSavedKeys() {
     }
   });
   const statusEl = document.getElementById('apiKeysStatus');
-  if (statusEl) statusEl.textContent = `${configured} configured`;
+  if (statusEl) statusEl.textContent = `${configured} in session`;
 }
 
 function markDirty(provider) {
@@ -3388,19 +3403,21 @@ function saveKey(provider) {
   const saveBtn = document.getElementById('save-' + provider);
   const val = input.value.trim();
   if (!val) { clearKey(provider); return; }
-  localStorage.setItem('srt1_apikey_' + provider, val);
+  sessionProviderKeys[provider] = val;
   input.classList.remove('dirty');
   input.classList.add('saved');
+  badge.textContent = 'session only';
   badge.textContent = 'configured ✓';
+  badge.textContent = 'session only';
   badge.className = 'key-status-badge configured';
   if (saveBtn) saveBtn.disabled = true;
   // Update count
-  let configured = AI_KEY_PROVIDERS.filter(p => localStorage.getItem('srt1_apikey_' + p)).length;
+  let configured = AI_KEY_PROVIDERS.filter(p => sessionProviderKeys[p]).length;
   const statusEl = document.getElementById('apiKeysStatus');
-  if (statusEl) statusEl.textContent = `${configured} configured`;
+  if (statusEl) statusEl.textContent = `${configured} in session`;
   // Visual feedback
   const orig = saveBtn.textContent;
-  saveBtn.textContent = 'Saved!';
+  saveBtn.textContent = 'Session ready';
   setTimeout(() => { saveBtn.textContent = orig; }, 1500);
 }
 
@@ -3408,15 +3425,16 @@ function clearKey(provider) {
   const input = document.getElementById('key-' + provider);
   const badge = document.getElementById('status-' + provider);
   const saveBtn = document.getElementById('save-' + provider);
-  localStorage.removeItem('srt1_apikey_' + provider);
+  delete sessionProviderKeys[provider];
+  if (window.localStorage) localStorage.removeItem('srt1_apikey_' + provider);
   input.value = '';
   input.classList.remove('dirty','saved');
   badge.textContent = 'not set';
   badge.className = 'key-status-badge';
   if (saveBtn) saveBtn.disabled = true;
-  let configured = AI_KEY_PROVIDERS.filter(p => localStorage.getItem('srt1_apikey_' + p)).length;
+  let configured = AI_KEY_PROVIDERS.filter(p => sessionProviderKeys[p]).length;
   const statusEl = document.getElementById('apiKeysStatus');
-  if (statusEl) statusEl.textContent = `${configured} configured`;
+  if (statusEl) statusEl.textContent = `${configured} in session`;
 }
 
 function toggleKeyVisibility(provider) {

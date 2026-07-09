@@ -108,6 +108,21 @@ class AssistantAdapterSurfaceTests(unittest.TestCase):
         self.assertIn("submitSlackSeed", dashboard)
         self.assertIn("/api/v1/slack/seed", dashboard)
 
+    def test_dashboard_does_not_persist_provider_keys(self):
+        dashboard = (
+            Path(__file__).resolve().parents[1]
+            / "srt1_platform"
+            / "pwa"
+            / "dashboard.html"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("Session keys stay in this browser tab only", dashboard)
+        self.assertIn("purgePersistedProviderKeys", dashboard)
+        self.assertNotIn("localStorage.setItem('srt1_apikey_", dashboard)
+        self.assertNotIn('localStorage.setItem("srt1_apikey_', dashboard)
+        self.assertNotIn("localStorage.getItem('srt1_apikey_", dashboard)
+        self.assertNotIn('localStorage.getItem("srt1_apikey_', dashboard)
+
 
 if __name__ == "__main__":
     unittest.main()
