@@ -598,6 +598,7 @@ body.theme-light .file-intel-popover{box-shadow:0 18px 40px rgba(15,23,42,0.18);
       <div class="nav-section-label">Quick Links</div>
       <a class="nav-item" href="#repoExplorer" onclick="openDashboardPanel('intelligence','repoExplorer',{ explorerTab:'files', hash:'repoExplorer' });event.preventDefault()"><span class="icon">▦</span> File Tree</a>
       <a class="nav-item" href="#active-findings" onclick="openDashboardPanel('reflection','active-findings',{ hash:'active-findings' });event.preventDefault()"><span class="icon">▣</span> Active Findings</a>
+      <a class="nav-item" href="#fix-queue" onclick="openDashboardPanel('seeds','fix-queue',{ hash:'fix-queue' });event.preventDefault()"><span class="icon">◇</span> Fix Queue</a>
       <a class="nav-item" href="Install-SRT1.ps1" download><span class="icon">⬇️</span> Download Installer</a>
     </div>
 
@@ -1348,6 +1349,20 @@ body.theme-light .file-intel-popover{box-shadow:0 18px 40px rgba(15,23,42,0.18);
     </div>
   </div>
 
+  <!-- FIX QUEUE / REMEDIATION WORK - Finding-created seeds only -->
+  <div class="panel" id="fix-queue" style="margin-bottom:32px;scroll-margin-top:80px;">
+    <div class="panel-header">
+      <div class="panel-title">Fix Queue <span class="info-icon" data-tooltip="Finding-created remediation seeds. This is where dashboard findings become tracked work before any assistant execution.">?</span></div>
+      <div class="panel-badge" id="fixQueueBadge" style="color:var(--text3);border-color:var(--border2);background:var(--bg3);">LOADING...</div>
+    </div>
+    <div style="padding:12px 14px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text3);font-size:12px;line-height:1.6;margin-bottom:12px;">
+      Findings do not fix themselves. SRT-1 converts them into Seeds, packages them into WorkCells, and keeps execution reviewable before an assistant is dispatched.
+    </div>
+    <div id="fixQueueList" style="display:flex;flex-direction:column;gap:8px;">
+      <div style="padding:20px;text-align:center;color:var(--text4);font-size:13px;">Loading remediation work...</div>
+    </div>
+  </div>
+
   <!-- SEED QUEUE STATUS — Lifecycle of all seeds -->
   <div class="panel" id="seed-queue" style="margin-bottom:32px;scroll-margin-top:80px;">
     <div class="panel-header">
@@ -1599,6 +1614,8 @@ function resolveDashboardHash() {
     'repoExplorer': { tab: 'intelligence', target: 'repoExplorer', explorerTab: 'files', hash: 'repoExplorer' },
     'findings': { tab: 'reflection', target: 'active-findings', hash: 'active-findings' },
     'active-findings': { tab: 'reflection', target: 'active-findings', hash: 'active-findings' },
+    'fix-queue': { tab: 'seeds', target: 'fix-queue', hash: 'fix-queue' },
+    'remediation': { tab: 'seeds', target: 'fix-queue', hash: 'fix-queue' },
     'seed-farm': { tab: 'reflection', target: 'seed-farm', hash: 'seed-farm' },
     'reflection': { tab: 'reflection', target: 'seed-farm', hash: 'seed-farm' }
   };
@@ -3936,7 +3953,7 @@ async function createFindingFixSeed(actionId, button) {
       history.innerHTML += `<div style="padding:10px;background:var(--green-bg);border:1px solid var(--green-border);border-radius:8px;">
         <strong style="color:var(--green);">SRT-1:</strong> Finding converted into tracked work.
         <span style="font-family:var(--mono);font-size:10px;color:var(--text4);">[${escapeHtml(queueSeedId)}]</span>
-        <button type="button" class="workcell-package-btn" style="margin-left:8px;" onclick="openDashboardPanel('workcells','authority-surface',{ hash:'authority-surface' })">Open WorkCells</button>
+        <button type="button" class="workcell-package-btn" style="margin-left:8px;" onclick="openDashboardPanel('seeds','fix-queue',{ hash:'fix-queue' })">Open Fix Queue</button>
       </div>`;
       history.scrollTop = history.scrollHeight;
     }
@@ -3955,6 +3972,75 @@ async function createFindingFixSeed(actionId, button) {
 }
 window.createFindingFixSeed = createFindingFixSeed;
 
+function isRemediationSeed(seed) {
+  const source = String(seed?.source || '').toLowerCase();
+  const context = seed?.context && typeof seed.context === 'object' ? seed.context : {};
+  const findingType = seed?.finding_type || context.finding_type;
+  return source === 'dashboard_finding'
+    || source === 'reflection_finding'
+    || source === 'remediation'
+    || Boolean(findingType);
+}
+
+function renderFixQueue(seeds) {
+  const list = document.getElementById('fixQueueList');
+  const badge = document.getElementById('fixQueueBadge');
+  if (!list || !badge) return;
+
+  const remediationSeeds = (seeds || []).filter(isRemediationSeed);
+  if (!remediationSeeds.length) {
+    badge.textContent = 'EMPTY';
+    badge.style.color = 'var(--text3)';
+    badge.style.borderColor = 'var(--border2)';
+    badge.style.background = 'var(--bg3)';
+    list.innerHTML = `<div style="padding:20px;text-align:center;color:var(--text4);font-size:13px;line-height:1.6;">
+      No remediation work has been queued yet. Use <strong style="color:var(--text2);">Create Fix Seed</strong> from Active Findings to convert a finding into tracked work.
+    </div>`;
+    return;
+  }
+
+  const openCount = remediationSeeds.filter(seed => {
+    const stage = String(seed.stage || seed.status || '').toLowerCase();
+    return !['completed', 'complete', 'bloomed'].includes(stage);
+  }).length;
+
+  badge.textContent = `${openCount} OPEN / ${remediationSeeds.length} TOTAL`;
+  badge.style.color = openCount ? 'var(--amber)' : 'var(--green)';
+  badge.style.borderColor = openCount ? 'var(--amber-border)' : 'var(--green-border)';
+  badge.style.background = openCount ? 'var(--amber-bg)' : 'var(--green-bg)';
+
+  list.innerHTML = remediationSeeds.slice(0, 12).map(seed => {
+    const seedId = seed.queue_seed_id || seed.seed_id || seed.id || '';
+    const stage = seed.stage || seed.status || 'tracked';
+    const intent = seed.intent || seed.task || 'Remediation work';
+    const source = seed.source || 'dashboard_finding';
+    const priority = seed.priority != null ? `P${seed.priority}` : 'P?';
+    const createdAt = seed.created_at || seed.updated_at || '';
+    return `<div style="padding:14px;background:var(--bg);border:1px solid var(--border);border-radius:8px;">
+      <div style="display:flex;gap:10px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;">
+        <div style="min-width:0;flex:1;">
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px;">
+            <span style="font-family:var(--mono);font-size:10px;color:var(--amber);font-weight:800;text-transform:uppercase;">${escapeHtml(stage)}</span>
+            <span style="font-family:var(--mono);font-size:10px;color:var(--text4);">${escapeHtml(priority)}</span>
+            <span style="font-family:var(--mono);font-size:10px;color:var(--text4);">${escapeHtml(source)}</span>
+          </div>
+          <div style="font-size:13px;color:var(--text2);line-height:1.5;">${escapeHtml(intent)}</div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;font-family:var(--mono);font-size:10px;color:var(--text4);">
+            <span>${escapeHtml(seedId)}</span>
+            ${createdAt ? `<span>${escapeHtml(createdAt)}</span>` : ''}
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
+          <button type="button" class="workcell-package-btn" onclick="openDashboardPanel('workcells','authority-surface',{ hash:'authority-surface' })">Open WorkCells</button>
+          <button type="button" class="workcell-package-btn" onclick="openDashboardPanel('reflection','active-findings',{ hash:'active-findings' })">Findings</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('') + (remediationSeeds.length > 12
+    ? `<div style="text-align:center;padding:8px;color:var(--text4);font-size:12px;">...and ${remediationSeeds.length - 12} more remediation seeds</div>`
+    : '');
+}
+
 async function loadSeedQueue() {
   const list = document.getElementById('seedQueueList');
   const badge = document.getElementById('seedQueueBadge');
@@ -3967,6 +4053,7 @@ async function loadSeedQueue() {
 
     const seeds = data.seeds || data.queue || [];
     const active = data.active || null;
+    renderFixQueue(seeds);
 
     if (seeds.length === 0 && !active) {
       badge.textContent = 'EMPTY';
@@ -4020,6 +4107,10 @@ async function loadSeedQueue() {
     badge.textContent = 'OFFLINE';
     badge.style.color = 'var(--text4)';
     list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text4);font-size:13px;">Seed queue unavailable</div>';
+    const fixBadge = document.getElementById('fixQueueBadge');
+    const fixList = document.getElementById('fixQueueList');
+    if (fixBadge) fixBadge.textContent = 'OFFLINE';
+    if (fixList) fixList.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text4);font-size:13px;">Fix queue unavailable because the seed queue is offline.</div>';
   }
 }
 
@@ -4224,9 +4315,11 @@ function organizePanels() {
   // Move Seed panels into Seeds tab
   const seedInput = document.getElementById('seed-input');
   const blueprintPreview = document.getElementById('blueprint-preview');
+  const fixQueue = document.getElementById('fix-queue');
   const seedQueue = document.getElementById('seed-queue');
   if (seedInput && seedPane) seedPane.appendChild(seedInput);
   if (blueprintPreview && seedPane) seedPane.appendChild(blueprintPreview);
+  if (fixQueue && seedPane) seedPane.appendChild(fixQueue);
   if (seedQueue && seedPane) seedPane.appendChild(seedQueue);
 
   // Move assistant and communication surfaces into Connections tab.
