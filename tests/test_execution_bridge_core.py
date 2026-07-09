@@ -3,6 +3,13 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from unittest.mock import Mock, patch
+
+from srt1_platform.assistant_adapters import (
+    CustomHTTPAssistantAdapter,
+    FileHandoffAssistantAdapter,
+    WorkCellExecutionRequest,
+)
 from srt1_platform.execution_bridge import DispatchMethod, SCIADispatchBridge
 
 
@@ -101,6 +108,65 @@ class ExecutionBridgeCoreTests(unittest.TestCase):
             adapter_result = result["methods"][DispatchMethod.ASSISTANT_ADAPTER]
             self.assertFalse(adapter_result["success"])
             self.assertEqual(adapter_result["adapters"]["mystery_model"]["status"], "degraded")
+
+    def test_file_handoff_does_not_persist_transient_credentials(self):
+        with tempfile.TemporaryDirectory() as repo:
+            request = WorkCellExecutionRequest(
+                seed_id="seed_secure",
+                intent="Use assistant safely",
+                srt1_dir=str(Path(repo) / ".srt1"),
+                transient_credentials={"openai": "sk-test-secret"},
+            )
+
+            result = FileHandoffAssistantAdapter().dispatch(request)
+
+            self.assertEqual(result.status, "dispatched")
+            payload = Path(result.request_path).read_text(encoding="utf-8")
+            instructions = Path(result.instruction_path).read_text(encoding="utf-8")
+            self.assertNotIn("sk-test-secret", payload)
+            self.assertNotIn("transient_credentials", payload)
+            self.assertNotIn("sk-test-secret", instructions)
+
+    def test_custom_http_uses_transient_credential_without_serializing_it(self):
+        captured = {}
+
+        class FakeResponse:
+            status = 200
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, tb):
+                return False
+
+            def read(self):
+                return b'{"ok": true}'
+
+        def fake_urlopen(request, timeout=0):
+            captured["authorization"] = request.get_header("Authorization")
+            captured["credential_mode"] = request.get_header("X-srt1-credential-mode")
+            captured["credential_provider"] = request.get_header("X-srt1-credential-provider")
+            captured["body"] = request.data.decode("utf-8")
+            return FakeResponse()
+
+        request = WorkCellExecutionRequest(
+            seed_id="seed_http",
+            intent="Dispatch through local adapter",
+            metadata={"credential_provider": "openai"},
+            transient_credentials={"openai": "sk-test-secret"},
+        )
+
+        with patch("urllib.request.urlopen", side_effect=fake_urlopen):
+            result = CustomHTTPAssistantAdapter(
+                endpoint="http://127.0.0.1:9999/workcell"
+            ).dispatch(request)
+
+        self.assertEqual(result.status, "dispatched")
+        self.assertEqual(captured["authorization"], "Bearer sk-test-secret")
+        self.assertEqual(captured["credential_mode"], "session")
+        self.assertEqual(captured["credential_provider"], "openai")
+        self.assertNotIn("sk-test-secret", captured["body"])
+        self.assertNotIn("transient_credentials", captured["body"])
 
 
 if __name__ == "__main__":

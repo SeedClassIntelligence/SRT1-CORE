@@ -4131,14 +4131,33 @@ function getFindingSeedApiOrigins() {
   return [...new Set(origins.filter(origin => origin && origin.startsWith('http')))];
 }
 
+function buildAssistantCredentialPayload() {
+  if (credentialMode === 'external') {
+    return { mode: 'external' };
+  }
+  const providerKeys = {};
+  AI_KEY_PROVIDERS.forEach(provider => {
+    if (sessionProviderKeys[provider]) providerKeys[provider] = sessionProviderKeys[provider];
+  });
+  return {
+    mode: Object.keys(providerKeys).length ? 'session' : 'none',
+    provider: Object.keys(providerKeys)[0] || '',
+    provider_keys: providerKeys
+  };
+}
+
 async function postFindingSeedPayload(payload) {
+  const body = { ...payload };
+  if (body.auto_dispatch !== false) {
+    body.assistant_credentials = buildAssistantCredentialPayload();
+  }
   let lastError = null;
   for (const origin of getFindingSeedApiOrigins()) {
     try {
       const res = await fetch(origin + '/api/v1/task', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(body)
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {

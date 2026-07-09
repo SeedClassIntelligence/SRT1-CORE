@@ -43,6 +43,7 @@ class WorkCellExecutionRequest:
     completion_signal_path: Optional[str] = None
     trust_state: Dict[str, Any] = field(default_factory=dict)
     metadata: Dict[str, Any] = field(default_factory=dict)
+    transient_credentials: Dict[str, str] = field(default_factory=dict, repr=False)
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -223,6 +224,19 @@ class CustomHTTPAssistantAdapter(BaseAssistantAdapter):
         payload["created_at"] = _now()
         data = json.dumps(payload).encode("utf-8")
         headers = {"Content-Type": "application/json", **self.headers}
+        provider = str(
+            request.metadata.get("credential_provider")
+            or request.metadata.get("assistant_provider")
+            or ""
+        ).strip().lower()
+        credential = request.transient_credentials.get(provider)
+        if not credential and len(request.transient_credentials) == 1:
+            provider, credential = next(iter(request.transient_credentials.items()))
+        if credential:
+            headers.setdefault("Authorization", f"Bearer {credential}")
+            headers.setdefault("X-SRT1-Credential-Mode", "session")
+            if provider:
+                headers.setdefault("X-SRT1-Credential-Provider", provider)
         req = urllib.request.Request(self.endpoint, data=data, headers=headers, method="POST")
         with urllib.request.urlopen(req, timeout=self.timeout) as response:
             body = response.read().decode("utf-8")

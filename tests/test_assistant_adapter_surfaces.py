@@ -82,6 +82,7 @@ class AssistantAdapterSurfaceTests(unittest.TestCase):
             priority=5,
             auto_dispatch=True,
             template_id=None,
+            assistant_credentials=None,
         )
         engine._build_task_response.assert_called_once_with(
             task="improve dashboard adapter selector",
@@ -121,6 +122,8 @@ class AssistantAdapterSurfaceTests(unittest.TestCase):
         self.assertIn("Session-only", dashboard)
         self.assertIn("External environment / OS vault", dashboard)
         self.assertIn("setCredentialMode", dashboard)
+        self.assertIn("buildAssistantCredentialPayload", dashboard)
+        self.assertIn("assistant_credentials", dashboard)
         self.assertIn("SRT-1 Core will not persist provider API keys", dashboard)
         self.assertIn("purgePersistedProviderKeys", dashboard)
         self.assertNotIn("localStorage.setItem('srt1_apikey_", dashboard)

@@ -199,7 +199,8 @@ class SCIADispatchBridge:
     def dispatch_seed(self, seed_id: str, intent: str,
                       blueprint: Optional[str] = None,
                       blueprint_meta: Optional[Dict] = None,
-                      execution_context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+                      execution_context: Optional[Dict[str, Any]] = None,
+                      transient_credentials: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
         """
         Dispatch a seed to the code assistant.
         
@@ -255,6 +256,7 @@ class SCIADispatchBridge:
                         blueprint=blueprint or "",
                         blueprint_meta=blueprint_meta or {},
                         execution_context=execution_context or {},
+                        transient_credentials=transient_credentials or {},
                     )
 
             except Exception as e:
@@ -421,6 +423,7 @@ class SCIADispatchBridge:
         blueprint: str,
         blueprint_meta: Dict[str, Any],
         execution_context: Dict[str, Any],
+        transient_credentials: Optional[Dict[str, str]] = None,
     ) -> Dict[str, Any]:
         """Dispatch through model-agnostic assistant adapters."""
         if not self.assistant_adapters:
@@ -461,7 +464,11 @@ class SCIADispatchBridge:
             metadata={
                 "blueprint_meta": blueprint_meta,
                 "execution_context": execution_context,
+                "credential_mode": execution_context.get("credential_mode") or "none",
+                "credential_provider": execution_context.get("credential_provider") or "",
+                "credential_providers": list(execution_context.get("credential_providers") or []),
             },
+            transient_credentials=dict(transient_credentials or {}),
         )
         registry = AssistantAdapterRegistry(self.assistant_adapters)
         adapter_results = registry.dispatch_all(request)

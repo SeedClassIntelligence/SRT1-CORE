@@ -2137,7 +2137,8 @@ class SRT1Engine:
 
     def _plant_seed(self, task: str, source: str = "api",
                     priority: int = 5, auto_dispatch: bool = False,
-                    template_id: Optional[str] = None) -> Optional[str]:
+                    template_id: Optional[str] = None,
+                    assistant_credentials: Optional[Dict[str, Any]] = None) -> Optional[str]:
         """Plant a seed and optionally dispatch it through the execution bridge.
 
         If template_id is provided, uses that template's curated keywords
@@ -2215,6 +2216,8 @@ class SRT1Engine:
         if self.analytics:
             self.analytics.record_seed_planted(applied_template)
 
+        credential_context = self._normalize_assistant_credentials(assistant_credentials)
+
         if queue_seed_id and self.seed_queue:
             # Auto-dispatch through execution bridge (in background thread)
             if auto_dispatch and self.bridge:
@@ -2239,8 +2242,17 @@ class SRT1Engine:
                                 "allowed_paths": (workcell_execution or {}).get("owned_paths", []),
                                 "restricted_paths": (workcell_execution or {}).get("restricted_paths", []),
                                 "trust_state": (workcell_execution or {}).get("trust_state", {}),
+                                "credential_mode": credential_context["mode"],
+                                "credential_provider": credential_context["provider"],
+                                "credential_providers": credential_context["providers"],
                             },
-                            execution_context=workcell_execution or {},
+                            execution_context={
+                                **(workcell_execution or {}),
+                                "credential_mode": credential_context["mode"],
+                                "credential_provider": credential_context["provider"],
+                                "credential_providers": credential_context["providers"],
+                            },
+                            transient_credentials=credential_context["provider_keys"],
                         )
                         registry = self._get_workcell_registry()
                         if registry:
@@ -2253,6 +2265,9 @@ class SRT1Engine:
                                 metadata={
                                     "methods": dispatch_result.get("methods", []),
                                     "dispatched": dispatch_result.get("dispatched", False),
+                                    "credential_mode": credential_context["mode"],
+                                    "credential_providers": credential_context["providers"],
+                                    "credential_secret_persisted": False,
                                 },
                                 execution_status="dispatched",
                             )
@@ -2391,6 +2406,50 @@ class SRT1Engine:
                     })
         return clean
 
+    def _normalize_assistant_credentials(
+        self,
+        credentials: Optional[Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        """Normalize dispatch-only credentials without persisting secret values."""
+        if not isinstance(credentials, dict):
+            return {
+                "mode": "none",
+                "provider": "",
+                "providers": [],
+                "provider_keys": {},
+                "secret_persisted": False,
+            }
+
+        mode = str(credentials.get("mode") or "session").strip().lower()
+        if mode not in {"session", "external"}:
+            mode = "session"
+
+        requested_provider = str(credentials.get("provider") or "").strip().lower()
+        allowed = {"openai", "anthropic", "gemini", "grok", "groq", "together", "custom"}
+        provider_keys: Dict[str, str] = {}
+
+        if mode == "session":
+            raw_keys = credentials.get("provider_keys") or credentials.get("keys") or {}
+            if isinstance(raw_keys, dict):
+                for provider, value in raw_keys.items():
+                    name = str(provider or "").strip().lower()
+                    key = str(value or "").strip()
+                    if name in allowed and key:
+                        provider_keys[name] = key
+
+        providers = sorted(provider_keys)
+        if mode == "external" and requested_provider in allowed:
+            providers = [requested_provider]
+
+        provider = requested_provider if requested_provider in providers else (providers[0] if providers else "")
+        return {
+            "mode": mode if (mode == "external" or provider_keys) else "none",
+            "provider": provider,
+            "providers": providers,
+            "provider_keys": provider_keys,
+            "secret_persisted": False,
+        }
+
     def _get_assistant_adapter_config(self) -> Dict[str, Any]:
         """Expose bridge adapter configuration without secrets."""
         bridge = getattr(self, "bridge", None)
@@ -2467,6 +2526,7 @@ class SRT1Engine:
             priority=priority,
             auto_dispatch=auto_dispatch,
             template_id=body.get("template_id"),
+            assistant_credentials=body.get("assistant_credentials"),
         )
         self.task = task
         threading.Thread(target=self._generate_context_files, daemon=True).start()
@@ -2475,9 +2535,17 @@ class SRT1Engine:
             queue_seed_id=queue_seed_id,
             auto_dispatch=auto_dispatch,
         )
+        credential_summary = self._normalize_assistant_credentials(
+            body.get("assistant_credentials")
+        )
         response.update({
             "status": "seed_planted",
             "source": source,
+            "assistant_credentials": {
+                "mode": credential_summary["mode"],
+                "providers": credential_summary["providers"],
+                "secret_persisted": False,
+            },
             "slack": {
                 "channel_id": body.get("channel_id"),
                 "user_id": body.get("user_id"),
@@ -4656,6 +4724,7 @@ class SRT1Engine:
                         task, source=source, priority=priority,
                         auto_dispatch=auto_dispatch,
                         template_id=template_id,
+                        assistant_credentials=body.get("assistant_credentials"),
                     )
                     engine.task = task
                     threading.Thread(target=engine._generate_context_files, daemon=True).start()
@@ -4664,6 +4733,14 @@ class SRT1Engine:
                         queue_seed_id=queue_seed_id,
                         auto_dispatch=auto_dispatch,
                     )
+                    credential_summary = engine._normalize_assistant_credentials(
+                        body.get("assistant_credentials")
+                    )
+                    response["assistant_credentials"] = {
+                        "mode": credential_summary["mode"],
+                        "providers": credential_summary["providers"],
+                        "secret_persisted": False,
+                    }
                     # Attach optional external trust provenance when configured.
                     if engine.signing_client:
                         try:
