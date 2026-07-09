@@ -117,6 +117,11 @@ class AssistantAdapterSurfaceTests(unittest.TestCase):
         ).read_text(encoding="utf-8")
 
         self.assertIn("Session keys stay in this browser tab only", dashboard)
+        self.assertIn("Credential Mode", dashboard)
+        self.assertIn("Session-only", dashboard)
+        self.assertIn("External environment / OS vault", dashboard)
+        self.assertIn("setCredentialMode", dashboard)
+        self.assertIn("SRT-1 Core will not persist provider API keys", dashboard)
         self.assertIn("purgePersistedProviderKeys", dashboard)
         self.assertNotIn("localStorage.setItem('srt1_apikey_", dashboard)
         self.assertNotIn('localStorage.setItem("srt1_apikey_', dashboard)

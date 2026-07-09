@@ -996,6 +996,27 @@ body.theme-light .file-intel-popover{box-shadow:0 18px 40px rgba(15,23,42,0.18);
       <div class="panel-badge info" id="apiKeysStatus">0 in session</div>
     </div>
 
+    <div style="margin-bottom:14px;padding:12px 14px;background:var(--bg);border:1px solid var(--border);border-radius:8px;">
+      <div style="font-size:12px;color:var(--text4);text-transform:uppercase;font-weight:700;margin-bottom:8px;">Credential Mode</div>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;">
+        <label style="display:flex;align-items:flex-start;gap:8px;padding:10px 12px;background:var(--bg2);border:1px solid var(--green-border);border-radius:8px;max-width:360px;">
+          <input type="radio" name="credentialMode" value="session" checked onchange="setCredentialMode('session')">
+          <span>
+            <strong style="display:block;font-size:13px;color:var(--text);">Session-only</strong>
+            <span style="display:block;font-size:12px;color:var(--text4);line-height:1.45;">Default. Keys are kept only in tab memory and cleared on reload.</span>
+          </span>
+        </label>
+        <label style="display:flex;align-items:flex-start;gap:8px;padding:10px 12px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;max-width:430px;">
+          <input type="radio" name="credentialMode" value="external" onchange="setCredentialMode('external')">
+          <span>
+            <strong style="display:block;font-size:13px;color:var(--text);">External environment / OS vault</strong>
+            <span style="display:block;font-size:12px;color:var(--text4);line-height:1.45;">Opt-in. SRT-1 reads configured status from the developer's own runtime, not from dashboard-stored secrets.</span>
+          </span>
+        </label>
+      </div>
+      <div id="credentialModeStatus" style="margin-top:10px;font-size:12px;color:var(--text4);">SRT-1 Core will not persist provider API keys.</div>
+    </div>
+
     <div class="api-keys-grid" id="apiKeysGrid">
 
       <!-- OpenAI -->
@@ -3356,6 +3377,7 @@ async function loadWorkCells() {
 
 const AI_KEY_PROVIDERS = ['openai','anthropic','gemini','grok'];
 const sessionProviderKeys = {};
+let credentialMode = 'session';
 
 function purgePersistedProviderKeys() {
   if (!window.localStorage) return;
@@ -3367,7 +3389,29 @@ function purgePersistedProviderKeys() {
 function updateSessionKeyCount() {
   const configured = AI_KEY_PROVIDERS.filter(p => sessionProviderKeys[p]).length;
   const statusEl = document.getElementById('apiKeysStatus');
-  if (statusEl) statusEl.textContent = `${configured} in session`;
+  if (statusEl) statusEl.textContent = credentialMode === 'external'
+    ? 'external runtime'
+    : `${configured} in session`;
+}
+
+function setCredentialMode(mode) {
+  credentialMode = mode === 'external' ? 'external' : 'session';
+  const status = document.getElementById('credentialModeStatus');
+  if (status) {
+    status.textContent = credentialMode === 'external'
+      ? 'External mode expects provider keys to live in the developer runtime, environment, or OS vault. SRT-1 dashboard does not store or display them.'
+      : 'Session mode keeps typed keys only in this browser tab and clears them on reload.';
+  }
+  AI_KEY_PROVIDERS.forEach(provider => {
+    const input = document.getElementById('key-' + provider);
+    const saveBtn = document.getElementById('save-' + provider);
+    if (input) input.disabled = credentialMode === 'external';
+    if (saveBtn) {
+      saveBtn.disabled = credentialMode === 'external' || !(input && input.classList.contains('dirty'));
+      saveBtn.textContent = credentialMode === 'external' ? 'External' : 'Use this session';
+    }
+  });
+  updateSessionKeyCount();
 }
 
 function loadSavedKeys() {
@@ -3385,8 +3429,8 @@ function loadSavedKeys() {
       configured++;
     }
   });
-  const statusEl = document.getElementById('apiKeysStatus');
-  if (statusEl) statusEl.textContent = `${configured} in session`;
+  updateSessionKeyCount();
+  setCredentialMode(credentialMode);
 }
 
 function markDirty(provider) {
