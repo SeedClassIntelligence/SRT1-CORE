@@ -269,6 +269,45 @@ class WorkCellRuntimeTests(unittest.TestCase):
         self.assertEqual(verified["status"], "recorded")
         self.assertEqual(approved["status"], "completed")
 
+    def test_workcell_write_guard_allows_only_owned_paths(self):
+        with tempfile.TemporaryDirectory() as repo:
+            registry = WorkCellRegistry(repo_path=repo)
+            registry.activate_execution(
+                queue_seed_id="seed_write_guard",
+                objective="Update src/auth.py",
+                manifest={
+                    "file_manifest": [
+                        {"file_path": "src/auth.py"},
+                        {"file_path": "src/billing.py"},
+                    ],
+                },
+            )
+
+            allowed = registry.validate_execution_writes(
+                "seed_write_guard",
+                ["src/auth.py"],
+            )
+            blocked = registry.validate_execution_writes(
+                "seed_write_guard",
+                ["src/billing.py"],
+            )
+            escaped = registry.validate_execution_writes(
+                "seed_write_guard",
+                ["../outside.py"],
+            )
+            current = registry.get_execution_for_seed("seed_write_guard")
+
+        self.assertTrue(allowed["allowed"])
+        self.assertEqual(allowed["approved_paths"], ["src/auth.py"])
+        self.assertFalse(blocked["allowed"])
+        self.assertEqual(blocked["violations"][0]["path"], "src/billing.py")
+        self.assertFalse(escaped["allowed"])
+        self.assertEqual(escaped["violations"][0]["path"], "../outside.py")
+        self.assertEqual(current["status"], "returned")
+        self.assertTrue(
+            any(event["event_type"] == "boundary.write_blocked" for event in current["activity_events"])
+        )
+
     def test_workcell_package_repair_regenerates_missing_filecells_json(self):
         with tempfile.TemporaryDirectory() as repo:
             registry = WorkCellRegistry(repo_path=repo)
@@ -385,6 +424,29 @@ class WorkCellRuntimeTests(unittest.TestCase):
         self.assertTrue(status["executions"][0]["package_status"]["workcell_md_exists"])
         self.assertTrue(status["executions"][0]["package_status"]["filecells_json_exists"])
 
+    def test_engine_validates_workcell_writes_through_registry(self):
+        with tempfile.TemporaryDirectory() as repo:
+            engine = engine_module.SRT1Engine.__new__(engine_module.SRT1Engine)
+            engine.repo_path = repo
+            engine.workcell_registry = WorkCellRegistry(repo_path=repo)
+            engine.workcell_registry.activate_execution(
+                queue_seed_id="seed_engine_guard",
+                objective="Update app.py",
+                manifest={
+                    "file_manifest": [
+                        {"file_path": "app.py"},
+                        {"file_path": "other.py"},
+                    ]
+                },
+            )
+
+            allowed = engine._validate_workcell_writes("seed_engine_guard", ["app.py"])
+            blocked = engine._validate_workcell_writes("seed_engine_guard", ["other.py"])
+
+        self.assertTrue(allowed["allowed"])
+        self.assertFalse(blocked["allowed"])
+        self.assertEqual(blocked["status"], "blocked")
+
     def test_dashboard_contains_workcell_operations_surface(self):
         dashboard = Path(__file__).resolve().parents[1] / "srt1_platform" / "pwa" / "dashboard.html"
         html = dashboard.read_text(encoding="utf-8")
@@ -423,6 +485,7 @@ class WorkCellRuntimeTests(unittest.TestCase):
         self.assertIn("controlWorkCell", html)
         self.assertIn("/activity?limit=50", html)
         self.assertIn("/action", html)
+        self.assertIn("validate-writes", html)
         self.assertIn("Run with Assistant", html)
         self.assertIn("runWorkCellWithAssistant", html)
         self.assertIn("dashboard_workcell", html)

@@ -2375,6 +2375,27 @@ class SRT1Engine:
             return {"error": "WorkCell registry unavailable", "status": "error"}
         return registry.control_execution(queue_seed_id, action, actor=actor, reason=reason)
 
+    def _validate_workcell_writes(
+        self,
+        queue_seed_id: Optional[str],
+        proposed_paths: Optional[List[str]],
+        actor: str = "assistant_runtime",
+    ) -> Dict[str, Any]:
+        if not queue_seed_id:
+            return {"error": "queue_seed_id is required", "status": "error", "allowed": False}
+        registry = self._get_workcell_registry()
+        if not registry:
+            return {
+                "error": "WorkCell registry unavailable",
+                "status": "error",
+                "allowed": False,
+            }
+        return registry.validate_execution_writes(
+            queue_seed_id,
+            proposed_paths or [],
+            actor=actor,
+        )
+
     def _sanitize_assistant_adapter_config(
         self, adapters: Optional[List[Dict[str, Any]]]
     ) -> List[Dict[str, Any]]:
@@ -4599,6 +4620,16 @@ class SRT1Engine:
                     status_code = 200 if result.get("status") not in {
                         "error", "not_found", "invalid_action", "blocked"
                     } else 409
+                    return self._json(result, status_code)
+
+                elif path.startswith("/api/v1/workcells/") and path.endswith("/validate-writes"):
+                    queue_seed_id = path[len("/api/v1/workcells/"):-len("/validate-writes")].strip("/")
+                    result = engine._validate_workcell_writes(
+                        queue_seed_id,
+                        proposed_paths=body.get("paths") or body.get("proposed_paths") or [],
+                        actor=body.get("actor") or "assistant_runtime",
+                    )
+                    status_code = 200 if result.get("allowed") else 409
                     return self._json(result, status_code)
 
                 elif path == "/api/v1/repositories/register-current":

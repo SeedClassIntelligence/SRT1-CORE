@@ -2863,6 +2863,7 @@ function renderWorkCellDetail(payload, selectedExecution) {
         <div class="workcell-package-title">Execution Controls</div>
         <div class="workcell-package-status ${executionStatus === 'completed' ? 'ready' : ''}">${escapeHtml(executionStatus)}</div>
       </div>
+      <div style="font-size:11px;color:var(--text4);line-height:1.45;margin-bottom:8px;">Assistant runtimes must validate proposed writes through <code style="font-family:var(--mono);color:var(--text3);">/api/v1/workcells/{queue_seed_id}/validate-writes</code> before changing files.</div>
       <div class="workcell-package-buttons">
         <button type="button" class="workcell-package-btn" data-workcell-assistant-run="${escapeHtml(selectedExecution.queue_seed_id || '')}" ${canRunAssistant ? '' : 'disabled'}>Run with Assistant</button>
         ${canPause ? '<button type="button" class="workcell-package-btn" data-workcell-action="pause">Pause</button>' : ''}

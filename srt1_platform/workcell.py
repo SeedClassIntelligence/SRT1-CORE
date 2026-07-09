@@ -15,6 +15,12 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
+from srt1_platform.filecell import (
+    FileCellBoundaryViolation,
+    FileCellGuard,
+    FileCellManifest,
+)
+
 
 def _now() -> str:
     return datetime.now().isoformat()
@@ -538,6 +544,89 @@ class WorkCellRegistry:
             metadata=details,
         )
 
+    def validate_execution_writes(
+        self,
+        queue_seed_id: str,
+        proposed_paths: List[str],
+        actor: str = "assistant_runtime",
+    ) -> Dict[str, Any]:
+        """Fail closed unless every proposed write stays inside the WorkCell scope."""
+        execution = self._executions.get(f"wcx_{_safe_slug(queue_seed_id)}")
+        if not execution:
+            return {
+                "status": "not_found",
+                "queue_seed_id": queue_seed_id,
+                "allowed": False,
+                "approved_paths": [],
+                "violations": ["WorkCell execution not found"],
+            }
+        workcell = self._workcells.get(execution.workcell_id)
+        if not workcell:
+            return {
+                "status": "not_found",
+                "queue_seed_id": queue_seed_id,
+                "allowed": False,
+                "approved_paths": [],
+                "violations": ["Persistent WorkCell not found"],
+            }
+
+        repo_root = self.repo_path
+        allowed_writes = [
+            self._resolve_repo_path(path)
+            for path in workcell.owned_paths
+            if path
+        ]
+        forbidden_paths = [
+            self._resolve_repo_path(path)
+            for path in workcell.restricted_paths
+            if path
+        ]
+        manifest = FileCellManifest.generate(
+            task_intent=execution.objective,
+            allowed_reads=allowed_writes,
+            allowed_writes=allowed_writes,
+            forbidden_paths=forbidden_paths,
+        )
+        guard = FileCellGuard()
+        approved_paths: List[str] = []
+        violations: List[Dict[str, Any]] = []
+
+        for path in proposed_paths or []:
+            absolute_path = self._resolve_repo_path(path)
+            try:
+                guard.validate_write(absolute_path, manifest)
+                approved_paths.append(os.path.relpath(absolute_path, repo_root).replace("\\", "/"))
+            except FileCellBoundaryViolation as exc:
+                violations.append({
+                    "path": str(path),
+                    "absolute_path": absolute_path,
+                    "reason": str(exc),
+                })
+
+        allowed = not violations and bool(proposed_paths)
+        status = "allowed" if allowed else "blocked"
+        if violations:
+            self._append_activity_event(
+                execution,
+                event_type="boundary.write_blocked",
+                status="blocked",
+                actor=actor,
+                message="Proposed assistant write escaped the WorkCell boundary.",
+                metadata={"violations": violations},
+            )
+            execution.status = "returned"
+            self._write_runtime_state(workcell, execution)
+            self._save()
+
+        return {
+            "status": status,
+            "queue_seed_id": queue_seed_id,
+            "workcell_execution_id": execution.workcell_execution_id,
+            "allowed": allowed,
+            "approved_paths": approved_paths,
+            "violations": violations,
+        }
+
     def _activity_log_path(self, execution: WorkCellExecution) -> str:
         package_path = os.path.realpath(
             execution.package_path or os.path.join(self.registry_dir, execution.queue_seed_id)
@@ -547,6 +636,14 @@ class WorkCellRegistry:
             raise ValueError("Activity log path escaped WorkCell registry boundary")
         os.makedirs(package_path, exist_ok=True)
         return os.path.join(package_path, "activity.jsonl")
+
+    def _resolve_repo_path(self, path: str) -> str:
+        candidate = str(path or "")
+        if os.path.isabs(candidate):
+            resolved = os.path.realpath(candidate)
+        else:
+            resolved = os.path.realpath(os.path.join(self.repo_path, candidate))
+        return resolved
 
     def _sanitize_activity_value(self, value: Any, key: str = "", depth: int = 0) -> Any:
         sensitive = (
