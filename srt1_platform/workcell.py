@@ -84,6 +84,8 @@ class WorkCellExecution:
     verification_state: str = "unverified"
     package_path: Optional[str] = None
     package_status: Dict[str, Any] = field(default_factory=dict)
+    activity_events: List[Dict[str, Any]] = field(default_factory=list)
+    activity_event_count: int = 0
     created_at: str = field(default_factory=_now)
     updated_at: str = field(default_factory=_now)
 
@@ -117,6 +119,9 @@ class WorkCellRegistry:
                 item["workcell_execution_id"]: WorkCellExecution(**item)
                 for item in data.get("executions", [])
             }
+            for execution in self._executions.values():
+                if execution.activity_event_count < len(execution.activity_events):
+                    execution.activity_event_count = len(execution.activity_events)
         except Exception:
             self._workcells = {}
             self._executions = {}
@@ -344,6 +349,14 @@ class WorkCellRegistry:
             self._executions[execution_id] = execution
 
         os.makedirs(package_path, exist_ok=True)
+        if not execution.activity_events:
+            self._append_activity_event(
+                execution,
+                event_type="execution.created",
+                status="ready",
+                actor="srt1",
+                message="WorkCell execution package created.",
+            )
         self._write_filecells_json(workcell, execution)
         self._write_workcell_md(workcell, execution)
         self._write_runtime_state(workcell, execution)
@@ -359,6 +372,242 @@ class WorkCellRegistry:
         data = execution.to_dict()
         data["package_status"] = self._build_package_status(execution)
         return data
+
+    def record_execution_event(
+        self,
+        queue_seed_id: str,
+        event_type: str,
+        status: str,
+        actor: str = "srt1",
+        message: str = "",
+        metadata: Optional[Dict[str, Any]] = None,
+        execution_status: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Append observable activity without granting execution authority."""
+        execution = self._executions.get(f"wcx_{_safe_slug(queue_seed_id)}")
+        if not execution:
+            return {
+                "status": "not_found",
+                "queue_seed_id": queue_seed_id,
+                "error": "WorkCell execution not found",
+            }
+
+        event = self._append_activity_event(
+            execution,
+            event_type=event_type,
+            status=status,
+            actor=actor,
+            message=message,
+            metadata=metadata,
+        )
+        if execution_status:
+            execution.status = str(execution_status)
+        self._write_runtime_state(self._workcells[execution.workcell_id], execution)
+        self._save()
+        return {
+            "status": "recorded",
+            "queue_seed_id": queue_seed_id,
+            "workcell_execution_id": execution.workcell_execution_id,
+            "event": event,
+        }
+
+    def get_execution_activity(
+        self,
+        queue_seed_id: str,
+        limit: int = 100,
+        offset: int = 0,
+    ) -> Dict[str, Any]:
+        """Return a bounded page from the complete append-only activity log."""
+        execution = self._executions.get(f"wcx_{_safe_slug(queue_seed_id)}")
+        if not execution:
+            return {
+                "status": "not_found",
+                "queue_seed_id": queue_seed_id,
+                "events": [],
+            }
+
+        limit = max(1, min(int(limit or 100), 200))
+        offset = max(0, int(offset or 0))
+        log_path = self._activity_log_path(execution)
+        events: List[Dict[str, Any]] = []
+        if os.path.exists(log_path):
+            with open(log_path, "r", encoding="utf-8") as activity_file:
+                for line in activity_file:
+                    try:
+                        events.append(json.loads(line))
+                    except (TypeError, ValueError):
+                        continue
+        else:
+            events = list(execution.activity_events)
+
+        total = len(events)
+        end = max(0, total - offset)
+        start = max(0, end - limit)
+        page = list(reversed(events[start:end]))
+        return {
+            "status": "ok",
+            "queue_seed_id": queue_seed_id,
+            "workcell_execution_id": execution.workcell_execution_id,
+            "events": page,
+            "total": total,
+            "limit": limit,
+            "offset": offset,
+            "has_more": start > 0,
+            "next_offset": offset + len(page) if start > 0 else None,
+        }
+
+    def control_execution(
+        self,
+        queue_seed_id: str,
+        action: str,
+        actor: str = "human",
+        reason: str = "",
+    ) -> Dict[str, Any]:
+        """Apply an explicit human/runtime state transition to one WorkCell."""
+        execution = self._executions.get(f"wcx_{_safe_slug(queue_seed_id)}")
+        if not execution:
+            return {"status": "not_found", "queue_seed_id": queue_seed_id}
+
+        action = str(action or "").strip().lower()
+        transitions = {
+            "pause": ({"ready", "running", "dispatched"}, "paused"),
+            "resume": ({"paused"}, "running"),
+            "stop": ({"ready", "running", "dispatched", "paused", "returned"}, "terminated"),
+            "reject": ({"ready", "running", "dispatched", "paused", "awaiting_review"}, "returned"),
+        }
+        if action == "approve":
+            if execution.verification_state != "verified":
+                return {
+                    "status": "blocked",
+                    "queue_seed_id": queue_seed_id,
+                    "error": "Approval requires verified WorkCell evidence.",
+                }
+            allowed, target = ({"awaiting_review", "ready", "running"}, "completed")
+        elif action in transitions:
+            allowed, target = transitions[action]
+        else:
+            return {
+                "status": "invalid_action",
+                "queue_seed_id": queue_seed_id,
+                "error": "Supported actions: pause, resume, stop, approve, reject.",
+            }
+
+        if execution.status not in allowed:
+            return {
+                "status": "blocked",
+                "queue_seed_id": queue_seed_id,
+                "error": f"Cannot {action} a WorkCell in {execution.status} state.",
+            }
+
+        execution.status = target
+        event = self._append_activity_event(
+            execution,
+            event_type=f"execution.{action}",
+            status=target,
+            actor=actor,
+            message=reason or f"WorkCell execution {action} requested.",
+        )
+        self._write_runtime_state(self._workcells[execution.workcell_id], execution)
+        self._save()
+        return {
+            "status": target,
+            "queue_seed_id": queue_seed_id,
+            "execution": execution.to_dict(),
+            "event": event,
+        }
+
+    def record_verification(
+        self,
+        queue_seed_id: str,
+        verified: bool,
+        actor: str = "verification",
+        details: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        execution = self._executions.get(f"wcx_{_safe_slug(queue_seed_id)}")
+        if not execution:
+            return {"status": "not_found", "queue_seed_id": queue_seed_id}
+        execution.verification_state = "verified" if verified else "failed"
+        execution.trust_state["verification"] = execution.verification_state
+        execution.status = "awaiting_review" if verified else "returned"
+        return self.record_execution_event(
+            queue_seed_id=queue_seed_id,
+            event_type="verification.completed",
+            status=execution.verification_state,
+            actor=actor,
+            message="Verification passed." if verified else "Verification failed.",
+            metadata=details,
+        )
+
+    def _activity_log_path(self, execution: WorkCellExecution) -> str:
+        package_path = os.path.realpath(
+            execution.package_path or os.path.join(self.registry_dir, execution.queue_seed_id)
+        )
+        registry_root = os.path.realpath(self.registry_dir)
+        if package_path != registry_root and not package_path.startswith(registry_root + os.sep):
+            raise ValueError("Activity log path escaped WorkCell registry boundary")
+        os.makedirs(package_path, exist_ok=True)
+        return os.path.join(package_path, "activity.jsonl")
+
+    def _sanitize_activity_value(self, value: Any, key: str = "", depth: int = 0) -> Any:
+        sensitive = (
+            "api_key", "apikey", "authorization", "cookie", "password",
+            "private_key", "secret", "session_token", "access_token", "refresh_token",
+        )
+        if any(marker in key.lower() for marker in sensitive):
+            return "[REDACTED]"
+        if depth >= 5:
+            return "[TRUNCATED]"
+        if isinstance(value, dict):
+            return {
+                str(item_key)[:120]: self._sanitize_activity_value(item_value, str(item_key), depth + 1)
+                for item_key, item_value in list(value.items())[:100]
+            }
+        if isinstance(value, (list, tuple)):
+            return [self._sanitize_activity_value(item, key, depth + 1) for item in list(value)[:100]]
+        if isinstance(value, str):
+            text = re.sub(r"(?i)(bearer\s+)[A-Za-z0-9._~+/=-]+", r"\1[REDACTED]", value)
+            return text[:4000]
+        if value is None or isinstance(value, (bool, int, float)):
+            return value
+        return str(value)[:1000]
+
+    def _append_activity_event(
+        self,
+        execution: WorkCellExecution,
+        event_type: str,
+        status: str,
+        actor: str,
+        message: str,
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        if not event_type or not status:
+            raise ValueError("event_type and status are required")
+
+        created_at = _now()
+        event_key = "|".join([
+            execution.workcell_execution_id,
+            str(event_type),
+            str(actor or "unknown"),
+            created_at,
+            str(len(execution.activity_events)),
+        ])
+        event = {
+            "event_id": f"wce_{hashlib.sha1(event_key.encode('utf-8')).hexdigest()[:12]}",
+            "event_type": str(event_type),
+            "status": str(status),
+            "actor": self._sanitize_activity_value(str(actor or "unknown")),
+            "message": self._sanitize_activity_value(str(message or "")),
+            "metadata": self._sanitize_activity_value(metadata or {}),
+            "created_at": created_at,
+        }
+        log_path = self._activity_log_path(execution)
+        with open(log_path, "a", encoding="utf-8") as activity_file:
+            activity_file.write(json.dumps(event, sort_keys=True) + "\n")
+        execution.activity_events.append(event)
+        execution.activity_events = execution.activity_events[-200:]
+        execution.activity_event_count += 1
+        execution.updated_at = event["created_at"]
+        return event
 
     def repair_execution_package(self, queue_seed_id: str) -> Dict[str, Any]:
         """Regenerate local WorkCell package files for an existing execution."""
@@ -389,6 +638,13 @@ class WorkCellRegistry:
         self._write_workcell_md(workcell, execution)
         self._write_runtime_state(workcell, execution)
         execution.package_status = self._build_package_status(execution)
+        self._append_activity_event(
+            execution,
+            event_type="package.repaired",
+            status="ready" if execution.package_status.get("assistant_ready") else "degraded",
+            actor="srt1",
+            message="WorkCell execution package regenerated.",
+        )
         self._write_runtime_state(workcell, execution)
         self._save()
 

@@ -199,6 +199,14 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 .workcell-preview-body{max-height:260px;overflow:auto;padding:12px;font-family:var(--mono);font-size:11px;line-height:1.55;color:var(--text2);white-space:pre-wrap;}
 .workcell-preview-body.loading{color:var(--text4);}
 .workcell-preview-body.error{color:var(--amber);}
+.workcell-activity{margin-top:12px;border:1px solid var(--border);border-radius:7px;background:var(--bg);overflow:hidden;}
+.workcell-activity-list{display:flex;flex-direction:column;max-height:360px;overflow:auto;}
+.workcell-activity-event{display:grid;grid-template-columns:108px minmax(0,1fr) auto;gap:10px;padding:10px;border-bottom:1px solid var(--border);align-items:start;}
+.workcell-activity-event:last-child{border-bottom:0;}
+.workcell-activity-type{font-family:var(--mono);font-size:10px;color:var(--cyan);word-break:break-word;}
+.workcell-activity-message{font-size:12px;color:var(--text2);line-height:1.45;word-break:break-word;}
+.workcell-activity-meta{font-family:var(--mono);font-size:10px;color:var(--text4);margin-top:4px;}
+.workcell-activity-time{font-family:var(--mono);font-size:10px;color:var(--text4);white-space:nowrap;}
 .repo-manager{margin-bottom:18px;border:1px solid var(--border);border-radius:10px;background:linear-gradient(180deg,rgba(6,182,212,0.04),rgba(255,255,255,0.015));padding:16px;}
 .repo-manager-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px;}
 .repo-manager-title{font-size:13px;font-weight:800;color:var(--cyan);text-transform:uppercase;letter-spacing:.04em;}
@@ -2128,6 +2136,7 @@ let selectedWorkCellExecutionId = null;
 const findingFixActions = {};
 let findingFixActionSeq = 0;
 let lastWorkCellsPayload = null;
+const workCellActivityPages = {};
 
 const CATEGORY_DOT = {
   'engine': 'engine', 'indexing': 'cyan', 'enforcement': 'red',
@@ -2630,6 +2639,127 @@ async function loadWorkCellMdPreview(queueSeedId, button) {
   }
 }
 
+function renderWorkCellActivity(queueSeedId) {
+  const list = document.getElementById('workcellActivityList');
+  const badge = document.getElementById('workcellActivityBadge');
+  const older = document.getElementById('workcellActivityOlder');
+  const state = workCellActivityPages[queueSeedId];
+  if (!list || !state) return;
+  if (badge) badge.textContent = `${state.total || state.events.length} events`;
+  if (older) older.disabled = !state.hasMore;
+  if (!state.events.length) {
+    list.innerHTML = '<div class="workcell-empty">No recorded WorkCell activity.</div>';
+    return;
+  }
+  list.innerHTML = state.events.map(event => `
+    <div class="workcell-activity-event">
+      <div class="workcell-activity-type">${escapeHtml(event.event_type || 'activity')}</div>
+      <div>
+        <div class="workcell-activity-message">${escapeHtml(event.message || event.status || 'Recorded')}</div>
+        <div class="workcell-activity-meta">${escapeHtml(event.actor || 'unknown')} · ${escapeHtml(event.status || 'unknown')}</div>
+      </div>
+      <div class="workcell-activity-time">${escapeHtml(event.created_at ? new Date(event.created_at).toLocaleString() : '')}</div>
+    </div>
+  `).join('');
+}
+
+async function loadWorkCellActivity(queueSeedId, append = false, button = null) {
+  if (!queueSeedId) return;
+  const current = workCellActivityPages[queueSeedId] || { events: [], total: 0, hasMore: false };
+  const offset = append ? current.events.length : 0;
+  if (button) button.disabled = true;
+  try {
+    const response = await fetch(
+      API + '/api/v1/workcells/' + encodeURIComponent(queueSeedId) + '/activity?limit=50&offset=' + offset
+    );
+    const result = await response.json();
+    if (!response.ok || result.status !== 'ok') throw new Error(result.error || 'Activity unavailable');
+    workCellActivityPages[queueSeedId] = {
+      events: append ? current.events.concat(result.events || []) : (result.events || []),
+      total: result.total || 0,
+      hasMore: result.has_more === true,
+    };
+    renderWorkCellActivity(queueSeedId);
+  } catch (e) {
+    const list = document.getElementById('workcellActivityList');
+    if (list) list.innerHTML = `<div class="workcell-empty">${escapeHtml(e.message || 'Activity unavailable')}</div>`;
+  } finally {
+    if (button) button.disabled = false;
+  }
+}
+
+async function controlWorkCell(queueSeedId, action, button) {
+  if (!queueSeedId || !action) return;
+  const original = button?.textContent || action;
+  if (button) {
+    button.disabled = true;
+    button.textContent = 'Working...';
+  }
+  try {
+    const response = await fetch(API + '/api/v1/workcells/' + encodeURIComponent(queueSeedId) + '/action', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, actor: 'dashboard_human' })
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || `Unable to ${action} WorkCell`);
+    delete workCellActivityPages[queueSeedId];
+    await loadWorkCells();
+  } catch (e) {
+    if (button) button.textContent = e.message || 'Action blocked';
+  } finally {
+    if (button) {
+      setTimeout(() => {
+        button.disabled = false;
+        button.textContent = original;
+      }, 1400);
+    }
+  }
+}
+
+async function exportWorkCellActivity(queueSeedId, button) {
+  if (!queueSeedId) return;
+  const original = button?.textContent || 'Export history';
+  if (button) {
+    button.disabled = true;
+    button.textContent = 'Preparing...';
+  }
+  try {
+    let offset = 0;
+    let events = [];
+    let hasMore = true;
+    while (hasMore) {
+      const response = await fetch(
+        API + '/api/v1/workcells/' + encodeURIComponent(queueSeedId) + '/activity?limit=200&offset=' + offset
+      );
+      const result = await response.json();
+      if (!response.ok || result.status !== 'ok') throw new Error(result.error || 'Export unavailable');
+      events = events.concat(result.events || []);
+      hasMore = result.has_more === true;
+      offset += (result.events || []).length;
+    }
+    const blob = new Blob(
+      [JSON.stringify({ queue_seed_id: queueSeedId, events }, null, 2)],
+      { type: 'application/json' }
+    );
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${queueSeedId}-activity.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  } catch (e) {
+    if (button) button.textContent = e.message || 'Export failed';
+  } finally {
+    if (button) {
+      setTimeout(() => {
+        button.disabled = false;
+        button.textContent = original;
+      }, 1400);
+    }
+  }
+}
+
 function renderWorkCellDetail(payload, selectedExecution) {
   const detailEl = document.getElementById('workcellDetail');
   if (!detailEl) return;
@@ -2660,6 +2790,12 @@ function renderWorkCellDetail(payload, selectedExecution) {
     ['filecells.json', packageStatus.filecells_json_exists, packageStatus.filecells_json_path || `${packagePath}/filecells.json`],
     ['runtime_state.json', packageStatus.runtime_state_json_exists, packageStatus.runtime_state_json_path || `${packagePath}/runtime_state.json`],
   ];
+  const executionStatus = selectedExecution.status || 'ready';
+  const canPause = ['ready', 'running', 'dispatched'].includes(executionStatus);
+  const canResume = executionStatus === 'paused';
+  const canStop = !['completed', 'terminated'].includes(executionStatus);
+  const canApprove = selectedExecution.verification_state === 'verified' && executionStatus !== 'completed';
+  const canReject = !['completed', 'terminated', 'returned'].includes(executionStatus);
 
   detailEl.innerHTML = `
     <div class="workcell-detail-head">
@@ -2700,12 +2836,38 @@ function renderWorkCellDetail(payload, selectedExecution) {
         ${assistantReady ? '' : `<button type="button" class="workcell-package-btn" data-repair-queue-seed-id="${escapeHtml(selectedExecution.queue_seed_id || '')}">Repair package</button>`}
       </div>
     </div>
+    <div class="workcell-package-actions">
+      <div class="workcell-package-head">
+        <div class="workcell-package-title">Execution Controls</div>
+        <div class="workcell-package-status ${executionStatus === 'completed' ? 'ready' : ''}">${escapeHtml(executionStatus)}</div>
+      </div>
+      <div class="workcell-package-buttons">
+        ${canPause ? '<button type="button" class="workcell-package-btn" data-workcell-action="pause">Pause</button>' : ''}
+        ${canResume ? '<button type="button" class="workcell-package-btn" data-workcell-action="resume">Resume</button>' : ''}
+        ${canStop ? '<button type="button" class="workcell-package-btn" data-workcell-action="stop">Stop WorkCell</button>' : ''}
+        <button type="button" class="workcell-package-btn" data-workcell-action="approve" ${canApprove ? '' : 'disabled'}>Approve</button>
+        <button type="button" class="workcell-package-btn" data-workcell-action="reject" ${canReject ? '' : 'disabled'}>Return for revision</button>
+      </div>
+    </div>
     <div class="workcell-preview">
       <div class="workcell-preview-head">
         <div class="workcell-preview-title">workcell.md Preview</div>
         <div class="workcell-package-status ${packageStatus.workcell_md_exists ? 'ready' : ''}">${packageStatus.workcell_md_exists ? 'available' : 'missing'}</div>
       </div>
       <pre id="workcellMdPreview" class="workcell-preview-body loading">Loading workcell.md...</pre>
+    </div>
+    <div class="workcell-activity">
+      <div class="workcell-preview-head">
+        <div class="workcell-preview-title">Execution Timeline</div>
+        <div id="workcellActivityBadge" class="workcell-package-status">loading</div>
+      </div>
+      <div id="workcellActivityList" class="workcell-activity-list">
+        <div class="workcell-empty">Loading activity...</div>
+      </div>
+      <div class="workcell-package-buttons" style="padding:10px;border-top:1px solid var(--border);">
+        <button id="workcellActivityOlder" type="button" class="workcell-package-btn">Load older</button>
+        <button id="workcellActivityExport" type="button" class="workcell-package-btn">Export history</button>
+      </div>
     </div>
     <div class="workcell-detail-paths">
       ${paths.map(path => `<span class="workcell-chip">${escapeHtml(path)}</span>`).join('') || '<span class="workcell-chip">scope unavailable</span>'}
@@ -2723,7 +2885,21 @@ function renderWorkCellDetail(payload, selectedExecution) {
   detailEl.querySelectorAll('.workcell-package-btn[data-preview-queue-seed-id]').forEach(button => {
     button.addEventListener('click', () => loadWorkCellMdPreview(button.dataset.previewQueueSeedId, button));
   });
+  detailEl.querySelectorAll('.workcell-package-btn[data-workcell-action]').forEach(button => {
+    button.addEventListener('click', () => controlWorkCell(
+      selectedExecution.queue_seed_id,
+      button.dataset.workcellAction,
+      button
+    ));
+  });
+  document.getElementById('workcellActivityOlder')?.addEventListener('click', event => {
+    loadWorkCellActivity(selectedExecution.queue_seed_id, true, event.currentTarget);
+  });
+  document.getElementById('workcellActivityExport')?.addEventListener('click', event => {
+    exportWorkCellActivity(selectedExecution.queue_seed_id, event.currentTarget);
+  });
   loadWorkCellMdPreview(selectedExecution.queue_seed_id);
+  loadWorkCellActivity(selectedExecution.queue_seed_id);
 }
 
 function renderWorkCells(workcellsPayload, activeSeed) {

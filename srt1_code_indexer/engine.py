@@ -2228,7 +2228,7 @@ class SRT1Engine:
                             relevant_symbols=bp_result.get("relevant_symbols", 0),
                             relevant_files=bp_result.get("relevant_files", 0),
                         )
-                        self.bridge.dispatch_seed(
+                        dispatch_result = self.bridge.dispatch_seed(
                             seed_id=sid,
                             intent=t,
                             blueprint=bp_result.get("blueprint", ""),
@@ -2242,7 +2242,30 @@ class SRT1Engine:
                             },
                             execution_context=workcell_execution or {},
                         )
+                        registry = self._get_workcell_registry()
+                        if registry:
+                            registry.record_execution_event(
+                                sid,
+                                event_type="assistant.dispatched",
+                                status="dispatched",
+                                actor="execution_bridge",
+                                message="Bounded WorkCell request handed to configured assistant adapters.",
+                                metadata={
+                                    "methods": dispatch_result.get("methods", []),
+                                    "dispatched": dispatch_result.get("dispatched", False),
+                                },
+                                execution_status="dispatched",
+                            )
                     except Exception as e:
+                        registry = self._get_workcell_registry()
+                        if registry:
+                            registry.record_execution_event(
+                                sid,
+                                event_type="assistant.dispatch_failed",
+                                status="failed",
+                                actor="execution_bridge",
+                                message=str(e),
+                            )
                         logger.error(f"Async dispatch failed for {sid}: {e}")
                 threading.Thread(
                     target=_dispatch_async, args=(queue_seed_id, task),
@@ -2309,6 +2332,33 @@ class SRT1Engine:
         if not registry:
             return {"error": "WorkCell registry unavailable", "status": "error"}
         return registry.read_workcell_md(queue_seed_id)
+
+    def _get_workcell_activity(
+        self,
+        queue_seed_id: Optional[str],
+        limit: int = 100,
+        offset: int = 0,
+    ) -> Dict[str, Any]:
+        if not queue_seed_id:
+            return {"error": "queue_seed_id is required", "status": "error", "events": []}
+        registry = self._get_workcell_registry()
+        if not registry:
+            return {"error": "WorkCell registry unavailable", "status": "error", "events": []}
+        return registry.get_execution_activity(queue_seed_id, limit=limit, offset=offset)
+
+    def _control_workcell_execution(
+        self,
+        queue_seed_id: Optional[str],
+        action: str,
+        actor: str = "human",
+        reason: str = "",
+    ) -> Dict[str, Any]:
+        if not queue_seed_id:
+            return {"error": "queue_seed_id is required", "status": "error"}
+        registry = self._get_workcell_registry()
+        if not registry:
+            return {"error": "WorkCell registry unavailable", "status": "error"}
+        return registry.control_execution(queue_seed_id, action, actor=actor, reason=reason)
 
     def _sanitize_assistant_adapter_config(
         self, adapters: Optional[List[Dict[str, Any]]]
@@ -2455,6 +2505,17 @@ class SRT1Engine:
                            summary: str) -> None:
         """Callback when the execution bridge detects seed completion."""
         queue_seed_id = self._resolve_queue_seed_id(seed_id)
+        registry = self._get_workcell_registry()
+        if registry and queue_seed_id:
+            registry.record_execution_event(
+                queue_seed_id,
+                event_type="completion.proposed",
+                status="awaiting_verification",
+                actor="execution_bridge",
+                message=summary,
+                metadata={"files_modified": files_modified},
+                execution_status="awaiting_review",
+            )
         if self.seed_queue and queue_seed_id:
             self.seed_queue.propose_completion(
                 queue_seed_id,
@@ -2464,6 +2525,15 @@ class SRT1Engine:
 
         # --- COMPLETENESS VERIFICATION ENFORCEMENT ---
         if self.validator:
+            if registry and queue_seed_id:
+                registry.record_execution_event(
+                    queue_seed_id,
+                    event_type="verification.started",
+                    status="running",
+                    actor="verification",
+                    message="Post-execution verification started.",
+                    metadata={"files_to_check": files_modified},
+                )
             report = self.validator.verify_tree(files_to_check=files_modified if files_modified else None)
             if not report.is_complete:
                 # Reject completion!
@@ -2481,6 +2551,15 @@ class SRT1Engine:
                 if self.seed_queue and queue_seed_id:
                     # Update seed status to active / error
                     self.seed_queue.return_for_revision(queue_seed_id, reason=error_msg)
+                if registry and queue_seed_id:
+                    registry.record_verification(
+                        queue_seed_id,
+                        verified=False,
+                        details={
+                            "empty_harness_count": len(report.empty_harnesses),
+                            "files_checked": files_modified,
+                        },
+                    )
                 
                 self.srt_tool.add_reflection("WARNING", error_msg, {"action": "rejected_completion"})
                 return
@@ -2490,12 +2569,28 @@ class SRT1Engine:
                     verified=True,
                     details={"validator": "SeedTreeValidator"},
                 )
+            if registry and queue_seed_id:
+                registry.record_verification(
+                    queue_seed_id,
+                    verified=True,
+                    details={"validator": "SeedTreeValidator", "files_checked": files_modified},
+                )
 
         # Commit bloom
         if self.seed_queue and queue_seed_id:
             self.seed_queue.accept_completion(queue_seed_id, summary=summary, actor="verification")
             for f in files_modified:
                 self.seed_queue.record_file_change(queue_seed_id, f)
+        if registry and queue_seed_id:
+            registry.record_execution_event(
+                queue_seed_id,
+                event_type="completion.accepted",
+                status="completed",
+                actor="continuity",
+                message=summary,
+                metadata={"files_modified": files_modified},
+                execution_status="completed",
+            )
         logger.info(f"🌸 Seed {seed_id} BLOOMED: {summary}")
 
     def _on_seed_failed(self, seed_id: str, reason: str) -> None:
@@ -3629,6 +3724,18 @@ class SRT1Engine:
                     status_code = 200 if result.get("status") == "ok" else 404
                     self._json(result, status_code)
 
+                elif path.startswith("/api/v1/workcells/") and path.endswith("/activity"):
+                    queue_seed_id = path[len("/api/v1/workcells/"):-len("/activity")].strip("/")
+                    query = parse_qs(urlparse(self.path).query)
+                    try:
+                        limit = int(query.get("limit", ["100"])[0])
+                        offset = int(query.get("offset", ["0"])[0])
+                    except (TypeError, ValueError):
+                        limit, offset = 100, 0
+                    result = engine._get_workcell_activity(queue_seed_id, limit=limit, offset=offset)
+                    status_code = 200 if result.get("status") == "ok" else 404
+                    self._json(result, status_code)
+
                 # NOTE: /admin/stats handler consolidated above (line ~1668). Dead duplicate removed.
 
                 elif path == "/activity":
@@ -4411,6 +4518,19 @@ class SRT1Engine:
                     queue_seed_id = path[len("/api/v1/workcells/"):-len("/repair-package")].strip("/")
                     result = engine._repair_workcell_package(queue_seed_id)
                     status_code = 200 if result.get("status") in {"repaired", "degraded"} else 404
+                    return self._json(result, status_code)
+
+                elif path.startswith("/api/v1/workcells/") and path.endswith("/action"):
+                    queue_seed_id = path[len("/api/v1/workcells/"):-len("/action")].strip("/")
+                    result = engine._control_workcell_execution(
+                        queue_seed_id,
+                        action=body.get("action"),
+                        actor=body.get("actor") or "human",
+                        reason=body.get("reason") or "",
+                    )
+                    status_code = 200 if result.get("status") not in {
+                        "error", "not_found", "invalid_action", "blocked"
+                    } else 409
                     return self._json(result, status_code)
 
                 elif path == "/api/v1/repositories/register-current":

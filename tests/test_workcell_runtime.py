@@ -153,6 +153,122 @@ class WorkCellRuntimeTests(unittest.TestCase):
 
         self.assertEqual(written, [])
 
+    def test_workcell_execution_records_observable_activity(self):
+        with tempfile.TemporaryDirectory() as repo:
+            registry = WorkCellRegistry(repo_path=repo)
+            execution = registry.activate_execution(
+                queue_seed_id="seed_0001_activity",
+                objective="Observe bounded assistant work",
+                manifest={"file_manifest": [{"file_path": "app.py"}]},
+            )
+
+            result = registry.record_execution_event(
+                queue_seed_id="seed_0001_activity",
+                event_type="assistant.dispatched",
+                status="running",
+                actor="codex",
+                message="Bounded request handed to assistant.",
+                metadata={"allowed_paths": ["app.py"]},
+                execution_status="dispatched",
+            )
+            current = registry.get_execution_for_seed("seed_0001_activity")
+            runtime = json.loads(
+                (Path(execution.package_path) / "runtime_state.json").read_text(encoding="utf-8")
+            )
+
+        self.assertEqual(result["status"], "recorded")
+        self.assertEqual(current["activity_events"][0]["event_type"], "execution.created")
+        self.assertEqual(current["activity_events"][1]["event_type"], "assistant.dispatched")
+        self.assertEqual(current["status"], "dispatched")
+        self.assertEqual(current["activity_events"][1]["metadata"]["allowed_paths"], ["app.py"])
+        self.assertEqual(runtime["execution"]["activity_events"], current["activity_events"])
+
+    def test_old_workcell_registry_without_activity_events_still_loads(self):
+        with tempfile.TemporaryDirectory() as repo:
+            registry_dir = Path(repo) / ".srt1" / "workcells"
+            registry_dir.mkdir(parents=True)
+            registry_data = {
+                "repo_path": repo,
+                "workcells": [],
+                "executions": [{
+                    "workcell_execution_id": "wcx_seed-old",
+                    "workcell_id": "workcell_repository",
+                    "queue_seed_id": "seed-old",
+                    "srt_anchor_id": None,
+                    "objective": "Legacy execution",
+                }],
+            }
+            (registry_dir / "workcell_registry.json").write_text(
+                json.dumps(registry_data),
+                encoding="utf-8",
+            )
+
+            registry = WorkCellRegistry(repo_path=repo)
+            execution = registry.get_execution_for_seed("seed-old")
+
+        self.assertIsNotNone(execution)
+        self.assertEqual(execution["activity_events"], [])
+
+    def test_activity_log_preserves_history_beyond_dashboard_window_and_redacts_secrets(self):
+        with tempfile.TemporaryDirectory() as repo:
+            registry = WorkCellRegistry(repo_path=repo)
+            execution = registry.activate_execution(
+                queue_seed_id="seed_activity_history",
+                objective="Preserve secure activity",
+                manifest={"file_manifest": [{"file_path": "app.py"}]},
+            )
+            for index in range(205):
+                registry.record_execution_event(
+                    "seed_activity_history",
+                    event_type="test.progress",
+                    status="running",
+                    metadata={
+                        "index": index,
+                        "api_key": "must-not-persist",
+                        "authorization": "Bearer secret-token",
+                    },
+                )
+
+            current = registry.get_execution_for_seed("seed_activity_history")
+            first_page = registry.get_execution_activity("seed_activity_history", limit=200)
+            second_page = registry.get_execution_activity(
+                "seed_activity_history",
+                limit=200,
+                offset=200,
+            )
+            activity_text = (
+                Path(execution.package_path) / "activity.jsonl"
+            ).read_text(encoding="utf-8")
+
+        self.assertEqual(len(current["activity_events"]), 200)
+        self.assertEqual(first_page["total"], 206)
+        self.assertEqual(len(first_page["events"]), 200)
+        self.assertEqual(len(second_page["events"]), 6)
+        self.assertNotIn("must-not-persist", activity_text)
+        self.assertNotIn("secret-token", activity_text)
+        self.assertIn("[REDACTED]", activity_text)
+
+    def test_workcell_controls_are_isolated_and_approval_fails_closed(self):
+        with tempfile.TemporaryDirectory() as repo:
+            registry = WorkCellRegistry(repo_path=repo)
+            registry.activate_execution(
+                queue_seed_id="seed_controls",
+                objective="Control one WorkCell",
+                manifest={"file_manifest": [{"file_path": "app.py"}]},
+            )
+
+            blocked = registry.control_execution("seed_controls", "approve")
+            paused = registry.control_execution("seed_controls", "pause")
+            resumed = registry.control_execution("seed_controls", "resume")
+            verified = registry.record_verification("seed_controls", verified=True)
+            approved = registry.control_execution("seed_controls", "approve")
+
+        self.assertEqual(blocked["status"], "blocked")
+        self.assertEqual(paused["status"], "paused")
+        self.assertEqual(resumed["status"], "running")
+        self.assertEqual(verified["status"], "recorded")
+        self.assertEqual(approved["status"], "completed")
+
     def test_workcell_package_repair_regenerates_missing_filecells_json(self):
         with tempfile.TemporaryDirectory() as repo:
             registry = WorkCellRegistry(repo_path=repo)
@@ -301,6 +417,12 @@ class WorkCellRuntimeTests(unittest.TestCase):
         self.assertIn("loadWorkCellMdPreview", html)
         self.assertIn("workcell.md Preview", html)
         self.assertIn("package/workcell-md", html)
+        self.assertIn("Execution Timeline", html)
+        self.assertIn("loadWorkCellActivity", html)
+        self.assertIn("exportWorkCellActivity", html)
+        self.assertIn("controlWorkCell", html)
+        self.assertIn("/activity?limit=50", html)
+        self.assertIn("/action", html)
 
 
 if __name__ == "__main__":
