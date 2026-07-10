@@ -4622,6 +4622,23 @@ class SRT1Engine:
                     } else 409
                     return self._json(result, status_code)
 
+                elif path.startswith("/api/v1/workcells/") and any(
+                    path.endswith(suffix) for suffix in ("/pause", "/stop", "/cancel")
+                ):
+                    for suffix, action in (("/pause", "pause"), ("/stop", "stop"), ("/cancel", "cancel")):
+                        if path.endswith(suffix):
+                            queue_seed_id = path[len("/api/v1/workcells/"):-len(suffix)].strip("/")
+                            result = engine._control_workcell_execution(
+                                queue_seed_id,
+                                action=action,
+                                actor=body.get("actor") or "human",
+                                reason=body.get("reason") or "",
+                            )
+                            status_code = 200 if result.get("status") not in {
+                                "error", "not_found", "invalid_action", "blocked"
+                            } else 409
+                            return self._json(result, status_code)
+
                 elif path.startswith("/api/v1/workcells/") and path.endswith("/validate-writes"):
                     queue_seed_id = path[len("/api/v1/workcells/"):-len("/validate-writes")].strip("/")
                     result = engine._validate_workcell_writes(

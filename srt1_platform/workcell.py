@@ -476,10 +476,14 @@ class WorkCellRegistry:
 
         action = str(action or "").strip().lower()
         transitions = {
-            "pause": ({"ready", "running", "dispatched"}, "paused"),
-            "resume": ({"paused"}, "running"),
-            "stop": ({"ready", "running", "dispatched", "paused", "returned"}, "terminated"),
-            "reject": ({"ready", "running", "dispatched", "paused", "awaiting_review"}, "returned"),
+            "pause": ({"ready", "running", "dispatched"}, "pause_requested"),
+            "resume": ({"paused", "pause_requested"}, "running"),
+            "stop": ({"ready", "running", "dispatched", "paused", "pause_requested", "returned"}, "stop_requested"),
+            "cancel": (
+                {"ready", "running", "dispatched", "paused", "pause_requested", "stop_requested", "returned"},
+                "cancelled",
+            ),
+            "reject": ({"ready", "running", "dispatched", "paused", "pause_requested", "awaiting_review"}, "returned"),
         }
         if action == "approve":
             if execution.verification_state != "verified":
@@ -495,9 +499,10 @@ class WorkCellRegistry:
             return {
                 "status": "invalid_action",
                 "queue_seed_id": queue_seed_id,
-                "error": "Supported actions: pause, resume, stop, approve, reject.",
+                "error": "Supported actions: pause, resume, stop, cancel, approve, reject.",
             }
 
+        previous_status = execution.status
         if execution.status not in allowed:
             return {
                 "status": "blocked",
@@ -512,6 +517,11 @@ class WorkCellRegistry:
             status=target,
             actor=actor,
             message=reason or f"WorkCell execution {action} requested.",
+            metadata={
+                "requested_action": action,
+                "previous_status": previous_status,
+                "requires_runtime_ack": action in {"pause", "stop", "cancel"},
+            },
         )
         self._write_runtime_state(self._workcells[execution.workcell_id], execution)
         self._save()

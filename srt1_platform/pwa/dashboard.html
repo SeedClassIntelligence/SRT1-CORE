@@ -2813,11 +2813,12 @@ function renderWorkCellDetail(payload, selectedExecution) {
   ];
   const executionStatus = selectedExecution.status || 'ready';
   const canPause = ['ready', 'running', 'dispatched'].includes(executionStatus);
-  const canResume = executionStatus === 'paused';
-  const canStop = !['completed', 'terminated'].includes(executionStatus);
+  const canResume = ['paused', 'pause_requested'].includes(executionStatus);
+  const canStop = !['completed', 'terminated', 'cancelled', 'stop_requested'].includes(executionStatus);
   const canApprove = selectedExecution.verification_state === 'verified' && executionStatus !== 'completed';
-  const canReject = !['completed', 'terminated', 'returned'].includes(executionStatus);
-  const canRunAssistant = assistantReady && !['completed', 'terminated'].includes(executionStatus);
+  const canCancel = !['completed', 'terminated', 'cancelled'].includes(executionStatus);
+  const canReject = !['completed', 'terminated', 'cancelled', 'returned'].includes(executionStatus);
+  const canRunAssistant = assistantReady && !['completed', 'terminated', 'cancelled', 'stop_requested', 'pause_requested'].includes(executionStatus);
 
   detailEl.innerHTML = `
     <div class="workcell-detail-head">
@@ -2863,12 +2864,13 @@ function renderWorkCellDetail(payload, selectedExecution) {
         <div class="workcell-package-title">Execution Controls</div>
         <div class="workcell-package-status ${executionStatus === 'completed' ? 'ready' : ''}">${escapeHtml(executionStatus)}</div>
       </div>
-      <div style="font-size:11px;color:var(--text4);line-height:1.45;margin-bottom:8px;">Assistant runtimes must validate proposed writes through <code style="font-family:var(--mono);color:var(--text3);">/api/v1/workcells/{queue_seed_id}/validate-writes</code> before changing files.</div>
+      <div style="font-size:11px;color:var(--text4);line-height:1.45;margin-bottom:8px;">Assistant runtimes must validate proposed writes through /api/v1/workcells/{queue_seed_id}/validate-writes before changing files. Pause, stop, and cancel requests are written to the WorkCell timeline for assistant adapters to honor.</div>
       <div class="workcell-package-buttons">
         <button type="button" class="workcell-package-btn" data-workcell-assistant-run="${escapeHtml(selectedExecution.queue_seed_id || '')}" ${canRunAssistant ? '' : 'disabled'}>Run with Assistant</button>
         ${canPause ? '<button type="button" class="workcell-package-btn" data-workcell-action="pause">Pause</button>' : ''}
         ${canResume ? '<button type="button" class="workcell-package-btn" data-workcell-action="resume">Resume</button>' : ''}
-        ${canStop ? '<button type="button" class="workcell-package-btn" data-workcell-action="stop">Stop WorkCell</button>' : ''}
+        ${canStop ? '<button type="button" class="workcell-package-btn" data-workcell-action="stop">Request stop</button>' : ''}
+        ${canCancel ? '<button type="button" class="workcell-package-btn" data-workcell-action="cancel">Cancel WorkCell</button>' : ''}
         <button type="button" class="workcell-package-btn" data-workcell-action="approve" ${canApprove ? '' : 'disabled'}>Approve</button>
         <button type="button" class="workcell-package-btn" data-workcell-action="reject" ${canReject ? '' : 'disabled'}>Return for revision</button>
       </div>

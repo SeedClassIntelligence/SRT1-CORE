@@ -260,14 +260,26 @@ class WorkCellRuntimeTests(unittest.TestCase):
             blocked = registry.control_execution("seed_controls", "approve")
             paused = registry.control_execution("seed_controls", "pause")
             resumed = registry.control_execution("seed_controls", "resume")
-            verified = registry.record_verification("seed_controls", verified=True)
-            approved = registry.control_execution("seed_controls", "approve")
+            stopped = registry.control_execution("seed_controls", "stop")
+            cancelled = registry.control_execution("seed_controls", "cancel")
+            current = registry.get_execution_for_seed("seed_controls")
 
         self.assertEqual(blocked["status"], "blocked")
-        self.assertEqual(paused["status"], "paused")
+        self.assertEqual(paused["status"], "pause_requested")
         self.assertEqual(resumed["status"], "running")
-        self.assertEqual(verified["status"], "recorded")
-        self.assertEqual(approved["status"], "completed")
+        self.assertEqual(stopped["status"], "stop_requested")
+        self.assertEqual(cancelled["status"], "cancelled")
+        self.assertEqual(current["status"], "cancelled")
+        self.assertTrue(
+            any(event["event_type"] == "execution.cancel" for event in current["activity_events"])
+        )
+        self.assertTrue(
+            any(
+                event["event_type"] == "execution.stop"
+                and event["metadata"].get("requires_runtime_ack") is True
+                for event in current["activity_events"]
+            )
+        )
 
     def test_workcell_write_guard_allows_only_owned_paths(self):
         with tempfile.TemporaryDirectory() as repo:
@@ -485,6 +497,8 @@ class WorkCellRuntimeTests(unittest.TestCase):
         self.assertIn("controlWorkCell", html)
         self.assertIn("/activity?limit=50", html)
         self.assertIn("/action", html)
+        self.assertIn("Cancel WorkCell", html)
+        self.assertIn("Request stop", html)
         self.assertIn("validate-writes", html)
         self.assertIn("Run with Assistant", html)
         self.assertIn("runWorkCellWithAssistant", html)
