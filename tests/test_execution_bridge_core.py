@@ -319,5 +319,29 @@ class ExecutionBridgeCoreTests(unittest.TestCase):
             self.assertEqual(record["boundary_validation"]["violations"], ["other.py"])
 
 
+    def test_change_proposal_store_lists_and_reviews_without_applying(self):
+        from srt1_platform.change_proposal import ChangeProposalStore
+
+        with tempfile.TemporaryDirectory() as repo:
+            store = ChangeProposalStore(repo_path=repo)
+            record = store.create_from_provider_result(
+                queue_seed_id="seed_review",
+                objective="Improve app safely",
+                provider_result={"proposed_changes": [{"file_path": "app.py", "action": "MODIFY"}]},
+                allowed_paths=["app.py"],
+            )
+            proposal_id = record["proposal"]["proposal_id"]
+
+            listed = store.list_proposals(queue_seed_id="seed_review")
+            approved = store.review_proposal(proposal_id, action="approve", actor="test")
+            fetched = store.get_proposal(proposal_id)
+
+        self.assertEqual(listed["count"], 1)
+        self.assertEqual(approved["status"], "approved")
+        self.assertFalse(approved["applied"])
+        self.assertEqual(fetched["status"], "approved")
+        self.assertFalse(fetched["applied"])
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -98,6 +98,7 @@ try:
     from srt1_platform.seed_queue import SeedStage
     from srt1_platform.workcell import WorkCellRegistry
     from srt1_platform.repository_activation import RepositoryActivationRegistry
+    from srt1_platform.change_proposal import ChangeProposalStore
 except ImportError:
     SCIARemoteAuth = None
     SCIASeedQueue = None
@@ -105,6 +106,7 @@ except ImportError:
     SCIADispatchBridge = None
     WorkCellRegistry = None
     RepositoryActivationRegistry = None
+    ChangeProposalStore = None
 
 # ---- Shared LLM Intelligence Layer ----
 try:
@@ -2413,6 +2415,55 @@ class SRT1Engine:
             return {"error": "WorkCell registry unavailable", "status": "error"}
         return registry.control_execution(queue_seed_id, action, actor=actor, reason=reason)
 
+    def _get_change_proposal_store(self):
+        if ChangeProposalStore is None:
+            return None
+        return ChangeProposalStore(repo_path=self.repo_path)
+
+    def _list_change_proposals(self, queue_seed_id: Optional[str] = None) -> Dict[str, Any]:
+        store = self._get_change_proposal_store()
+        if not store:
+            return {"status": "error", "error": "ChangeProposal store unavailable", "proposals": []}
+        return store.list_proposals(queue_seed_id=queue_seed_id)
+
+    def _get_change_proposal(self, proposal_id: Optional[str]) -> Dict[str, Any]:
+        if not proposal_id:
+            return {"status": "error", "error": "proposal_id is required"}
+        store = self._get_change_proposal_store()
+        if not store:
+            return {"status": "error", "error": "ChangeProposal store unavailable"}
+        return store.get_proposal(proposal_id)
+
+    def _review_change_proposal(
+        self,
+        proposal_id: Optional[str],
+        action: str,
+        actor: str = "human",
+        reason: str = "",
+    ) -> Dict[str, Any]:
+        if not proposal_id:
+            return {"status": "error", "error": "proposal_id is required"}
+        store = self._get_change_proposal_store()
+        if not store:
+            return {"status": "error", "error": "ChangeProposal store unavailable"}
+        result = store.review_proposal(proposal_id, action=action, actor=actor, reason=reason)
+        queue_seed_id = result.get("queue_seed_id")
+        registry = self._get_workcell_registry() if queue_seed_id else None
+        if registry and result.get("status") not in {"not_found", "invalid_action", "blocked", "error"}:
+            registry.record_execution_event(
+                queue_seed_id,
+                event_type=f"change_proposal.{action}",
+                status=result.get("status") or "reviewed",
+                actor=actor or "human",
+                message=reason or f"Change proposal {action} requested.",
+                metadata={
+                    "proposal_id": proposal_id,
+                    "applied": False,
+                    "source_mutation": False,
+                },
+            )
+        return result
+
     def _validate_workcell_writes(
         self,
         queue_seed_id: Optional[str],
@@ -3904,6 +3955,21 @@ class SRT1Engine:
                 elif path == "/api/v1/assistant-adapters":
                     self._json(engine._get_assistant_adapter_config())
 
+                elif path == "/api/v1/change-proposals":
+                    query = parse_qs(urlparse(self.path).query)
+                    queue_seed_id = (query.get("queue_seed_id") or [None])[0]
+                    self._json(engine._list_change_proposals(queue_seed_id=queue_seed_id))
+
+                elif path.startswith("/api/v1/change-proposals/"):
+                    proposal_id = path[len("/api/v1/change-proposals/"):].strip("/")
+                    result = engine._get_change_proposal(proposal_id)
+                    status_code = 200 if result.get("status") != "not_found" else 404
+                    self._json(result, status_code)
+
+                elif path.startswith("/api/v1/workcells/") and path.endswith("/proposals"):
+                    queue_seed_id = path[len("/api/v1/workcells/"):-len("/proposals")].strip("/")
+                    self._json(engine._list_change_proposals(queue_seed_id=queue_seed_id))
+
                 elif path.startswith("/api/v1/workcells/") and path.endswith("/package/workcell-md"):
                     queue_seed_id = path[len("/api/v1/workcells/"):-len("/package/workcell-md")].strip("/")
                     result = engine._get_workcell_md_preview(queue_seed_id)
@@ -4693,6 +4759,17 @@ class SRT1Engine:
                 elif path == "/api/v1/assistant-adapters":
                     result = engine._configure_assistant_adapters(body.get("assistant_adapters") or body.get("adapters") or [])
                     status_code = 200 if result.get("status") == "configured" else 400
+                    return self._json(result, status_code)
+
+                elif path.startswith("/api/v1/change-proposals/") and path.endswith("/review"):
+                    proposal_id = path[len("/api/v1/change-proposals/"):-len("/review")].strip("/")
+                    result = engine._review_change_proposal(
+                        proposal_id,
+                        action=body.get("action"),
+                        actor=body.get("actor") or "human",
+                        reason=body.get("reason") or "",
+                    )
+                    status_code = 200 if result.get("status") not in {"error", "not_found", "invalid_action", "blocked"} else 409
                     return self._json(result, status_code)
 
                 elif path in {"/api/v1/slack/seed", "/api/v1/slack/command"}:

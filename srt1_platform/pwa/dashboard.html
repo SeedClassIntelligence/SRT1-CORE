@@ -2902,6 +2902,15 @@ function renderWorkCellDetail(payload, selectedExecution) {
     </div>
     <div class="workcell-activity">
       <div class="workcell-preview-head">
+        <div class="workcell-preview-title">Change Proposals</div>
+        <div id="workcellProposalBadge" class="workcell-package-status">loading</div>
+      </div>
+      <div id="workcellProposalList" class="workcell-activity-list">
+        <div class="workcell-empty">Loading proposals...</div>
+      </div>
+    </div>
+    <div class="workcell-activity">
+      <div class="workcell-preview-head">
         <div class="workcell-preview-title">Execution Timeline</div>
         <div id="workcellActivityBadge" class="workcell-package-status">loading</div>
       </div>
@@ -2949,7 +2958,86 @@ function renderWorkCellDetail(payload, selectedExecution) {
     exportWorkCellActivity(selectedExecution.queue_seed_id, event.currentTarget);
   });
   loadWorkCellMdPreview(selectedExecution.queue_seed_id);
+  loadWorkCellProposals(selectedExecution.queue_seed_id);
   loadWorkCellActivity(selectedExecution.queue_seed_id);
+}
+
+async function loadWorkCellProposals(queueSeedId) {
+  const list = document.getElementById('workcellProposalList');
+  const badge = document.getElementById('workcellProposalBadge');
+  if (!list || !queueSeedId) return;
+  try {
+    const response = await fetch(API + '/api/v1/workcells/' + encodeURIComponent(queueSeedId) + '/proposals');
+    const result = await response.json();
+    if (!response.ok || result.status !== 'ok') throw new Error(result.error || 'Proposals unavailable');
+    const proposals = result.proposals || [];
+    if (badge) {
+      badge.textContent = proposals.length ? `${proposals.length} proposal${proposals.length === 1 ? '' : 's'}` : 'none';
+      badge.className = proposals.length ? 'workcell-package-status ready' : 'workcell-package-status';
+    }
+    if (!proposals.length) {
+      list.innerHTML = '<div class="workcell-empty">No provider change proposals yet.</div>';
+      return;
+    }
+    list.innerHTML = proposals.map(proposal => {
+      const proposalId = proposal.proposal_id || '';
+      const files = (proposal.files_write || []).concat(proposal.files_create || []).concat(proposal.files_delete || []);
+      const canReview = proposal.status === 'awaiting_review';
+      return `<div class="workcell-activity-event" style="grid-template-columns:minmax(0,1fr) auto;">
+        <div>
+          <div class="workcell-activity-type">${escapeHtml(proposal.status || 'unknown')} ? ${escapeHtml(proposalId)}</div>
+          <div class="workcell-activity-message">${escapeHtml(files.join(', ') || 'No file targets')}</div>
+          <div class="workcell-activity-meta">Boundary: ${proposal.boundary_allowed ? 'allowed' : 'blocked'} ? Applied: ${proposal.applied ? 'yes' : 'no'}</div>
+        </div>
+        <div class="workcell-package-buttons" style="justify-content:flex-end;">
+          <button type="button" class="workcell-package-btn" data-proposal-review="approve" data-proposal-id="${escapeHtml(proposalId)}" ${canReview ? '' : 'disabled'}>Approve</button>
+          <button type="button" class="workcell-package-btn" data-proposal-review="reject" data-proposal-id="${escapeHtml(proposalId)}" ${canReview ? '' : 'disabled'}>Reject</button>
+          <button type="button" class="workcell-package-btn" data-proposal-review="return" data-proposal-id="${escapeHtml(proposalId)}" ${canReview ? '' : 'disabled'}>Return</button>
+        </div>
+      </div>`;
+    }).join('');
+    list.querySelectorAll('[data-proposal-review]').forEach(button => {
+      button.addEventListener('click', () => reviewChangeProposal(
+        button.dataset.proposalId,
+        button.dataset.proposalReview,
+        queueSeedId,
+        button
+      ));
+    });
+  } catch (e) {
+    if (badge) badge.textContent = 'unavailable';
+    list.innerHTML = `<div class="workcell-empty">${escapeHtml(e.message || 'Proposals unavailable')}</div>`;
+  }
+}
+
+async function reviewChangeProposal(proposalId, action, queueSeedId, button) {
+  if (!proposalId || !action) return;
+  const original = button?.textContent || action;
+  if (button) {
+    button.disabled = true;
+    button.textContent = 'Working...';
+  }
+  try {
+    const response = await fetch(API + '/api/v1/change-proposals/' + encodeURIComponent(proposalId) + '/review', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, actor: 'dashboard_human' })
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || `Unable to ${action} proposal`);
+    delete workCellActivityPages[queueSeedId];
+    await loadWorkCellProposals(queueSeedId);
+    await loadWorkCellActivity(queueSeedId);
+  } catch (e) {
+    if (button) button.textContent = e.message || 'Review blocked';
+  } finally {
+    if (button) {
+      setTimeout(() => {
+        button.disabled = false;
+        button.textContent = original;
+      }, 1400);
+    }
+  }
 }
 
 function renderWorkCells(workcellsPayload, activeSeed) {

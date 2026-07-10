@@ -481,6 +481,40 @@ class WorkCellRuntimeTests(unittest.TestCase):
         self.assertIn("validated WorkCell write scope", unscoped["reason"])
         self.assertFalse(cancelled["allowed"])
         self.assertEqual(cancelled["execution_status"], "cancelled")
+
+    def test_engine_reviews_change_proposal_and_records_workcell_timeline(self):
+        from srt1_platform.change_proposal import ChangeProposalStore
+
+        with tempfile.TemporaryDirectory() as repo:
+            engine = engine_module.SRT1Engine.__new__(engine_module.SRT1Engine)
+            engine.repo_path = repo
+            engine.workcell_registry = WorkCellRegistry(repo_path=repo)
+            engine.workcell_registry.activate_execution(
+                queue_seed_id="seed_proposal_review",
+                objective="Review provider proposal",
+                manifest={"file_manifest": [{"file_path": "app.py"}]},
+            )
+            store = ChangeProposalStore(repo_path=repo)
+            record = store.create_from_provider_result(
+                queue_seed_id="seed_proposal_review",
+                objective="Review provider proposal",
+                provider_result={"proposed_changes": [{"file_path": "app.py", "action": "MODIFY"}]},
+                allowed_paths=["app.py"],
+            )
+
+            result = engine._review_change_proposal(
+                record["proposal"]["proposal_id"],
+                action="approve",
+                actor="test",
+            )
+            current = engine.workcell_registry.get_execution_for_seed("seed_proposal_review")
+
+        self.assertEqual(result["status"], "approved")
+        self.assertFalse(result["applied"])
+        self.assertTrue(
+            any(event["event_type"] == "change_proposal.approve" for event in current["activity_events"])
+        )
+
     def test_dashboard_contains_workcell_operations_surface(self):
         dashboard = Path(__file__).resolve().parents[1] / "srt1_platform" / "pwa" / "dashboard.html"
         html = dashboard.read_text(encoding="utf-8")
@@ -514,6 +548,10 @@ class WorkCellRuntimeTests(unittest.TestCase):
         self.assertIn("workcell.md Preview", html)
         self.assertIn("package/workcell-md", html)
         self.assertIn("Execution Timeline", html)
+        self.assertIn("Change Proposals", html)
+        self.assertIn("loadWorkCellProposals", html)
+        self.assertIn("reviewChangeProposal", html)
+        self.assertIn("/api/v1/change-proposals/", html)
         self.assertIn("loadWorkCellActivity", html)
         self.assertIn("exportWorkCellActivity", html)
         self.assertIn("controlWorkCell", html)

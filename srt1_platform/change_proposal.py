@@ -385,6 +385,92 @@ class ChangeProposalStore:
         record["proposal_path"] = path
         return record
 
+    def list_proposals(self, queue_seed_id: Optional[str] = None) -> Dict[str, Any]:
+        records: List[Dict[str, Any]] = []
+        if not os.path.exists(self.proposals_dir):
+            return {"status": "ok", "proposals": [], "count": 0}
+        for name in sorted(os.listdir(self.proposals_dir)):
+            if not name.endswith(".json"):
+                continue
+            path = os.path.join(self.proposals_dir, name)
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    record = json.load(f)
+            except (OSError, ValueError):
+                continue
+            if queue_seed_id and record.get("queue_seed_id") != queue_seed_id:
+                continue
+            proposal = record.get("proposal") or {}
+            records.append({
+                "proposal_id": proposal.get("proposal_id"),
+                "queue_seed_id": record.get("queue_seed_id"),
+                "srt_anchor_id": record.get("srt_anchor_id"),
+                "status": record.get("status"),
+                "files_write": proposal.get("files_write", []),
+                "files_create": proposal.get("files_create", []),
+                "files_delete": proposal.get("files_delete", []),
+                "created_at": record.get("created_at"),
+                "applied": record.get("applied", False),
+                "proposal_path": path,
+                "boundary_allowed": (record.get("boundary_validation") or {}).get("allowed"),
+            })
+        return {"status": "ok", "proposals": records, "count": len(records)}
+
+    def get_proposal(self, proposal_id: str) -> Dict[str, Any]:
+        path = self._proposal_path(proposal_id)
+        if not os.path.exists(path):
+            return {"status": "not_found", "proposal_id": proposal_id}
+        with open(path, "r", encoding="utf-8") as f:
+            record = json.load(f)
+        record["status_code"] = "ok"
+        record["proposal_path"] = path
+        return record
+
+    def review_proposal(self, proposal_id: str, action: str, actor: str = "human", reason: str = "") -> Dict[str, Any]:
+        record = self.get_proposal(proposal_id)
+        if record.get("status") == "not_found":
+            return record
+        action = str(action or "").strip().lower()
+        transitions = {
+            "approve": "approved",
+            "reject": "rejected",
+            "return": "returned",
+            "revise": "returned",
+        }
+        if action not in transitions:
+            return {"status": "invalid_action", "proposal_id": proposal_id, "error": "Supported actions: approve, reject, return."}
+        if action == "approve":
+            boundary = record.get("boundary_validation") or {}
+            validation = record.get("proposal_validation") or {}
+            if not boundary.get("allowed") or not validation.get("approved"):
+                return {
+                    "status": "blocked",
+                    "proposal_id": proposal_id,
+                    "error": "Only boundary-valid proposals can be approved.",
+                }
+        previous_status = record.get("status")
+        record["status"] = transitions[action]
+        record.setdefault("review_events", []).append({
+            "action": action,
+            "actor": actor or "human",
+            "reason": reason or "",
+            "previous_status": previous_status,
+            "status": record["status"],
+            "timestamp": datetime.utcnow().isoformat() + "Z",
+        })
+        record["updated_at"] = datetime.utcnow().isoformat() + "Z"
+        path = self._proposal_path(proposal_id)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(record, f, indent=2, sort_keys=True, default=str)
+        return {
+            "status": record["status"],
+            "proposal_id": proposal_id,
+            "queue_seed_id": record.get("queue_seed_id"),
+            "proposal": record.get("proposal"),
+            "event": record["review_events"][-1],
+            "applied": False,
+        }
+
     def _proposal_path(self, proposal_id: str) -> str:
         safe = "".join(ch if ch.isalnum() or ch in {"-", "_"} else "_" for ch in proposal_id)
         return os.path.join(self.proposals_dir, f"{safe}.json")
