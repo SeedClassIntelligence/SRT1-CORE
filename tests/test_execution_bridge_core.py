@@ -103,12 +103,26 @@ class ExecutionBridgeCoreTests(unittest.TestCase):
                 assistant_adapters=[{"type": "mystery_model"}],
             )
 
-            result = bridge.dispatch_seed("seed_1", "Improve app")
+            result = bridge.dispatch_seed("seed_1", "Improve app", blueprint_meta={"allowed_paths": ["app.py"]})
 
             adapter_result = result["methods"][DispatchMethod.ASSISTANT_ADAPTER]
             self.assertFalse(adapter_result["success"])
             self.assertEqual(adapter_result["adapters"]["mystery_model"]["status"], "degraded")
 
+
+    def test_assistant_adapter_dispatch_without_allowed_paths_fails_closed(self):
+        with tempfile.TemporaryDirectory() as repo:
+            bridge = SCIADispatchBridge(repo_path=repo)
+            bridge.configure(
+                dispatch_methods=[DispatchMethod.ASSISTANT_ADAPTER],
+                assistant_adapters=[{"type": "codex"}],
+            )
+
+            result = bridge.dispatch_seed("seed_no_scope", "Improve app")
+
+        adapter_result = result["methods"][DispatchMethod.ASSISTANT_ADAPTER]
+        self.assertFalse(adapter_result["success"])
+        self.assertIn("allowed paths", adapter_result["error"])
     def test_file_handoff_does_not_persist_transient_credentials(self):
         with tempfile.TemporaryDirectory() as repo:
             request = WorkCellExecutionRequest(

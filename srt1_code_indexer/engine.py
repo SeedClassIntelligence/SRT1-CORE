@@ -2223,6 +2223,31 @@ class SRT1Engine:
             if auto_dispatch and self.bridge:
                 def _dispatch_async(sid, t):
                     try:
+                        allowed_paths = (workcell_execution or {}).get("owned_paths", [])
+                        registry = self._get_workcell_registry()
+                        if registry:
+                            registry.record_execution_event(
+                                sid,
+                                event_type="assistant.dispatch_started",
+                                status="running",
+                                actor="execution_bridge",
+                                message="Assistant dispatch entered WorkCell runtime governor.",
+                                metadata={"allowed_paths": allowed_paths},
+                                execution_status="running",
+                            )
+                        guard = self._check_workcell_dispatch_guard(sid, allowed_paths)
+                        if not guard.get("allowed"):
+                            if registry:
+                                registry.record_execution_event(
+                                    sid,
+                                    event_type="assistant.dispatch_blocked",
+                                    status="blocked",
+                                    actor="workcell_runtime_governor",
+                                    message=guard.get("reason") or "Assistant dispatch blocked by WorkCell runtime governor.",
+                                    metadata=guard,
+                                )
+                            return
+
                         bp_result = self.generate_blueprint(t)
                         self.seed_queue.germinate(
                             seed_id=sid,
@@ -2231,6 +2256,19 @@ class SRT1Engine:
                             relevant_symbols=bp_result.get("relevant_symbols", 0),
                             relevant_files=bp_result.get("relevant_files", 0),
                         )
+                        guard = self._check_workcell_dispatch_guard(sid, allowed_paths)
+                        if not guard.get("allowed"):
+                            if registry:
+                                registry.record_execution_event(
+                                    sid,
+                                    event_type="assistant.dispatch_blocked",
+                                    status="blocked",
+                                    actor="workcell_runtime_governor",
+                                    message=guard.get("reason") or "Assistant dispatch blocked before adapter handoff.",
+                                    metadata=guard,
+                                )
+                            return
+
                         dispatch_result = self.bridge.dispatch_seed(
                             seed_id=sid,
                             intent=t,
@@ -2395,6 +2433,48 @@ class SRT1Engine:
             proposed_paths or [],
             actor=actor,
         )
+
+    def _check_workcell_dispatch_guard(
+        self,
+        queue_seed_id: Optional[str],
+        allowed_paths: Optional[List[str]],
+    ) -> Dict[str, Any]:
+        """Fail closed unless the active WorkCell can accept assistant execution."""
+        if not queue_seed_id:
+            return {"allowed": False, "status": "blocked", "reason": "queue_seed_id is required"}
+        registry = self._get_workcell_registry()
+        if not registry:
+            return {"allowed": False, "status": "blocked", "reason": "WorkCell registry unavailable"}
+        execution = registry.get_execution_for_seed(queue_seed_id)
+        if not execution:
+            return {"allowed": False, "status": "blocked", "reason": "WorkCell execution not found"}
+        execution_status = execution.get("status") or "unknown"
+        if execution_status in {"pause_requested", "stop_requested", "cancelled", "terminated", "completed"}:
+            return {
+                "allowed": False,
+                "status": "blocked",
+                "reason": f"WorkCell is {execution_status}",
+                "execution_status": execution_status,
+            }
+        write_check = registry.validate_execution_writes(
+            queue_seed_id,
+            allowed_paths or [],
+            actor="assistant_runtime_governor",
+        )
+        if not write_check.get("allowed"):
+            return {
+                "allowed": False,
+                "status": "blocked",
+                "reason": "Assistant dispatch requires validated WorkCell write scope.",
+                "execution_status": execution_status,
+                "write_check": write_check,
+            }
+        return {
+            "allowed": True,
+            "status": "allowed",
+            "execution_status": execution_status,
+            "write_check": write_check,
+        }
 
     def _sanitize_assistant_adapter_config(
         self, adapters: Optional[List[Dict[str, Any]]]

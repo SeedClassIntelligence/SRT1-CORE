@@ -459,6 +459,28 @@ class WorkCellRuntimeTests(unittest.TestCase):
         self.assertFalse(blocked["allowed"])
         self.assertEqual(blocked["status"], "blocked")
 
+
+    def test_engine_workcell_dispatch_guard_blocks_cancelled_or_unscoped_runs(self):
+        with tempfile.TemporaryDirectory() as repo:
+            engine = engine_module.SRT1Engine.__new__(engine_module.SRT1Engine)
+            engine.repo_path = repo
+            engine.workcell_registry = WorkCellRegistry(repo_path=repo)
+            engine.workcell_registry.activate_execution(
+                queue_seed_id="seed_dispatch_guard",
+                objective="Update app.py",
+                manifest={"file_manifest": [{"file_path": "app.py"}]},
+            )
+
+            allowed = engine._check_workcell_dispatch_guard("seed_dispatch_guard", ["app.py"])
+            unscoped = engine._check_workcell_dispatch_guard("seed_dispatch_guard", [])
+            engine.workcell_registry.control_execution("seed_dispatch_guard", "cancel")
+            cancelled = engine._check_workcell_dispatch_guard("seed_dispatch_guard", ["app.py"])
+
+        self.assertTrue(allowed["allowed"])
+        self.assertFalse(unscoped["allowed"])
+        self.assertIn("validated WorkCell write scope", unscoped["reason"])
+        self.assertFalse(cancelled["allowed"])
+        self.assertEqual(cancelled["execution_status"], "cancelled")
     def test_dashboard_contains_workcell_operations_surface(self):
         dashboard = Path(__file__).resolve().parents[1] / "srt1_platform" / "pwa" / "dashboard.html"
         html = dashboard.read_text(encoding="utf-8")

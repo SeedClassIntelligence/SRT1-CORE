@@ -433,6 +433,18 @@ class SCIADispatchBridge:
                 "adapters": {},
             }
 
+        allowed_paths = list(
+            execution_context.get("allowed_paths")
+            or blueprint_meta.get("allowed_paths")
+            or []
+        )
+        if not allowed_paths:
+            return {
+                "success": False,
+                "error": "Assistant adapter dispatch requires validated WorkCell allowed paths.",
+                "adapters": {},
+            }
+
         signal_path = os.path.join(self.signals_dir, f"{seed_id}_done.json")
         request = WorkCellExecutionRequest(
             seed_id=seed_id,
@@ -445,11 +457,7 @@ class SCIADispatchBridge:
                 or blueprint_meta.get("workcell_package_path")
                 or blueprint_meta.get("package_path")
             ),
-            allowed_paths=list(
-                execution_context.get("allowed_paths")
-                or blueprint_meta.get("allowed_paths")
-                or []
-            ),
+            allowed_paths=allowed_paths,
             restricted_paths=list(
                 execution_context.get("restricted_paths")
                 or blueprint_meta.get("restricted_paths")
@@ -467,6 +475,12 @@ class SCIADispatchBridge:
                 "credential_mode": execution_context.get("credential_mode") or "none",
                 "credential_provider": execution_context.get("credential_provider") or "",
                 "credential_providers": list(execution_context.get("credential_providers") or []),
+                "write_validation_endpoint": f"/api/v1/workcells/{seed_id}/validate-writes",
+                "runtime_control_endpoints": {
+                    "pause": f"/api/v1/workcells/{seed_id}/pause",
+                    "stop": f"/api/v1/workcells/{seed_id}/stop",
+                    "cancel": f"/api/v1/workcells/{seed_id}/cancel",
+                },
             },
             transient_credentials=dict(transient_credentials or {}),
         )
