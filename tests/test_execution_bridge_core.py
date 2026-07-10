@@ -256,5 +256,68 @@ class ExecutionBridgeCoreTests(unittest.TestCase):
         self.assertIn("allowed paths", no_scope.message)
 
 
+    def test_provider_result_is_stored_as_change_proposal_without_applying_files(self):
+        with tempfile.TemporaryDirectory() as repo:
+            app = Path(repo) / "app.py"
+            app.write_text("old = True\n", encoding="utf-8")
+            bridge = SCIADispatchBridge(repo_path=repo)
+            provider_result = {
+                "provider": "openai",
+                "model": "test-model",
+                "result": {
+                    "choices": [{
+                        "message": {
+                            "content": json.dumps({
+                                "proposed_changes": [{
+                                    "file_path": "app.py",
+                                    "action": "MODIFY",
+                                    "rationale": "Update app safely",
+                                }]
+                            })
+                        }
+                    }]
+                },
+            }
+
+            proposals = bridge._capture_provider_change_proposals(
+                seed_id="seed_provider",
+                intent="Improve app safely",
+                adapter_results={"openai_compatible": {"status": "dispatched", "response": provider_result}},
+                allowed_paths=["app.py"],
+            )
+
+            record = json.loads(Path(proposals[0]["proposal_path"]).read_text(encoding="utf-8"))
+            self.assertEqual(app.read_text(encoding="utf-8"), "old = True\n")
+            self.assertEqual(proposals[0]["status"], "awaiting_review")
+            self.assertFalse(record["applied"])
+            self.assertEqual(record["proposal"]["files_write"], ["app.py"])
+            self.assertTrue(record["boundary_validation"]["allowed"])
+
+    def test_provider_change_proposal_rejects_out_of_workcell_paths(self):
+        with tempfile.TemporaryDirectory() as repo:
+            bridge = SCIADispatchBridge(repo_path=repo)
+            provider_result = {
+                "provider": "openai",
+                "result": {
+                    "proposed_changes": [{
+                        "file_path": "other.py",
+                        "action": "MODIFY",
+                    }]
+                },
+            }
+
+            proposals = bridge._capture_provider_change_proposals(
+                seed_id="seed_provider",
+                intent="Improve app safely",
+                adapter_results={"openai_compatible": {"status": "dispatched", "response": provider_result}},
+                allowed_paths=["app.py"],
+            )
+
+            record = json.loads(Path(proposals[0]["proposal_path"]).read_text(encoding="utf-8"))
+            self.assertEqual(proposals[0]["status"], "rejected")
+            self.assertFalse(record["boundary_validation"]["allowed"])
+            self.assertEqual(record["boundary_validation"]["violations"], ["other.py"])
+
+
 if __name__ == "__main__":
     unittest.main()

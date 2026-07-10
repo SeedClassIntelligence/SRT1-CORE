@@ -55,6 +55,7 @@ from srt1_platform.assistant_adapters import (
     AssistantAdapterRegistry,
     WorkCellExecutionRequest,
 )
+from srt1_platform.change_proposal import ChangeProposalStore
 
 logger = logging.getLogger("srt1.bridge")
 
@@ -486,10 +487,52 @@ class SCIADispatchBridge:
         )
         registry = AssistantAdapterRegistry(self.assistant_adapters)
         adapter_results = registry.dispatch_all(request)
+        proposals = self._capture_provider_change_proposals(
+            seed_id=seed_id,
+            intent=intent,
+            adapter_results=adapter_results,
+            allowed_paths=allowed_paths,
+            srt_anchor_id=execution_context.get("srt_anchor_id"),
+        )
         return {
             "success": any(result.get("status") == "dispatched" for result in adapter_results.values()),
             "adapters": adapter_results,
+            "proposals": proposals,
         }
+
+    def _capture_provider_change_proposals(
+        self,
+        seed_id: str,
+        intent: str,
+        adapter_results: Dict[str, Dict[str, Any]],
+        allowed_paths: List[str],
+        srt_anchor_id: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        """Store provider output as reviewable ChangeProposals without applying code."""
+        proposals: List[Dict[str, Any]] = []
+        store = ChangeProposalStore(self.repo_path)
+        for adapter_name, result in (adapter_results or {}).items():
+            if result.get("status") != "dispatched":
+                continue
+            response = result.get("response") or {}
+            if not response:
+                continue
+            record = store.create_from_provider_result(
+                queue_seed_id=seed_id,
+                srt_anchor_id=srt_anchor_id,
+                objective=intent,
+                provider_result=response,
+                allowed_paths=allowed_paths,
+                source=f"assistant_provider:{adapter_name}",
+            )
+            proposals.append({
+                "adapter": adapter_name,
+                "proposal_id": record["proposal"]["proposal_id"],
+                "proposal_path": record["proposal_path"],
+                "status": record["status"],
+                "applied": False,
+            })
+        return proposals
 
     def _build_dispatch_document(self, seed_id: str, intent: str,
                                   blueprint: str) -> str:

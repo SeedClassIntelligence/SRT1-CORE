@@ -319,3 +319,147 @@ class ProposalValidator:
                 logger.warning(f"Failed to record proposal validation event: {e}")
         
         return result
+
+class ChangeProposalStore:
+    """Persist provider/developer ChangeProposal records without applying source changes."""
+
+    def __init__(self, repo_path: str, proposals_dir: Optional[str] = None):
+        self.repo_path = os.path.realpath(repo_path)
+        self.proposals_dir = proposals_dir or os.path.join(self.repo_path, ".srt1", "proposals")
+        os.makedirs(self.proposals_dir, exist_ok=True)
+
+    def create_from_provider_result(
+        self,
+        queue_seed_id: str,
+        objective: str,
+        provider_result: Dict[str, Any],
+        allowed_paths: List[str],
+        srt_anchor_id: Optional[str] = None,
+        source: str = "assistant_provider",
+    ) -> Dict[str, Any]:
+        proposal = ChangeProposal.create(
+            seed_id=queue_seed_id,
+            task=objective,
+            source=source,
+        )
+        metadata = self._extract_provider_metadata(provider_result)
+        proposed_changes = self._extract_changes(provider_result)
+        if not proposed_changes and metadata.get("content"):
+            proposed_changes = self._extract_changes_from_text(metadata["content"])
+        for change in proposed_changes:
+            file_path = str(change.get("file_path") or change.get("path") or "").strip()
+            if not file_path:
+                continue
+            action = str(change.get("action") or "MODIFY").strip().upper()
+            if action not in {"MODIFY", "CREATE", "DELETE"}:
+                action = "MODIFY"
+            proposal.add_change(
+                file_path=file_path,
+                action=action,
+                scope=str(change.get("scope") or ""),
+                estimated_lines=int(change.get("estimated_lines_changed") or change.get("estimated_lines") or 0),
+                risk_tags=list(change.get("risk_tags") or []),
+                rationale=str(change.get("rationale") or "Provider proposed change"),
+            )
+        proposal.compute_hash()
+        boundary = self._validate_allowed_paths(proposal, allowed_paths)
+        validator = ProposalValidator(workspace_root=self.repo_path)
+        validation = validator.validate(proposal)
+        status = "awaiting_review" if boundary["allowed"] and validation["approved"] else "rejected"
+        record = {
+            "proposal": proposal.to_dict(),
+            "queue_seed_id": queue_seed_id,
+            "srt_anchor_id": srt_anchor_id,
+            "status": status,
+            "provider_metadata": metadata,
+            "boundary_validation": boundary,
+            "proposal_validation": validation,
+            "allowed_paths": list(allowed_paths or []),
+            "created_at": datetime.utcnow().isoformat() + "Z",
+            "applied": False,
+            "apply_blocked_reason": "Human approval and write validation are required before source mutation.",
+        }
+        path = self._proposal_path(proposal.proposal_id)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(record, f, indent=2, sort_keys=True, default=str)
+        record["proposal_path"] = path
+        return record
+
+    def _proposal_path(self, proposal_id: str) -> str:
+        safe = "".join(ch if ch.isalnum() or ch in {"-", "_"} else "_" for ch in proposal_id)
+        return os.path.join(self.proposals_dir, f"{safe}.json")
+
+    def _validate_allowed_paths(self, proposal: ChangeProposal, allowed_paths: List[str]) -> Dict[str, Any]:
+        allowed = {self._normalize_rel(path) for path in allowed_paths or [] if path}
+        targets = [
+            self._normalize_rel(path)
+            for path in proposal.files_write + proposal.files_create + proposal.files_delete
+        ]
+        violations = [path for path in targets if path not in allowed]
+        return {
+            "allowed": bool(targets) and not violations,
+            "targets": targets,
+            "allowed_paths": sorted(allowed),
+            "violations": violations,
+        }
+
+    def _normalize_rel(self, path: str) -> str:
+        raw = str(path or "").replace("\\", "/").strip()
+        if os.path.isabs(raw):
+            raw = os.path.relpath(os.path.realpath(raw), self.repo_path)
+        return raw.replace("\\", "/").strip("/")
+
+    def _extract_provider_metadata(self, provider_result: Dict[str, Any]) -> Dict[str, Any]:
+        result = provider_result.get("result") if isinstance(provider_result, dict) else None
+        content = ""
+        if isinstance(result, dict):
+            choices = result.get("choices") or []
+            if choices:
+                message = choices[0].get("message") or {}
+                content = str(message.get("content") or "")
+        return {
+            "provider": provider_result.get("provider") if isinstance(provider_result, dict) else None,
+            "model": provider_result.get("model") if isinstance(provider_result, dict) else None,
+            "endpoint": provider_result.get("endpoint") if isinstance(provider_result, dict) else None,
+            "content": content,
+        }
+
+    def _extract_changes(self, provider_result: Dict[str, Any]) -> List[Dict[str, Any]]:
+        if not isinstance(provider_result, dict):
+            return []
+        for key in ("proposed_changes", "changes"):
+            value = provider_result.get(key)
+            if isinstance(value, list):
+                return [item for item in value if isinstance(item, dict)]
+        result = provider_result.get("result")
+        if isinstance(result, dict):
+            for key in ("proposed_changes", "changes"):
+                value = result.get(key)
+                if isinstance(value, list):
+                    return [item for item in value if isinstance(item, dict)]
+        return []
+
+    def _extract_changes_from_text(self, content: str) -> List[Dict[str, Any]]:
+        text = str(content or "").strip()
+        if not text:
+            return []
+        candidates = [text]
+        if "```" in text:
+            parts = text.split("```")
+            candidates.extend(part.strip() for part in parts if part.strip())
+        for candidate in candidates:
+            cleaned = candidate.strip()
+            if cleaned.lower().startswith("json"):
+                cleaned = cleaned[4:].strip()
+            try:
+                parsed = json.loads(cleaned)
+            except (TypeError, ValueError):
+                continue
+            if isinstance(parsed, dict):
+                for key in ("proposed_changes", "changes"):
+                    value = parsed.get(key)
+                    if isinstance(value, list):
+                        return [item for item in value if isinstance(item, dict)]
+            if isinstance(parsed, list):
+                return [item for item in parsed if isinstance(item, dict)]
+        return []
