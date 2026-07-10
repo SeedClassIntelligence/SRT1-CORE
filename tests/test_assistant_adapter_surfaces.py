@@ -115,6 +115,8 @@ class AssistantAdapterSurfaceTests(unittest.TestCase):
         self.assertIn("adapterProviderEndpoint", dashboard)
         self.assertIn("adapterProviderModel", dashboard)
         self.assertIn("openai_compatible", dashboard)
+        self.assertIn("https://api.openai.com/v1/chat/completions", dashboard)
+        self.assertIn("gpt-4o-mini", dashboard)
         self.assertIn("loadAssistantAdapters", dashboard)
         self.assertIn("saveAssistantAdapters", dashboard)
         self.assertIn("/api/v1/assistant-adapters", dashboard)
@@ -143,6 +145,23 @@ class AssistantAdapterSurfaceTests(unittest.TestCase):
         self.assertNotIn('localStorage.setItem("srt1_apikey_', dashboard)
         self.assertNotIn("localStorage.getItem('srt1_apikey_", dashboard)
         self.assertNotIn('localStorage.getItem("srt1_apikey_', dashboard)
+
+    def test_dashboard_workcell_run_sends_session_credentials_to_task(self):
+        dashboard = (
+            Path(__file__).resolve().parents[1]
+            / "srt1_platform"
+            / "pwa"
+            / "dashboard.html"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("runWorkCellWithAssistant", dashboard)
+        self.assertIn("auto_dispatch: true", dashboard)
+        self.assertIn("dashboard_workcell", dashboard)
+        self.assertIn("assistant_credentials = buildAssistantCredentialPayload()", dashboard)
+        self.assertIn("workcell_execution_id", dashboard)
+        self.assertIn("allowed_paths", dashboard)
+        self.assertIn("loadWorkCellProposals", dashboard)
+        self.assertIn("applyChangeProposal", dashboard)
 
 
 if __name__ == "__main__":

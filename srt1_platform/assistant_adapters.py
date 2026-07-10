@@ -289,8 +289,12 @@ class OpenAICompatibleAssistantAdapter(BaseAssistantAdapter):
                 {
                     "role": "system",
                     "content": (
-                        "You are operating inside SRT-1. Return proposed changes only. "
-                        "Do not claim files were changed. Stay inside allowed paths and obey runtime controls."
+                        "You are operating inside SRT-1. Return only a JSON object. "
+                        "Do not write files directly and do not claim files were changed. "
+                        "All file edits must be returned as proposed_changes for human review. "
+                        "Each proposed change must include file_path, action, new_content, and rationale. "
+                        "Use only MODIFY or CREATE actions. Stay inside allowed paths and obey pause, stop, and cancel controls. "
+                        "If no safe change is available, return {\"proposed_changes\": []}."
                     ),
                 },
                 {
@@ -341,6 +345,16 @@ class OpenAICompatibleAssistantAdapter(BaseAssistantAdapter):
                 "do_not_write_files_directly": True,
                 "must_stay_inside_allowed_paths": True,
                 "must_respect_pause_stop_cancel": True,
+                "json_schema": {
+                    "proposed_changes": [
+                        {
+                            "file_path": "relative/path/inside/workcell",
+                            "action": "MODIFY|CREATE",
+                            "new_content": "complete replacement or new file content",
+                            "rationale": "why this change satisfies the WorkCell objective",
+                        }
+                    ]
+                },
             },
         }
 

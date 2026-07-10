@@ -3780,8 +3780,8 @@ async function saveAssistantAdapters() {
   }
   if (document.getElementById('adapterProvider')?.checked) {
     const provider = document.getElementById('adapterProviderName')?.value || 'openai';
-    const endpoint = document.getElementById('adapterProviderEndpoint')?.value.trim();
-    const model = document.getElementById('adapterProviderModel')?.value.trim();
+    const endpoint = document.getElementById('adapterProviderEndpoint')?.value.trim() || 'https://api.openai.com/v1/chat/completions';
+    const model = document.getElementById('adapterProviderModel')?.value.trim() || 'gpt-4o-mini';
     adapters.push({ type: 'openai_compatible', provider, endpoint, model });
   }
   const status = document.getElementById('assistantAdapterStatus');
