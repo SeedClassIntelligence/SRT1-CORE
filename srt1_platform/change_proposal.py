@@ -372,6 +372,7 @@ class ChangeProposalStore:
             "srt_anchor_id": srt_anchor_id,
             "status": status,
             "provider_metadata": metadata,
+            "provider_changes": proposed_changes,
             "boundary_validation": boundary,
             "proposal_validation": validation,
             "allowed_paths": list(allowed_paths or []),
@@ -469,6 +470,86 @@ class ChangeProposalStore:
             "proposal": record.get("proposal"),
             "event": record["review_events"][-1],
             "applied": False,
+        }
+
+    def apply_proposal(self, proposal_id: str, actor: str = "human") -> Dict[str, Any]:
+        """Apply an approved proposal only when it contains deterministic replacement content."""
+        record = self.get_proposal(proposal_id)
+        if record.get("status") == "not_found":
+            return record
+        if record.get("status") != "approved":
+            return {"status": "blocked", "proposal_id": proposal_id, "error": "Proposal must be approved before apply."}
+        if record.get("applied"):
+            return {"status": "blocked", "proposal_id": proposal_id, "error": "Proposal has already been applied."}
+        boundary = record.get("boundary_validation") or {}
+        validation = record.get("proposal_validation") or {}
+        if not boundary.get("allowed") or not validation.get("approved"):
+            return {"status": "blocked", "proposal_id": proposal_id, "error": "Proposal boundary validation failed."}
+
+        changes = record.get("provider_changes") or []
+        prepared = []
+        for change in changes:
+            file_path = str(change.get("file_path") or change.get("path") or "").strip()
+            action = str(change.get("action") or "MODIFY").strip().upper()
+            content = change.get("new_content")
+            if content is None:
+                content = change.get("content")
+            if action not in {"MODIFY", "CREATE"}:
+                return {"status": "blocked", "proposal_id": proposal_id, "error": f"Action {action} is not supported by the safe apply gate yet."}
+            if content is None:
+                return {"status": "blocked", "proposal_id": proposal_id, "error": f"Change for {file_path} lacks new_content/content."}
+            rel_path = self._normalize_rel(file_path)
+            if rel_path not in set(boundary.get("allowed_paths") or []):
+                return {"status": "blocked", "proposal_id": proposal_id, "error": f"{rel_path} is outside allowed paths."}
+            abs_path = os.path.realpath(os.path.join(self.repo_path, rel_path))
+            if os.path.commonpath([self.repo_path, abs_path]) != self.repo_path:
+                return {"status": "blocked", "proposal_id": proposal_id, "error": f"{rel_path} escapes repository root."}
+            if action == "MODIFY" and not os.path.exists(abs_path):
+                return {"status": "blocked", "proposal_id": proposal_id, "error": f"Cannot modify missing file {rel_path}."}
+            prepared.append({"path": rel_path, "abs_path": abs_path, "action": action, "content": str(content)})
+
+        if not prepared:
+            return {"status": "blocked", "proposal_id": proposal_id, "error": "No applyable changes found."}
+
+        from srt1_platform.verification import PostExecutionVerifier
+        verifier = PostExecutionVerifier(workspace_root=self.repo_path)
+        proposal = record.get("proposal") or {}
+        files_write = proposal.get("files_write") or []
+        files_create = proposal.get("files_create") or []
+        files_must_not_change = record.get("allowed_paths") or []
+        files_must_not_change = [path for path in files_must_not_change if path not in set(files_write + files_create)]
+        verifier.capture_snapshot(proposal_id, files_to_watch=files_write + files_create, files_must_not_change=files_must_not_change)
+
+        for item in prepared:
+            os.makedirs(os.path.dirname(item["abs_path"]), exist_ok=True)
+            with open(item["abs_path"], "w", encoding="utf-8", newline="") as f:
+                f.write(item["content"])
+
+        verification = verifier.verify(
+            proposal_id,
+            files_write=files_write,
+            files_create=files_create,
+            files_must_not_change=files_must_not_change,
+        )
+        record["applied"] = verification.verdict in {"VERIFIED", "PARTIAL_PASS"}
+        record["status"] = "completed" if record["applied"] else "returned"
+        record["apply_result"] = {
+            "actor": actor or "human",
+            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "files_changed": [item["path"] for item in prepared],
+            "verification": verification.to_dict(),
+        }
+        record["updated_at"] = datetime.utcnow().isoformat() + "Z"
+        path = self._proposal_path(proposal_id)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(record, f, indent=2, sort_keys=True, default=str)
+        return {
+            "status": record["status"],
+            "proposal_id": proposal_id,
+            "queue_seed_id": record.get("queue_seed_id"),
+            "applied": record["applied"],
+            "files_changed": [item["path"] for item in prepared],
+            "verification": verification.to_dict(),
         }
 
     def _proposal_path(self, proposal_id: str) -> str:

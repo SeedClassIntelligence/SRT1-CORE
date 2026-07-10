@@ -2434,6 +2434,56 @@ class SRT1Engine:
             return {"status": "error", "error": "ChangeProposal store unavailable"}
         return store.get_proposal(proposal_id)
 
+    def _apply_change_proposal(
+        self,
+        proposal_id: Optional[str],
+        actor: str = "human",
+    ) -> Dict[str, Any]:
+        if not proposal_id:
+            return {"status": "error", "error": "proposal_id is required"}
+        store = self._get_change_proposal_store()
+        if not store:
+            return {"status": "error", "error": "ChangeProposal store unavailable"}
+        record = store.get_proposal(proposal_id)
+        if record.get("status") == "not_found":
+            return record
+        queue_seed_id = record.get("queue_seed_id")
+        proposal = record.get("proposal") or {}
+        target_paths = (
+            proposal.get("files_write", [])
+            + proposal.get("files_create", [])
+            + proposal.get("files_delete", [])
+        )
+        write_check = self._validate_workcell_writes(
+            queue_seed_id,
+            target_paths,
+            actor="change_proposal_apply_gate",
+        )
+        if not write_check.get("allowed"):
+            return {
+                "status": "blocked",
+                "proposal_id": proposal_id,
+                "error": "WorkCell write validation blocked proposal apply.",
+                "write_check": write_check,
+            }
+        result = store.apply_proposal(proposal_id, actor=actor)
+        registry = self._get_workcell_registry() if queue_seed_id else None
+        if registry:
+            registry.record_execution_event(
+                queue_seed_id,
+                event_type="change_proposal.apply",
+                status=result.get("status") or "unknown",
+                actor=actor or "human",
+                message="Approved ChangeProposal apply attempted.",
+                metadata={
+                    "proposal_id": proposal_id,
+                    "applied": result.get("applied", False),
+                    "files_changed": result.get("files_changed", []),
+                    "verification": result.get("verification"),
+                },
+            )
+        return result
+
     def _review_change_proposal(
         self,
         proposal_id: Optional[str],
@@ -4768,6 +4818,15 @@ class SRT1Engine:
                         action=body.get("action"),
                         actor=body.get("actor") or "human",
                         reason=body.get("reason") or "",
+                    )
+                    status_code = 200 if result.get("status") not in {"error", "not_found", "invalid_action", "blocked"} else 409
+                    return self._json(result, status_code)
+
+                elif path.startswith("/api/v1/change-proposals/") and path.endswith("/apply"):
+                    proposal_id = path[len("/api/v1/change-proposals/"):-len("/apply")].strip("/")
+                    result = engine._apply_change_proposal(
+                        proposal_id,
+                        actor=body.get("actor") or "human",
                     )
                     status_code = 200 if result.get("status") not in {"error", "not_found", "invalid_action", "blocked"} else 409
                     return self._json(result, status_code)

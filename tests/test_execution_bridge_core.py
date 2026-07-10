@@ -343,5 +343,52 @@ class ExecutionBridgeCoreTests(unittest.TestCase):
         self.assertFalse(fetched["applied"])
 
 
+    def test_change_proposal_apply_requires_approval_and_content(self):
+        from srt1_platform.change_proposal import ChangeProposalStore
+
+        with tempfile.TemporaryDirectory() as repo:
+            app = Path(repo) / "app.py"
+            app.write_text("old = True\n", encoding="utf-8")
+            store = ChangeProposalStore(repo_path=repo)
+            record = store.create_from_provider_result(
+                queue_seed_id="seed_apply",
+                objective="Apply safely",
+                provider_result={"proposed_changes": [{"file_path": "app.py", "action": "MODIFY", "new_content": "new = True\n"}]},
+                allowed_paths=["app.py"],
+            )
+            proposal_id = record["proposal"]["proposal_id"]
+
+            blocked = store.apply_proposal(proposal_id)
+            store.review_proposal(proposal_id, action="approve")
+            applied = store.apply_proposal(proposal_id)
+
+            self.assertEqual(blocked["status"], "blocked")
+            self.assertEqual(applied["status"], "completed")
+            self.assertTrue(applied["applied"])
+            self.assertEqual(app.read_text(encoding="utf-8"), "new = True\n")
+            self.assertEqual(applied["verification"]["verdict"], "VERIFIED")
+
+    def test_change_proposal_apply_blocks_missing_machine_readable_content(self):
+        from srt1_platform.change_proposal import ChangeProposalStore
+
+        with tempfile.TemporaryDirectory() as repo:
+            app = Path(repo) / "app.py"
+            app.write_text("old = True\n", encoding="utf-8")
+            store = ChangeProposalStore(repo_path=repo)
+            record = store.create_from_provider_result(
+                queue_seed_id="seed_apply",
+                objective="Apply safely",
+                provider_result={"proposed_changes": [{"file_path": "app.py", "action": "MODIFY"}]},
+                allowed_paths=["app.py"],
+            )
+            proposal_id = record["proposal"]["proposal_id"]
+            store.review_proposal(proposal_id, action="approve")
+            result = store.apply_proposal(proposal_id)
+
+            self.assertEqual(result["status"], "blocked")
+            self.assertIn("new_content", result["error"])
+            self.assertEqual(app.read_text(encoding="utf-8"), "old = True\n")
+
+
 if __name__ == "__main__":
     unittest.main()

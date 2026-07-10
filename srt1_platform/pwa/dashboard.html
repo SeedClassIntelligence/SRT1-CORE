@@ -2983,6 +2983,7 @@ async function loadWorkCellProposals(queueSeedId) {
       const proposalId = proposal.proposal_id || '';
       const files = (proposal.files_write || []).concat(proposal.files_create || []).concat(proposal.files_delete || []);
       const canReview = proposal.status === 'awaiting_review';
+      const canApply = proposal.status === 'approved' && !proposal.applied;
       return `<div class="workcell-activity-event" style="grid-template-columns:minmax(0,1fr) auto;">
         <div>
           <div class="workcell-activity-type">${escapeHtml(proposal.status || 'unknown')} ? ${escapeHtml(proposalId)}</div>
@@ -2993,6 +2994,7 @@ async function loadWorkCellProposals(queueSeedId) {
           <button type="button" class="workcell-package-btn" data-proposal-review="approve" data-proposal-id="${escapeHtml(proposalId)}" ${canReview ? '' : 'disabled'}>Approve</button>
           <button type="button" class="workcell-package-btn" data-proposal-review="reject" data-proposal-id="${escapeHtml(proposalId)}" ${canReview ? '' : 'disabled'}>Reject</button>
           <button type="button" class="workcell-package-btn" data-proposal-review="return" data-proposal-id="${escapeHtml(proposalId)}" ${canReview ? '' : 'disabled'}>Return</button>
+          <button type="button" class="workcell-package-btn" data-proposal-apply="${escapeHtml(proposalId)}" ${canApply ? '' : 'disabled'}>Apply</button>
         </div>
       </div>`;
     }).join('');
@@ -3004,9 +3006,46 @@ async function loadWorkCellProposals(queueSeedId) {
         button
       ));
     });
+    list.querySelectorAll('[data-proposal-apply]').forEach(button => {
+      button.addEventListener('click', () => applyChangeProposal(
+        button.dataset.proposalApply,
+        queueSeedId,
+        button
+      ));
+    });
   } catch (e) {
     if (badge) badge.textContent = 'unavailable';
     list.innerHTML = `<div class="workcell-empty">${escapeHtml(e.message || 'Proposals unavailable')}</div>`;
+  }
+}
+
+async function applyChangeProposal(proposalId, queueSeedId, button) {
+  if (!proposalId) return;
+  const original = button?.textContent || 'Apply';
+  if (button) {
+    button.disabled = true;
+    button.textContent = 'Applying...';
+  }
+  try {
+    const response = await fetch(API + '/api/v1/change-proposals/' + encodeURIComponent(proposalId) + '/apply', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ actor: 'dashboard_human' })
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || 'Apply blocked');
+    delete workCellActivityPages[queueSeedId];
+    await loadWorkCellProposals(queueSeedId);
+    await loadWorkCellActivity(queueSeedId);
+  } catch (e) {
+    if (button) button.textContent = e.message || 'Apply blocked';
+  } finally {
+    if (button) {
+      setTimeout(() => {
+        button.disabled = false;
+        button.textContent = original;
+      }, 1600);
+    }
   }
 }
 

@@ -515,6 +515,43 @@ class WorkCellRuntimeTests(unittest.TestCase):
             any(event["event_type"] == "change_proposal.approve" for event in current["activity_events"])
         )
 
+
+    def test_engine_applies_approved_change_proposal_through_workcell_guard(self):
+        from srt1_platform.change_proposal import ChangeProposalStore
+
+        with tempfile.TemporaryDirectory() as repo:
+            app = Path(repo) / "app.py"
+            other = Path(repo) / "other.py"
+            app.write_text("old = True\n", encoding="utf-8")
+            other.write_text("other = True\n", encoding="utf-8")
+            engine = engine_module.SRT1Engine.__new__(engine_module.SRT1Engine)
+            engine.repo_path = repo
+            engine.workcell_registry = WorkCellRegistry(repo_path=repo)
+            engine.workcell_registry.activate_execution(
+                queue_seed_id="seed_apply_guard",
+                objective="Update app.py",
+                manifest={"file_manifest": [{"file_path": "app.py"}, {"file_path": "other.py"}]},
+            )
+            store = ChangeProposalStore(repo_path=repo)
+            record = store.create_from_provider_result(
+                queue_seed_id="seed_apply_guard",
+                objective="Update app.py",
+                provider_result={"proposed_changes": [{"file_path": "app.py", "action": "MODIFY", "new_content": "new = True\n"}]},
+                allowed_paths=["app.py"],
+            )
+            proposal_id = record["proposal"]["proposal_id"]
+            store.review_proposal(proposal_id, action="approve")
+
+            result = engine._apply_change_proposal(proposal_id, actor="test")
+            current = engine.workcell_registry.get_execution_for_seed("seed_apply_guard")
+
+            self.assertEqual(result["status"], "completed")
+            self.assertEqual(app.read_text(encoding="utf-8"), "new = True\n")
+            self.assertEqual(other.read_text(encoding="utf-8"), "other = True\n")
+            self.assertTrue(
+            any(event["event_type"] == "change_proposal.apply" for event in current["activity_events"])
+            )
+
     def test_dashboard_contains_workcell_operations_surface(self):
         dashboard = Path(__file__).resolve().parents[1] / "srt1_platform" / "pwa" / "dashboard.html"
         html = dashboard.read_text(encoding="utf-8")
@@ -551,6 +588,8 @@ class WorkCellRuntimeTests(unittest.TestCase):
         self.assertIn("Change Proposals", html)
         self.assertIn("loadWorkCellProposals", html)
         self.assertIn("reviewChangeProposal", html)
+        self.assertIn("applyChangeProposal", html)
+        self.assertIn("/apply", html)
         self.assertIn("/api/v1/change-proposals/", html)
         self.assertIn("loadWorkCellActivity", html)
         self.assertIn("exportWorkCellActivity", html)
