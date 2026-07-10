@@ -18,7 +18,9 @@ class AssistantAdapterSurfaceTests(unittest.TestCase):
                 {"type": "codex"},
                 {"type": "file_context", "name": "local_handoff"},
                 {"type": "custom_http", "endpoint": "http://127.0.0.1:9000/workcell"},
+                {"type": "openai_compatible", "provider": "openai", "endpoint": "https://api.openai.com/v1/chat/completions", "model": "gpt-4o-mini"},
                 {"type": "custom_http", "endpoint": ""},
+                {"type": "openai_compatible", "provider": "openai", "endpoint": "", "model": "gpt-4o-mini"},
                 {"type": "unknown_model"},
             ])
 
@@ -33,6 +35,13 @@ class AssistantAdapterSurfaceTests(unittest.TestCase):
                         "type": "custom_http",
                         "endpoint": "http://127.0.0.1:9000/workcell",
                         "timeout": 20.0,
+                    },
+                    {
+                        "type": "openai_compatible",
+                        "provider": "openai",
+                        "endpoint": "https://api.openai.com/v1/chat/completions",
+                        "model": "gpt-4o-mini",
+                        "timeout": 60.0,
                     },
                 ],
             )
@@ -102,6 +111,10 @@ class AssistantAdapterSurfaceTests(unittest.TestCase):
         self.assertIn("adapterCodex", dashboard)
         self.assertIn("adapterFile", dashboard)
         self.assertIn("adapterHttpEndpoint", dashboard)
+        self.assertIn("adapterProvider", dashboard)
+        self.assertIn("adapterProviderEndpoint", dashboard)
+        self.assertIn("adapterProviderModel", dashboard)
+        self.assertIn("openai_compatible", dashboard)
         self.assertIn("loadAssistantAdapters", dashboard)
         self.assertIn("saveAssistantAdapters", dashboard)
         self.assertIn("/api/v1/assistant-adapters", dashboard)

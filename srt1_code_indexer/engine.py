@@ -2505,6 +2505,18 @@ class SRT1Engine:
                         "endpoint": endpoint,
                         "timeout": float(adapter.get("timeout") or 20.0),
                     })
+            elif adapter_type in {"openai_compatible", "provider_runtime", "llm_provider"}:
+                endpoint = str(adapter.get("endpoint") or "").strip()
+                model = str(adapter.get("model") or "").strip()
+                provider = str(adapter.get("provider") or "openai").strip().lower()
+                if endpoint and model:
+                    clean.append({
+                        "type": "openai_compatible",
+                        "provider": provider,
+                        "endpoint": endpoint,
+                        "model": model,
+                        "timeout": float(adapter.get("timeout") or 60.0),
+                    })
         return clean
 
     def _normalize_assistant_credentials(
@@ -2575,6 +2587,11 @@ class SRT1Engine:
                     "type": "custom_http",
                     "label": "Custom HTTP model adapter",
                     "description": "Posts bounded WorkCell JSON to a developer-controlled endpoint.",
+                },
+                {
+                    "type": "openai_compatible",
+                    "label": "OpenAI-compatible provider runtime",
+                    "description": "Calls any chat-completions-compatible LLM with transient credentials and bounded WorkCell context.",
                 },
             ],
             "slack_seed_endpoint": "/api/v1/slack/seed",

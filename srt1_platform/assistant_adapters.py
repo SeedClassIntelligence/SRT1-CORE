@@ -249,6 +249,102 @@ class CustomHTTPAssistantAdapter(BaseAssistantAdapter):
         )
 
 
+class OpenAICompatibleAssistantAdapter(BaseAssistantAdapter):
+    """Call any OpenAI-compatible chat completions endpoint with a bounded WorkCell request."""
+
+    name = "openai_compatible"
+
+    def __init__(
+        self,
+        provider: str = "openai",
+        endpoint: str = "https://api.openai.com/v1/chat/completions",
+        model: str = "gpt-4o-mini",
+        timeout: float = 60.0,
+    ):
+        self.provider = (provider or "openai").strip().lower()
+        self.endpoint = endpoint or "https://api.openai.com/v1/chat/completions"
+        self.model = model or "gpt-4o-mini"
+        self.timeout = timeout
+
+    def dispatch(self, request: WorkCellExecutionRequest) -> AssistantDispatchResult:
+        credential = request.transient_credentials.get(self.provider)
+        if not credential and len(request.transient_credentials) == 1:
+            credential = next(iter(request.transient_credentials.values()))
+        if not credential:
+            return AssistantDispatchResult(
+                adapter=self.name,
+                status="degraded",
+                message=f"{self.provider} session credential is required",
+            )
+        if not request.allowed_paths:
+            return AssistantDispatchResult(
+                adapter=self.name,
+                status="degraded",
+                message="validated WorkCell allowed paths are required",
+            )
+
+        payload = {
+            "model": self.model,
+            "messages": [
+                {
+                    "role": "system",
+                    "content": (
+                        "You are operating inside SRT-1. Return proposed changes only. "
+                        "Do not claim files were changed. Stay inside allowed paths and obey runtime controls."
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": json.dumps(self._build_model_payload(request), indent=2, sort_keys=True),
+                },
+            ],
+            "temperature": 0.2,
+        }
+        data = json.dumps(payload).encode("utf-8")
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {credential}",
+            "X-SRT1-Credential-Mode": "session",
+            "X-SRT1-Credential-Provider": self.provider,
+        }
+        req = urllib.request.Request(self.endpoint, data=data, headers=headers, method="POST")
+        with urllib.request.urlopen(req, timeout=self.timeout) as response:
+            body = response.read().decode("utf-8")
+        response_payload = json.loads(body) if body else {}
+        return AssistantDispatchResult(
+            adapter=self.name,
+            status="dispatched",
+            message="Bounded WorkCell request completed by OpenAI-compatible provider",
+            response={
+                "provider": self.provider,
+                "model": self.model,
+                "endpoint": self.endpoint,
+                "result": response_payload,
+                "secret_persisted": False,
+            },
+        )
+
+    def _build_model_payload(self, request: WorkCellExecutionRequest) -> Dict[str, Any]:
+        return {
+            "seed_id": request.seed_id,
+            "intent": request.intent,
+            "blueprint": request.blueprint,
+            "workcell_package_path": request.workcell_package_path,
+            "allowed_paths": list(request.allowed_paths),
+            "restricted_paths": list(request.restricted_paths),
+            "completion_signal_path": request.completion_signal_path,
+            "trust_state": dict(request.trust_state),
+            "runtime_controls": request.metadata.get("runtime_control_endpoints", {}),
+            "write_validation_endpoint": request.metadata.get("write_validation_endpoint"),
+            "required_response_contract": {
+                "return_proposed_changes_only": True,
+                "do_not_write_files_directly": True,
+                "must_stay_inside_allowed_paths": True,
+                "must_respect_pause_stop_cancel": True,
+            },
+        }
+
+
 class AssistantAdapterRegistry:
     """Build adapters from Core-safe configuration dictionaries."""
 
@@ -281,5 +377,12 @@ class AssistantAdapterRegistry:
                 endpoint=str(config.get("endpoint") or ""),
                 headers=dict(config.get("headers") or {}),
                 timeout=float(config.get("timeout") or 20.0),
+            )
+        if adapter_type in {"openai_compatible", "provider_runtime", "llm_provider"}:
+            return OpenAICompatibleAssistantAdapter(
+                provider=str(config.get("provider") or "openai"),
+                endpoint=str(config.get("endpoint") or "https://api.openai.com/v1/chat/completions"),
+                model=str(config.get("model") or "gpt-4o-mini"),
+                timeout=float(config.get("timeout") or 60.0),
             )
         return None

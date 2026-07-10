@@ -1206,6 +1206,24 @@ body.theme-light .file-intel-popover{box-shadow:0 18px 40px rgba(15,23,42,0.18);
         </label>
         <input type="text" id="adapterHttpEndpoint" placeholder="http://127.0.0.1:9000/workcell" style="width:100%;margin-top:10px;padding:8px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:11px;">
       </div>
+      <div style="padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;">
+        <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer;">
+          <input type="checkbox" id="adapterProvider" style="margin-top:3px;">
+          <span>
+            <span style="display:block;font-size:13px;font-weight:800;color:var(--text);">OpenAI-Compatible Provider Runtime</span>
+            <span style="display:block;font-size:11px;color:var(--text3);line-height:1.45;margin-top:4px;">Calls any chat-completions-compatible LLM with bounded WorkCell context and session-only keys.</span>
+          </span>
+        </label>
+        <select id="adapterProviderName" style="width:100%;margin-top:10px;padding:8px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:11px;">
+          <option value="openai">openai</option>
+          <option value="grok">grok</option>
+          <option value="groq">groq</option>
+          <option value="together">together</option>
+          <option value="custom">custom</option>
+        </select>
+        <input type="text" id="adapterProviderEndpoint" placeholder="https://api.openai.com/v1/chat/completions" style="width:100%;margin-top:8px;padding:8px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:11px;">
+        <input type="text" id="adapterProviderModel" placeholder="gpt-4o-mini" style="width:100%;margin-top:8px;padding:8px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:11px;">
+      </div>
     </div>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px;">
       <button class="download-btn" onclick="saveAssistantAdapters()">Save adapter selection</button>
@@ -3593,11 +3611,20 @@ async function loadAssistantAdapters() {
     const file = document.getElementById('adapterFile');
     const http = document.getElementById('adapterHttp');
     const endpoint = document.getElementById('adapterHttpEndpoint');
+    const providerRuntime = document.getElementById('adapterProvider');
+    const providerName = document.getElementById('adapterProviderName');
+    const providerEndpoint = document.getElementById('adapterProviderEndpoint');
+    const providerModel = document.getElementById('adapterProviderModel');
     if (codex) codex.checked = types.has('codex');
     if (file) file.checked = types.has('file_context') || types.has('file') || types.has('file_handoff');
     const httpConfig = adapters.find(a => a.type === 'custom_http');
+    const providerConfig = adapters.find(a => a.type === 'openai_compatible');
     if (http) http.checked = !!httpConfig;
     if (endpoint && httpConfig) endpoint.value = httpConfig.endpoint || '';
+    if (providerRuntime) providerRuntime.checked = !!providerConfig;
+    if (providerName && providerConfig) providerName.value = providerConfig.provider || 'openai';
+    if (providerEndpoint && providerConfig) providerEndpoint.value = providerConfig.endpoint || '';
+    if (providerModel && providerConfig) providerModel.value = providerConfig.model || '';
     if (badge) {
       badge.textContent = adapters.length ? `${adapters.length} ACTIVE` : 'NONE';
       badge.className = adapters.length ? 'panel-badge' : 'panel-badge warn';
@@ -3623,6 +3650,12 @@ async function saveAssistantAdapters() {
   if (document.getElementById('adapterHttp')?.checked) {
     const endpoint = document.getElementById('adapterHttpEndpoint')?.value.trim();
     adapters.push({ type: 'custom_http', endpoint });
+  }
+  if (document.getElementById('adapterProvider')?.checked) {
+    const provider = document.getElementById('adapterProviderName')?.value || 'openai';
+    const endpoint = document.getElementById('adapterProviderEndpoint')?.value.trim();
+    const model = document.getElementById('adapterProviderModel')?.value.trim();
+    adapters.push({ type: 'openai_compatible', provider, endpoint, model });
   }
   const status = document.getElementById('assistantAdapterStatus');
   try {

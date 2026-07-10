@@ -8,6 +8,7 @@ from unittest.mock import Mock, patch
 from srt1_platform.assistant_adapters import (
     CustomHTTPAssistantAdapter,
     FileHandoffAssistantAdapter,
+    OpenAICompatibleAssistantAdapter,
     WorkCellExecutionRequest,
 )
 from srt1_platform.execution_bridge import DispatchMethod, SCIADispatchBridge
@@ -181,6 +182,78 @@ class ExecutionBridgeCoreTests(unittest.TestCase):
         self.assertEqual(captured["credential_provider"], "openai")
         self.assertNotIn("sk-test-secret", captured["body"])
         self.assertNotIn("transient_credentials", captured["body"])
+
+
+    def test_openai_compatible_provider_uses_transient_key_without_serializing_it(self):
+        captured = {}
+
+        class FakeResponse:
+            status = 200
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, tb):
+                return False
+
+            def read(self):
+                return b'{"choices":[{"message":{"content":"proposed change"}}]}'
+
+        def fake_urlopen(request, timeout=0):
+            captured["authorization"] = request.get_header("Authorization")
+            captured["credential_mode"] = request.get_header("X-srt1-credential-mode")
+            captured["credential_provider"] = request.get_header("X-srt1-credential-provider")
+            captured["body"] = request.data.decode("utf-8")
+            return FakeResponse()
+
+        request = WorkCellExecutionRequest(
+            seed_id="seed_provider",
+            intent="Improve app safely",
+            blueprint="Use WorkCell only",
+            allowed_paths=["app.py"],
+            restricted_paths=[".git/"],
+            metadata={
+                "write_validation_endpoint": "/api/v1/workcells/seed_provider/validate-writes",
+                "runtime_control_endpoints": {"cancel": "/api/v1/workcells/seed_provider/cancel"},
+            },
+            transient_credentials={"openai": "sk-test-secret"},
+        )
+
+        with patch("urllib.request.urlopen", side_effect=fake_urlopen):
+            result = OpenAICompatibleAssistantAdapter(
+                provider="openai",
+                endpoint="https://api.openai.test/v1/chat/completions",
+                model="test-model",
+            ).dispatch(request)
+
+        self.assertEqual(result.status, "dispatched")
+        self.assertEqual(captured["authorization"], "Bearer sk-test-secret")
+        self.assertEqual(captured["credential_mode"], "session")
+        self.assertEqual(captured["credential_provider"], "openai")
+        self.assertIn("app.py", captured["body"])
+        self.assertIn("validate-writes", captured["body"])
+        self.assertNotIn("sk-test-secret", captured["body"])
+        self.assertFalse(result.response["secret_persisted"])
+
+    def test_openai_compatible_provider_fails_closed_without_key_or_scope(self):
+        scoped = WorkCellExecutionRequest(
+            seed_id="seed_provider",
+            intent="Improve app safely",
+            allowed_paths=["app.py"],
+        )
+        unscoped = WorkCellExecutionRequest(
+            seed_id="seed_provider",
+            intent="Improve app safely",
+            transient_credentials={"openai": "sk-test-secret"},
+        )
+
+        no_key = OpenAICompatibleAssistantAdapter(provider="openai").dispatch(scoped)
+        no_scope = OpenAICompatibleAssistantAdapter(provider="openai").dispatch(unscoped)
+
+        self.assertEqual(no_key.status, "degraded")
+        self.assertIn("credential", no_key.message)
+        self.assertEqual(no_scope.status, "degraded")
+        self.assertIn("allowed paths", no_scope.message)
 
 
 if __name__ == "__main__":
