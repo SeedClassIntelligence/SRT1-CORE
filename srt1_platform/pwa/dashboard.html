@@ -199,6 +199,16 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 .workcell-provider-readiness-grid{display:flex;flex-wrap:wrap;gap:6px;}
 .workcell-provider-check{font-family:var(--mono);font-size:10px;padding:4px 7px;border:1px solid var(--amber-border);border-radius:999px;color:var(--amber);background:rgba(245,158,11,.08);}
 .workcell-provider-check.ready{border-color:var(--green-border);color:var(--green);background:rgba(34,197,94,.08);}
+.workcell-control-truth{margin:10px 0;padding:10px;border:1px solid var(--border);border-radius:7px;background:rgba(255,255,255,0.02);}
+.workcell-control-truth.pending{border-color:var(--amber-border);background:var(--amber-bg);}
+.workcell-control-truth.final{border-color:var(--green-border);background:var(--green-bg);}
+.workcell-control-truth-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:8px;}
+.workcell-control-truth-title{font-size:11px;font-weight:800;color:var(--cyan);text-transform:uppercase;letter-spacing:.04em;}
+.workcell-control-truth-copy{font-size:11px;color:var(--text4);line-height:1.45;margin-bottom:8px;}
+.workcell-control-truth-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px;}
+.workcell-control-truth-item{border:1px solid var(--border);border-radius:6px;background:var(--bg2);padding:7px;}
+.workcell-control-truth-label{font-size:9px;color:var(--text4);font-weight:800;text-transform:uppercase;margin-bottom:4px;}
+.workcell-control-truth-value{font-family:var(--mono);font-size:10px;color:var(--text2);line-height:1.35;}
 .workcell-preview{margin-top:12px;border:1px solid var(--border);border-radius:7px;background:var(--bg);overflow:hidden;}
 .workcell-preview-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:10px;border-bottom:1px solid var(--border);background:rgba(255,255,255,0.02);}
 .workcell-preview-title{font-size:11px;font-weight:800;color:var(--green);text-transform:uppercase;letter-spacing:.04em;}
@@ -2905,6 +2915,7 @@ function renderWorkCellDetail(payload, selectedExecution) {
   const canRunAssistant = assistantReady && !['completed', 'terminated', 'cancelled', 'stop_requested', 'pause_requested'].includes(executionStatus);
   const providerReadiness = getProviderExecutionReadiness(wc, packageStatus, executionStatus);
   const providerReadinessLabel = providerReadiness.ready ? 'ready to run' : 'setup needed';
+  const controlTruth = getWorkCellExecutionControlTruth(selectedExecution);
 
   detailEl.innerHTML = `
     <div class="workcell-detail-head">
@@ -2951,6 +2962,16 @@ function renderWorkCellDetail(payload, selectedExecution) {
         <div class="workcell-package-status ${executionStatus === 'completed' ? 'ready' : ''}">${escapeHtml(executionStatus)}</div>
       </div>
       <div style="font-size:11px;color:var(--text4);line-height:1.45;margin-bottom:8px;">Assistant runtimes must validate proposed writes through /api/v1/workcells/{queue_seed_id}/validate-writes before changing files. Pause, stop, and cancel requests are written to the WorkCell timeline for assistant adapters to honor.</div>
+      <div class="workcell-control-truth ${controlTruth.className}">
+        <div class="workcell-control-truth-head">
+          <div class="workcell-control-truth-title">Execution Control Truth</div>
+          <div class="workcell-package-status ${controlTruth.className === 'final' ? 'ready' : ''}">${escapeHtml(controlTruth.mode)}</div>
+        </div>
+        <div class="workcell-control-truth-copy">${escapeHtml(controlTruth.summary)}</div>
+        <div class="workcell-control-truth-grid">
+          ${controlTruth.checks.map(check => `<div class="workcell-control-truth-item"><div class="workcell-control-truth-label">${escapeHtml(check.label)}</div><div class="workcell-control-truth-value">${escapeHtml(check.value)}</div></div>`).join('')}
+        </div>
+      </div>
       <div class="workcell-provider-readiness ${providerReadiness.ready ? 'ready' : ''}">
         <div class="workcell-provider-readiness-head">
           <span>Provider Execution Readiness</span>
@@ -3690,6 +3711,55 @@ function getProviderExecutionReadiness(workcell, packageStatus, executionStatus)
     endpoint,
     model,
     checks,
+  };
+}
+
+function getWorkCellExecutionControlTruth(execution) {
+  const status = execution?.status || 'ready';
+  const finalStates = ['completed', 'terminated', 'cancelled', 'returned'];
+  const pendingStates = ['pause_requested', 'stop_requested'];
+  const hasRuntimePort = !!execution?.runtime_port;
+  const hasJobHandle = !!(
+    execution?.runtime_job_id
+    || execution?.provider_job_id
+    || execution?.process_id
+    || execution?.pid
+  );
+  const provider = execution?.assigned_agent || execution?.assistant_provider || 'assistant adapter';
+  const hardControl = hasRuntimePort && hasJobHandle;
+  let mode = 'cooperative controls';
+  let summary = 'Pause, stop, and cancel are recorded in SRT-1 and sent to adapters. External providers must acknowledge them.';
+  if (hardControl) {
+    mode = 'hard cancellable';
+    summary = 'SRT-1 has a runtime handle for this execution and can attempt direct process/job cancellation.';
+  } else if (status === 'stop_requested') {
+    mode = 'soft stop requested';
+    summary = 'SRT-1 recorded the stop request. Awaiting assistant/provider acknowledgement or quiet completion.';
+  } else if (status === 'pause_requested') {
+    mode = 'pause requested';
+    summary = 'SRT-1 recorded the pause request. Awaiting assistant/provider acknowledgement.';
+  } else if (status === 'cancelled') {
+    mode = 'local lifecycle cancelled';
+    summary = 'SRT-1 cancelled the WorkCell lifecycle. External assistant work must be stopped by adapter cooperation unless a job handle exists.';
+  } else if (finalStates.includes(status)) {
+    mode = 'final state';
+    summary = 'Execution is no longer active. Run controls are closed for this WorkCell execution.';
+  } else if (status === 'ready') {
+    mode = 'not dispatched';
+    summary = 'No active assistant job is registered yet. Run will create a bounded dispatch request.';
+  }
+  return {
+    mode,
+    summary,
+    className: pendingStates.includes(status) ? 'pending' : (finalStates.includes(status) ? 'final' : ''),
+    checks: [
+      { label: 'lifecycle state', value: status },
+      { label: 'runtime control', value: hardControl ? 'hard cancellable' : 'cooperative' },
+      { label: 'provider ack', value: pendingStates.includes(status) ? 'pending' : 'not required yet' },
+      { label: 'job handle', value: hasJobHandle ? 'registered' : 'not registered' },
+      { label: 'runtime port', value: hasRuntimePort ? String(execution.runtime_port) : 'repository' },
+      { label: 'adapter', value: provider },
+    ],
   };
 }
 
