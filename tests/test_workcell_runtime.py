@@ -268,6 +268,35 @@ class WorkCellRuntimeTests(unittest.TestCase):
         self.assertNotIn("must-not-persist", registry_text)
         self.assertIn("[REDACTED]", registry_text)
 
+    def test_provider_completion_enters_human_review_lane(self):
+        with tempfile.TemporaryDirectory() as repo:
+            registry = WorkCellRegistry(repo_path=repo)
+            registry.activate_execution(
+                queue_seed_id="seed_provider_complete",
+                objective="Review completed provider work",
+                manifest={"file_manifest": [{"file_path": "app.py"}]},
+            )
+            started = registry.start_execution_job(
+                "seed_provider_complete",
+                provider="openai",
+                adapter="openai_compatible",
+            )
+
+            ack = registry.acknowledge_execution_job(
+                "seed_provider_complete",
+                job_id=started["job"]["job_id"],
+                acknowledgement="completed",
+                actor="provider_runtime",
+            )
+            current = registry.get_execution_for_seed("seed_provider_complete")
+
+        self.assertEqual(ack["status"], "acknowledged")
+        self.assertEqual(current["status"], "awaiting_review")
+        self.assertEqual(current["verification_state"], "unverified")
+        self.assertEqual(current["current_execution_job"]["status"], "completed")
+        self.assertTrue(current["current_execution_job"]["review_required"])
+        self.assertTrue(current["current_execution_job"]["verification_required"])
+
     def test_old_workcell_registry_without_activity_events_still_loads(self):
         with tempfile.TemporaryDirectory() as repo:
             registry_dir = Path(repo) / ".srt1" / "workcells"
@@ -739,6 +768,11 @@ class WorkCellRuntimeTests(unittest.TestCase):
         self.assertIn("Provider stopping", html)
         self.assertIn("Provider stopped", html)
         self.assertIn("provider stopped", html)
+        self.assertIn("Provider Completion Review", html)
+        self.assertIn("getProviderCompletionReviewState", html)
+        self.assertIn("ready for human decision", html)
+        self.assertIn("review required", html)
+        self.assertIn("inspect Change Proposals below", html)
         self.assertIn("Provider Execution Readiness", html)
         self.assertIn("getProviderExecutionReadiness", html)
         self.assertIn("workcell-provider-readiness", html)

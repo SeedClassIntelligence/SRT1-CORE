@@ -209,6 +209,11 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 .workcell-control-truth-item{border:1px solid var(--border);border-radius:6px;background:var(--bg2);padding:7px;}
 .workcell-control-truth-label{font-size:9px;color:var(--text4);font-weight:800;text-transform:uppercase;margin-bottom:4px;}
 .workcell-control-truth-value{font-family:var(--mono);font-size:10px;color:var(--text2);line-height:1.35;}
+.workcell-review-lane{margin-top:12px;padding:10px;border:1px solid var(--amber-border);border-radius:7px;background:var(--amber-bg);}
+.workcell-review-lane.ready{border-color:var(--green-border);background:var(--green-bg);}
+.workcell-review-lane-title{font-size:11px;font-weight:800;color:var(--amber);text-transform:uppercase;letter-spacing:.04em;}
+.workcell-review-lane.ready .workcell-review-lane-title{color:var(--green);}
+.workcell-review-lane-copy{font-size:11px;color:var(--text3);line-height:1.45;margin-top:7px;}
 .workcell-preview{margin-top:12px;border:1px solid var(--border);border-radius:7px;background:var(--bg);overflow:hidden;}
 .workcell-preview-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:10px;border-bottom:1px solid var(--border);background:rgba(255,255,255,0.02);}
 .workcell-preview-title{font-size:11px;font-weight:800;color:var(--green);text-transform:uppercase;letter-spacing:.04em;}
@@ -2973,6 +2978,7 @@ function renderWorkCellDetail(payload, selectedExecution) {
   const providerReadiness = getProviderExecutionReadiness(wc, packageStatus, executionStatus);
   const providerReadinessLabel = providerReadiness.ready ? 'ready to run' : 'setup needed';
   const controlTruth = getWorkCellExecutionControlTruth(selectedExecution);
+  const completionReview = getProviderCompletionReviewState(selectedExecution);
 
   detailEl.innerHTML = `
     <div class="workcell-detail-head">
@@ -3055,6 +3061,17 @@ function renderWorkCellDetail(payload, selectedExecution) {
       </div>
       <pre id="workcellMdPreview" class="workcell-preview-body loading">Loading workcell.md...</pre>
     </div>
+    ${completionReview.visible ? `
+    <div class="workcell-review-lane ${completionReview.ready ? 'ready' : ''}">
+      <div class="workcell-package-head">
+        <div class="workcell-review-lane-title">Provider Completion Review</div>
+        <div class="workcell-package-status ${completionReview.ready ? 'ready' : ''}">${escapeHtml(completionReview.status)}</div>
+      </div>
+      <div class="workcell-review-lane-copy">${escapeHtml(completionReview.message)}</div>
+      <div class="workcell-provider-readiness-grid" style="margin-top:8px;">
+        ${completionReview.checks.map(check => `<span class="workcell-provider-check ${check.ready ? 'ready' : ''}">${check.ready ? 'ready' : 'needed'} ${escapeHtml(check.label)}: ${escapeHtml(check.detail)}</span>`).join('')}
+      </div>
+    </div>` : ''}
     <div class="workcell-activity">
       <div class="workcell-preview-head">
         <div class="workcell-preview-title">Change Proposals</div>
@@ -3835,6 +3852,33 @@ function getWorkCellExecutionControlTruth(execution) {
       { label: 'job handle', value: currentJob?.job_id || (hasJobHandle ? 'registered' : 'not registered') },
       { label: 'runtime port', value: currentJob?.runtime_port || (hasRuntimePort ? String(execution.runtime_port) : 'repository') },
       { label: 'adapter', value: provider },
+    ],
+  };
+}
+
+function getProviderCompletionReviewState(execution) {
+  const currentJob = execution?.current_execution_job
+    || (Array.isArray(execution?.execution_jobs) && execution.execution_jobs.length
+      ? execution.execution_jobs[execution.execution_jobs.length - 1]
+      : null);
+  const jobStatus = currentJob?.status || '';
+  const executionStatus = execution?.status || '';
+  const verification = execution?.verification_state || 'unverified';
+  const visible = jobStatus === 'completed' || executionStatus === 'awaiting_review';
+  const verified = verification === 'verified';
+  const ready = verified && executionStatus === 'awaiting_review';
+  return {
+    visible,
+    ready,
+    status: ready ? 'ready for human decision' : 'review required',
+    message: ready
+      ? 'Provider completion has verification evidence. Human approval or return-for-revision is now the lifecycle gate.'
+      : 'Provider completion is only a report from the assistant runtime. Review proposals, run verification, then approve or return the WorkCell.',
+    checks: [
+      { label: 'provider completion', ready: jobStatus === 'completed', detail: jobStatus || 'not reported' },
+      { label: 'proposal review', ready: true, detail: 'inspect Change Proposals below' },
+      { label: 'verification', ready: verified, detail: verification },
+      { label: 'human decision', ready: false, detail: 'approve or return after verification' },
     ],
   };
 }

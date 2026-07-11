@@ -553,6 +553,8 @@ class WorkCellRegistry:
         elif ack == "completed":
             job["status"] = "completed"
             job["completed_at"] = job.get("completed_at") or job["updated_at"]
+            job["review_required"] = True
+            job["verification_required"] = True
             execution.status = "awaiting_review"
         elif ack == "stopped":
             job["status"] = "stopped"
