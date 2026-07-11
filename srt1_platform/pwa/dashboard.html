@@ -3114,6 +3114,9 @@ function renderWorkCellDetail(payload, selectedExecution) {
         <div class="workcell-provider-readiness-grid" style="margin-top:8px;">
           ${providerResult.checks.map(check => `<span class="workcell-provider-check ${check.ready ? 'ready' : ''}">${check.ready ? 'ready' : 'needed'} ${escapeHtml(check.label)}: ${escapeHtml(check.detail)}</span>`).join('')}
         </div>
+        <div class="workcell-package-buttons" style="margin-top:10px;">
+          ${providerResult.actions.map(action => `<button type="button" class="workcell-package-btn" data-provider-result-action="${escapeHtml(action.action)}" data-provider-result-seed="${escapeHtml(selectedExecution.queue_seed_id || '')}">${escapeHtml(action.label)}</button>`).join('')}
+        </div>
       </div>
       <div class="workcell-package-buttons">
         <button type="button" class="workcell-package-btn" data-workcell-assistant-run="${escapeHtml(selectedExecution.queue_seed_id || '')}" ${canRunAssistant ? '' : 'disabled'}>Run with Assistant</button>
@@ -3203,6 +3206,13 @@ function renderWorkCellDetail(payload, selectedExecution) {
       button.dataset.workcellVerify,
       button,
       true
+    ));
+  });
+  detailEl.querySelectorAll('.workcell-package-btn[data-provider-result-action]').forEach(button => {
+    button.addEventListener('click', () => handleProviderResultAction(
+      button.dataset.providerResultAction,
+      button.dataset.providerResultSeed,
+      button
     ));
   });
   document.getElementById('workcellActivityOlder')?.addEventListener('click', event => {
@@ -3975,11 +3985,23 @@ function getProviderResultSummary(execution) {
     : (degradedCount || errorCount
       ? 'Provider response did not produce reviewable proposals. Inspect adapter status before retrying.'
       : 'No provider proposals are recorded yet. Dispatch a WorkCell or wait for adapter completion.');
+  const actions = [];
+  if (proposalCount > 0) {
+    actions.push({ action: 'review_proposals', label: 'Review Proposals' });
+  }
+  if (degradedCount || errorCount || !adapterEntries.length) {
+    actions.push({ action: 'add_session_key', label: 'Add Session Key' });
+    actions.push({ action: 'configure_adapters', label: 'Configure Adapters' });
+  }
+  if (!['completed', 'terminated', 'cancelled', 'stop_requested', 'pause_requested'].includes(execution?.status || 'ready')) {
+    actions.push({ action: 'retry_dispatch', label: proposalCount ? 'Run Again' : 'Retry Dispatch' });
+  }
 
   return {
     ready,
     status,
     message,
+    actions,
     checks: [
       { label: 'job status', ready: ['dispatched', 'completed'].includes(jobStatus), detail: jobStatus },
       { label: 'adapters', ready: adapterEntries.length > 0, detail: adapterSummary },
@@ -3988,6 +4010,24 @@ function getProviderResultSummary(execution) {
       { label: 'errors', ready: errorCount === 0, detail: String(errorCount) },
     ],
   };
+}
+
+function handleProviderResultAction(action, queueSeedId, button) {
+  if (action === 'add_session_key') {
+    openDashboardPanel('settings', 'api-keys', { hash: 'api-keys' });
+    return;
+  }
+  if (action === 'configure_adapters') {
+    openDashboardPanel('connections', 'assistant-adapters', { hash: 'assistant-adapters' });
+    return;
+  }
+  if (action === 'review_proposals') {
+    document.getElementById('workcellProposalList')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    return;
+  }
+  if (action === 'retry_dispatch') {
+    runWorkCellWithAssistant(queueSeedId, button);
+  }
 }
 
 function getProviderCompletionReviewState(execution) {
