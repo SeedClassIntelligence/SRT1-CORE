@@ -183,6 +183,46 @@ class WorkCellRuntimeTests(unittest.TestCase):
         self.assertEqual(current["activity_events"][1]["metadata"]["allowed_paths"], ["app.py"])
         self.assertEqual(runtime["execution"]["activity_events"], current["activity_events"])
 
+    def test_workcell_execution_job_registry_tracks_runtime_ownership(self):
+        with tempfile.TemporaryDirectory() as repo:
+            registry = WorkCellRegistry(repo_path=repo)
+            registry.activate_execution(
+                queue_seed_id="seed_job_registry",
+                objective="Track assistant job",
+                manifest={"file_manifest": [{"file_path": "app.py"}]},
+            )
+
+            started = registry.start_execution_job(
+                "seed_job_registry",
+                provider="openai",
+                adapter="openai_compatible",
+                cancellable=True,
+                hard_cancellable=False,
+                metadata={"api_key": "must-not-persist"},
+            )
+            job_id = started["job"]["job_id"]
+            updated = registry.update_execution_job(
+                "seed_job_registry",
+                job_id=job_id,
+                status="dispatched",
+                provider_acknowledged=True,
+                result={"secret": "must-not-persist"},
+            )
+            stopped = registry.control_execution("seed_job_registry", "stop")
+            current = registry.get_execution_for_seed("seed_job_registry")
+            registry_text = Path(repo, ".srt1", "workcells", "workcell_registry.json").read_text(encoding="utf-8")
+
+        self.assertEqual(started["status"], "registered")
+        self.assertEqual(updated["status"], "updated")
+        self.assertEqual(stopped["status"], "stop_requested")
+        self.assertEqual(current["current_execution_job"]["job_id"], job_id)
+        self.assertEqual(current["current_execution_job"]["provider"], "openai")
+        self.assertEqual(current["current_execution_job"]["status"], "stop_requested")
+        self.assertTrue(current["current_execution_job"]["stop_requested"])
+        self.assertFalse(current["current_execution_job"]["hard_cancellable"])
+        self.assertNotIn("must-not-persist", registry_text)
+        self.assertIn("[REDACTED]", registry_text)
+
     def test_old_workcell_registry_without_activity_events_still_loads(self):
         with tempfile.TemporaryDirectory() as repo:
             registry_dir = Path(repo) / ".srt1" / "workcells"
@@ -644,6 +684,8 @@ class WorkCellRuntimeTests(unittest.TestCase):
         self.assertIn("hard cancellable", html)
         self.assertIn("cooperative controls", html)
         self.assertIn("soft stop requested", html)
+        self.assertIn("job state", html)
+        self.assertIn("current_execution_job", html)
         self.assertIn("provider ack", html)
         self.assertIn("job handle", html)
         self.assertIn("Provider Execution Readiness", html)

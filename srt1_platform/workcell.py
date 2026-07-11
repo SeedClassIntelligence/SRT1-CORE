@@ -92,6 +92,8 @@ class WorkCellExecution:
     package_status: Dict[str, Any] = field(default_factory=dict)
     activity_events: List[Dict[str, Any]] = field(default_factory=list)
     activity_event_count: int = 0
+    execution_jobs: List[Dict[str, Any]] = field(default_factory=list)
+    current_execution_job_id: Optional[str] = None
     created_at: str = field(default_factory=_now)
     updated_at: str = field(default_factory=_now)
 
@@ -377,7 +379,132 @@ class WorkCellRegistry:
             return None
         data = execution.to_dict()
         data["package_status"] = self._build_package_status(execution)
+        data["current_execution_job"] = self._current_execution_job(execution)
         return data
+
+    def start_execution_job(
+        self,
+        queue_seed_id: str,
+        provider: str = "execution_bridge",
+        adapter: str = "assistant_adapter",
+        cancellable: bool = True,
+        hard_cancellable: bool = False,
+        runtime_port: Optional[int] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """Register one assistant/provider execution job for an active WorkCell."""
+        execution = self._executions.get(f"wcx_{_safe_slug(queue_seed_id)}")
+        if not execution:
+            return {"status": "not_found", "queue_seed_id": queue_seed_id}
+
+        created_at = _now()
+        job_id = "wcj_" + hashlib.sha1(
+            "|".join([
+                execution.workcell_execution_id,
+                str(provider or ""),
+                str(adapter or ""),
+                created_at,
+                str(len(execution.execution_jobs)),
+            ]).encode("utf-8")
+        ).hexdigest()[:12]
+        job = {
+            "job_id": job_id,
+            "queue_seed_id": queue_seed_id,
+            "workcell_execution_id": execution.workcell_execution_id,
+            "provider": str(provider or "execution_bridge"),
+            "adapter": str(adapter or "assistant_adapter"),
+            "status": "running",
+            "cancellable": bool(cancellable),
+            "hard_cancellable": bool(hard_cancellable),
+            "stop_requested": False,
+            "pause_requested": False,
+            "cancel_requested": False,
+            "provider_acknowledged": False,
+            "runtime_port": runtime_port,
+            "started_at": created_at,
+            "updated_at": created_at,
+            "completed_at": None,
+            "metadata": self._sanitize_activity_value(metadata or {}),
+        }
+        execution.execution_jobs.append(job)
+        execution.execution_jobs = execution.execution_jobs[-50:]
+        execution.current_execution_job_id = job_id
+        execution.status = "running"
+        self._append_activity_event(
+            execution,
+            event_type="execution_job.started",
+            status="running",
+            actor="execution_bridge",
+            message="Assistant execution job registered for WorkCell.",
+            metadata={
+                "job_id": job_id,
+                "provider": job["provider"],
+                "adapter": job["adapter"],
+                "cancellable": job["cancellable"],
+                "hard_cancellable": job["hard_cancellable"],
+            },
+        )
+        self._write_runtime_state(self._workcells[execution.workcell_id], execution)
+        self._save()
+        return {
+            "status": "registered",
+            "queue_seed_id": queue_seed_id,
+            "job": job,
+        }
+
+    def update_execution_job(
+        self,
+        queue_seed_id: str,
+        job_id: Optional[str] = None,
+        status: Optional[str] = None,
+        provider_acknowledged: Optional[bool] = None,
+        result: Optional[Dict[str, Any]] = None,
+        error: str = "",
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """Update the current assistant/provider job without owning provider internals."""
+        execution = self._executions.get(f"wcx_{_safe_slug(queue_seed_id)}")
+        if not execution:
+            return {"status": "not_found", "queue_seed_id": queue_seed_id}
+        job = self._find_execution_job(execution, job_id)
+        if not job:
+            return {"status": "not_found", "queue_seed_id": queue_seed_id, "job_id": job_id}
+
+        now = _now()
+        if status:
+            job["status"] = str(status)
+        if provider_acknowledged is not None:
+            job["provider_acknowledged"] = bool(provider_acknowledged)
+        if result is not None:
+            job["result"] = self._sanitize_activity_value(result)
+        if error:
+            job["error"] = self._sanitize_activity_value(str(error))
+        if metadata:
+            existing = job.get("metadata") if isinstance(job.get("metadata"), dict) else {}
+            existing.update(self._sanitize_activity_value(metadata))
+            job["metadata"] = existing
+        job["updated_at"] = now
+        if job.get("status") in {"dispatched", "failed", "blocked", "completed", "cancelled"}:
+            job["completed_at"] = job.get("completed_at") or now
+        self._append_activity_event(
+            execution,
+            event_type="execution_job.updated",
+            status=str(job.get("status") or "updated"),
+            actor="execution_bridge",
+            message=f"Assistant execution job {job.get('status', 'updated')}.",
+            metadata={
+                "job_id": job.get("job_id"),
+                "provider_acknowledged": job.get("provider_acknowledged"),
+                "error": job.get("error", ""),
+            },
+        )
+        self._write_runtime_state(self._workcells[execution.workcell_id], execution)
+        self._save()
+        return {
+            "status": "updated",
+            "queue_seed_id": queue_seed_id,
+            "job": job,
+        }
 
     def record_execution_event(
         self,
@@ -511,6 +638,12 @@ class WorkCellRegistry:
             }
 
         execution.status = target
+        current_job = self._current_execution_job(execution)
+        if current_job and action in {"pause", "stop", "cancel"}:
+            current_job[f"{action}_requested"] = True
+            current_job["provider_acknowledged"] = False
+            current_job["status"] = f"{action}_requested"
+            current_job["updated_at"] = _now()
         event = self._append_activity_event(
             execution,
             event_type=f"execution.{action}",
@@ -521,6 +654,8 @@ class WorkCellRegistry:
                 "requested_action": action,
                 "previous_status": previous_status,
                 "requires_runtime_ack": action in {"pause", "stop", "cancel"},
+                "execution_job_id": current_job.get("job_id") if current_job else None,
+                "hard_cancellable": current_job.get("hard_cancellable") if current_job else False,
             },
         )
         self._write_runtime_state(self._workcells[execution.workcell_id], execution)
@@ -677,6 +812,24 @@ class WorkCellRegistry:
         if value is None or isinstance(value, (bool, int, float)):
             return value
         return str(value)[:1000]
+
+    def _current_execution_job(self, execution: WorkCellExecution) -> Optional[Dict[str, Any]]:
+        return self._find_execution_job(execution, execution.current_execution_job_id)
+
+    def _find_execution_job(
+        self,
+        execution: WorkCellExecution,
+        job_id: Optional[str] = None,
+    ) -> Optional[Dict[str, Any]]:
+        jobs = execution.execution_jobs or []
+        if not jobs:
+            return None
+        target = job_id or execution.current_execution_job_id
+        if target:
+            for job in reversed(jobs):
+                if job.get("job_id") == target:
+                    return job
+        return jobs[-1]
 
     def _append_activity_event(
         self,

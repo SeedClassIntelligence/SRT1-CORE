@@ -2224,22 +2224,43 @@ class SRT1Engine:
             # Auto-dispatch through execution bridge (in background thread)
             if auto_dispatch and self.bridge:
                 def _dispatch_async(sid, t):
+                    job_id = None
                     try:
                         allowed_paths = self._get_workcell_allowed_paths(workcell_execution)
                         registry = self._get_workcell_registry()
                         if registry:
+                            job_result = registry.start_execution_job(
+                                sid,
+                                provider=credential_context["provider"] or "execution_bridge",
+                                adapter="assistant_adapter",
+                                cancellable=True,
+                                hard_cancellable=False,
+                                runtime_port=(workcell_execution or {}).get("runtime_port"),
+                                metadata={
+                                    "allowed_paths": allowed_paths,
+                                    "credential_mode": credential_context["mode"],
+                                    "credential_providers": credential_context["providers"],
+                                },
+                            )
+                            job_id = (job_result.get("job") or {}).get("job_id")
                             registry.record_execution_event(
                                 sid,
                                 event_type="assistant.dispatch_started",
                                 status="running",
                                 actor="execution_bridge",
                                 message="Assistant dispatch entered WorkCell runtime governor.",
-                                metadata={"allowed_paths": allowed_paths},
+                                metadata={"allowed_paths": allowed_paths, "execution_job_id": job_id},
                                 execution_status="running",
                             )
                         guard = self._check_workcell_dispatch_guard(sid, allowed_paths)
                         if not guard.get("allowed"):
                             if registry:
+                                registry.update_execution_job(
+                                    sid,
+                                    job_id=job_id,
+                                    status="blocked",
+                                    metadata=guard,
+                                )
                                 registry.record_execution_event(
                                     sid,
                                     event_type="assistant.dispatch_blocked",
@@ -2261,6 +2282,12 @@ class SRT1Engine:
                         guard = self._check_workcell_dispatch_guard(sid, allowed_paths)
                         if not guard.get("allowed"):
                             if registry:
+                                registry.update_execution_job(
+                                    sid,
+                                    job_id=job_id,
+                                    status="blocked",
+                                    metadata=guard,
+                                )
                                 registry.record_execution_event(
                                     sid,
                                     event_type="assistant.dispatch_blocked",
@@ -2296,6 +2323,16 @@ class SRT1Engine:
                         )
                         registry = self._get_workcell_registry()
                         if registry:
+                            registry.update_execution_job(
+                                sid,
+                                job_id=job_id,
+                                status="dispatched",
+                                provider_acknowledged=dispatch_result.get("dispatched", False),
+                                result={
+                                    "methods": dispatch_result.get("methods", {}),
+                                    "dispatched": dispatch_result.get("dispatched", False),
+                                },
+                            )
                             registry.record_execution_event(
                                 sid,
                                 event_type="assistant.dispatched",
@@ -2314,6 +2351,12 @@ class SRT1Engine:
                     except Exception as e:
                         registry = self._get_workcell_registry()
                         if registry:
+                            registry.update_execution_job(
+                                sid,
+                                job_id=job_id,
+                                status="failed",
+                                error=str(e),
+                            )
                             registry.record_execution_event(
                                 sid,
                                 event_type="assistant.dispatch_failed",

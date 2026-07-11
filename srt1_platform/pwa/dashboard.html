@@ -3716,17 +3716,23 @@ function getProviderExecutionReadiness(workcell, packageStatus, executionStatus)
 
 function getWorkCellExecutionControlTruth(execution) {
   const status = execution?.status || 'ready';
+  const currentJob = execution?.current_execution_job
+    || (Array.isArray(execution?.execution_jobs) && execution.execution_jobs.length
+      ? execution.execution_jobs[execution.execution_jobs.length - 1]
+      : null);
   const finalStates = ['completed', 'terminated', 'cancelled', 'returned'];
   const pendingStates = ['pause_requested', 'stop_requested'];
   const hasRuntimePort = !!execution?.runtime_port;
   const hasJobHandle = !!(
-    execution?.runtime_job_id
+    currentJob?.job_id
+    || execution?.runtime_job_id
     || execution?.provider_job_id
     || execution?.process_id
     || execution?.pid
   );
-  const provider = execution?.assigned_agent || execution?.assistant_provider || 'assistant adapter';
-  const hardControl = hasRuntimePort && hasJobHandle;
+  const provider = currentJob?.provider || execution?.assigned_agent || execution?.assistant_provider || 'assistant adapter';
+  const hardControl = currentJob?.hard_cancellable === true || (hasRuntimePort && hasJobHandle && currentJob?.hard_cancellable !== false);
+  const jobStatus = currentJob?.status || 'not registered';
   let mode = 'cooperative controls';
   let summary = 'Pause, stop, and cancel are recorded in SRT-1 and sent to adapters. External providers must acknowledge them.';
   if (hardControl) {
@@ -3754,10 +3760,11 @@ function getWorkCellExecutionControlTruth(execution) {
     className: pendingStates.includes(status) ? 'pending' : (finalStates.includes(status) ? 'final' : ''),
     checks: [
       { label: 'lifecycle state', value: status },
+      { label: 'job state', value: jobStatus },
       { label: 'runtime control', value: hardControl ? 'hard cancellable' : 'cooperative' },
-      { label: 'provider ack', value: pendingStates.includes(status) ? 'pending' : 'not required yet' },
-      { label: 'job handle', value: hasJobHandle ? 'registered' : 'not registered' },
-      { label: 'runtime port', value: hasRuntimePort ? String(execution.runtime_port) : 'repository' },
+      { label: 'provider ack', value: currentJob?.provider_acknowledged ? 'acknowledged' : (pendingStates.includes(status) || String(jobStatus).includes('requested') ? 'pending' : 'not required yet') },
+      { label: 'job handle', value: currentJob?.job_id || (hasJobHandle ? 'registered' : 'not registered') },
+      { label: 'runtime port', value: currentJob?.runtime_port || (hasRuntimePort ? String(execution.runtime_port) : 'repository') },
       { label: 'adapter', value: provider },
     ],
   };
