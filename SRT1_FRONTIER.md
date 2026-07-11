@@ -3,27 +3,25 @@
 ## Current Stabilization Phase
 
 - Organism Stabilization Plateau 1: ACTIVE
-- Posture: Documentation and boundary alignment only
-- Capability escalation: PAUSED
-- Code movement: PAUSED
-- PWA canonicalization: WAITING FOR APPROVAL
+- Posture: Product verification and release hardening
+- Capability escalation: CONTROLLED
+- Code movement: PAUSED except narrow release fixes
+- PWA canonicalization: CANONICAL PUBLIC CORE PWA IS `srt1_platform/pwa/`
 - Private/Enterprise exposure: FORBIDDEN
 
-## Primary Frontier: Public Boundary Stabilization
+## Primary Frontier: Public Core Release Readiness
 
-Status: COMPLETE ENOUGH FOR PRODUCT VERIFICATION
+Status: ACTIVE
 
-The immediate frontier is making public-facing documentation match the recovered SRT-1 authority model before additional implementation work occurs.
+The immediate frontier is validating that public Core can be installed, launched, opened in the dashboard, register repositories, create WorkCells/FileCells, dispatch bounded WorkCell requests, review provider proposals, apply approved changes through guards, verify results, and keep private/Enterprise implementations excluded.
 
 SRT-1 is a repo-continuity and alignment partner for AI coding assistants. Public Core must describe local repo understanding, continuity, reflection, recall, reinjection, context isolation, verification, human co-creation, constellation awareness, and trust awareness without implying that private Enterprise systems ship in Core.
 
-## Primary Product Frontier: Repository Activation
+## Product Frontier: Repository Activation
 
-Status: NEXT
+Status: ACTIVE
 
-SRT-1 currently has a working single-repository runtime, Repo Understanding, WorkCell registry, FileCell summaries, WorkCell cockpit, package readiness, and workcell.md preview. The missing first-run product layer is Repository Activation.
-
-The product should not ask a first-time user to plant a seed before SRT-1 knows which repository it manages. The next product slice should introduce a Repository Manager that can register a local repository, activate it, run or reuse Repository Understanding, and then present FileCells and WorkCells through the PWA.
+SRT-1 currently has a working single-repository runtime, Repository Manager, Repo Understanding, WorkCell registry, FileCell summaries, WorkCell cockpit, package readiness, workcell.md preview, provider execution readiness, selected-WorkCell dispatch, provider result visibility, ChangeProposal review/apply, verification trigger, and review decision timeline.
 
 Expected first-run flow:
 
@@ -48,27 +46,27 @@ Launch SRT-1
 -> Plant Seed
 ```
 
-## Secondary Frontier: Continuity Consistency Auditing
+## Secondary Frontier: Release Hardening
 
-Status: NOT YET IMPLEMENTED
+Status: NEXT
 
-The organism can serve, compress, classify freshness, and observe drift in continuity memory. It still needs detective-only verification that canonical memory matches runtime topology.
+The product loop now needs hardening around broader smoke tests, docs truth, package install re-test, dashboard UX pass, and GitHub push/tag preparation. This frontier must preserve the Core/private boundary and must not reintroduce private signing, private memory/security, SION internals, or Enterprise backend code.
 
-This frontier must detect divergence between canonical documents and physical reality. It must never self-correct, auto-remediate, rewrite canonical memory, merge code, or control execution.
-
-| Check | Example Divergence |
+| Check | Release concern |
 | --- | --- |
-| Route existence | `SRT1_CURRENT_STATE.md` claims a subsystem exists but the route/endpoint is missing |
-| Import boundary | `SRT1_DECISIONS.md` says no private dependency but code imports private implementation |
-| Mutation surface | PWA is documented as review-only but gains a mutation endpoint |
-| Feature state | `SRT1_FRONTIER.md` says a feature is paused but runtime path is active |
-| Context leakage | MCP tier claims bounded context but injects historical walkthroughs by default |
-| Freshness alignment | Canonical freshness is FRESH but manifest hash has changed |
+| Full test suite | `python -m unittest discover -s tests` must pass |
+| Package build | `python -m build` must produce wheel/sdist without private modules |
+| Package install | Wheel install smoke must verify CLI entrypoints and dashboard assets |
+| Runtime smoke | Dashboard must open and show Repository Manager, WorkCells, provider result controls |
+| Boundary scan | Staged/public package must exclude private audit/signing, SCIA memory/security, SION internals, and Enterprise backend |
 
 ## Boundary Backlog
 
-- Add Repository Activation and Repository Manager as the first-run PWA/API layer.
-- Stabilize seed lifecycle and build-plan continuity state.
+- Re-test package install from built wheel in a clean environment.
+- Run dashboard smoke after package install.
+- Verify README/website copy reflects bounded WorkCell execution and provider proposal review.
+- Decide whether local CAS collaboration doctrine remains user-local only or becomes a public SRT-1 doctrine later.
+- Push signed/attributed Core commits when boundary scan is clean.
 - Stabilize recall as approved summaries and targeted historical evidence retrieval.
 - Decouple FileCell, manifest derivation, verification, and operational registry candidates from private signing, SION, and private ledger assumptions before staging.
 - Decide canonical PWA source before moving or consolidating dashboard files.

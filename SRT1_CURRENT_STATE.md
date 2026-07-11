@@ -17,19 +17,19 @@ SRT-1 is a repo-continuity and alignment partner for AI coding assistants. It he
 
 Core includes local repo understanding, continuity, reflection, recall, reinjection, context isolation, verification, human co-creation, constellation awareness, and trust awareness.
 
-Repository Activation is now recognized as the missing product bootstrapping layer. SRT-1 must first register or select the local repository it manages, then run Repository Understanding, then expose FileCells and WorkCells. Without this layer, the product starts in the middle of the lifecycle.
+Repository Activation is now a working product bootstrapping layer. SRT-1 can register or select the local repository it manages, run Repository Understanding, and expose FileCells and WorkCells through the dashboard cockpit.
 
 ## 2. Public Core Authority State
 
-- Repository Activation: MISSING / NEXT. First-run Repository Manager, repository registry, active repository selection, and repository freshness loading are not yet complete product surfaces.
+- Repository Activation: ACTIVE. Repository Manager, repository registry, active repository selection, launch/stop runtime controls, and repository readiness loading exist as public Core product surfaces.
 - Repo Understanding: ACTIVE. Supports local indexing, AST/parser work, file hashing, symbol/dependency mapping, and manifest generation.
-- Continuity: PARTIAL. Seed lifecycle and build-plan state exist as public candidates and must be stabilized around active/pending/completed/terminated and partial-completion states.
+- Continuity: ACTIVE / ADVANCING. Queue seed identity is canonical lifecycle truth; SRT anchors remain reflection/coherence metadata. WorkCell execution jobs, review states, completion metadata, and human decisions are recorded.
 - Reflection: ACTIVE / OBSERVATIONAL ONLY. Drift detection, doctrine scanning, consistency auditing, and coherence checkpoints may report divergence but must not self-correct.
-- Recall: PARTIAL. Canonical continuity docs exist; historical walkthroughs remain archival evidence and are not injected by default.
-- Reinjection: PARTIAL. AGENTS.md, CLAUDE.md, Cursor context, MCP, and local APIs are valid reinjection surfaces.
-- Context Isolation: PARTIAL / ADVANCING. FileCell is a local containment concept, not a private-runtime-only concept. WorkCell registry, package readiness, FileCell summaries, and workcell.md preview now exist; Repository Activation must precede them in the first-run user flow.
-- Verification: PARTIAL. Verification and stitch preparation are public Core/Pro candidates when decoupled from private signing, SION, and private ledger implementation.
-- Human Co-Creation: PARTIAL / ADVANCING. Dashboard/PWA surfaces exist as observability/review surfaces, not direct controllers. The PWA now needs a Repository Manager before the WorkCell cockpit for first-time users.
+- Recall: ACTIVE / ADVANCING. RecallPacket-shaped context and manifest candidates are used as the normal handoff shape into Reinjection; private memory remains optional and fail-closed.
+- Reinjection: ACTIVE / ADVANCING. AGENTS.md, CLAUDE.md, Cursor context, MCP, local APIs, and packet-shaped context delivery are valid reinjection surfaces.
+- Context Isolation: ACTIVE / ADVANCING. FileCell is a local containment concept, not a private-runtime-only concept. WorkCell registry, package readiness, FileCell summaries, workcell.md preview, allowed paths, and write guards exist.
+- Verification: ACTIVE / ADVANCING. ChangeProposal review/apply, WorkCell write validation, verification trigger, and post-apply verification evidence exist as public Core surfaces.
+- Human Co-Creation: ACTIVE / ADVANCING. Dashboard/PWA surfaces observe, dispatch bounded WorkCell requests, review proposals, run verification, approve completion, return work for revision, and stop/pause/cancel WorkCell jobs. They do not grant raw autonomous repository mutation outside WorkCell guards.
 - Constellation: PARTIAL. Workspace connector and registry work should federate independent engines without shared context by default.
 - Trust Awareness: VOCABULARY ONLY IN CORE. Core may understand signed/unsigned, verified/unverified, and lineage present/missing states.
 
@@ -58,4 +58,4 @@ Private/external systems are optional integrations and must fail closed when una
 
 ## 5. Active Constraint
 
-SRT-1 Core remains detective-first during Plateau 1. It may observe, classify, warn, propose, and verify. It must not autonomously merge, self-heal, remediate, or execute code changes.
+SRT-1 Core remains guardrail-first during Plateau 1. It may observe, classify, warn, propose, dispatch bounded WorkCell requests, apply approved ChangeProposals through WorkCell guards, and verify. It must not autonomously merge, self-heal, remediate, or mutate code outside approved WorkCell proposal paths.

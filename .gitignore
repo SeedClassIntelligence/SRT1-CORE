@@ -59,6 +59,7 @@ srt1_backend/storage/
 # IDE
 .vscode/
 .idea/
+.agents/
 
 # OS
 Thumbs.db

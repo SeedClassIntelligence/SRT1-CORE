@@ -70,7 +70,7 @@ Install SRT-1
 -> Verification and human review
 ```
 
-The current implementation has a working single-repository runtime, manifest/indexing capabilities, WorkCell registry, WorkCell cockpit, FileCell summaries, and WorkCell package preview. The missing first-run product layer is the Repository Manager: a PWA/API surface for registering, activating, refreshing, and reopening repositories without returning to the operating system file picker after first setup.
+The current implementation has a working single-repository runtime, manifest/indexing capabilities, Repository Manager, WorkCell registry, WorkCell cockpit, FileCell summaries, WorkCell package preview, provider execution readiness, selected-WorkCell dispatch, provider result visibility, ChangeProposal review/apply, verification trigger, and review decision timeline.
 
 ## Build / Test / Package Commands
 
@@ -93,6 +93,25 @@ srt1-index --repo_path ./
 ```
 
 If working directly from source, use the repo's current local engine entrypoint only after confirming it belongs to public Core and does not import private signing, SCIA memory/security, SION, or private audit implementation.
+
+## Release Validation
+
+Before push/tag:
+
+```bash
+python -m unittest discover -s tests
+python -m compileall -q srt1_code_indexer srt1_platform srt1_pro
+python -m build
+```
+
+Then install the built wheel into a clean environment and smoke-test:
+
+- `srt1 --help`
+- `srt1-index --help`
+- local dashboard route loads
+- Repository Manager is visible
+- WorkCell cockpit shows provider execution readiness and provider result actions
+- private/Enterprise paths remain excluded from the wheel
 
 ## Core-Only Validation Checks
 
