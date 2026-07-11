@@ -160,6 +160,10 @@ class FileHandoffAssistantAdapter(BaseAssistantAdapter):
             "- Stay inside allowed paths unless the human expands scope.",
             "- Do not use neighboring files as permission to broaden context.",
             "- Return completion through the SRT-1 completion signal.",
+            "- Report runtime acknowledgement through the SRT-1 acknowledgement endpoint when available.",
+            "",
+            "## Runtime Acknowledgement",
+            request.metadata.get("runtime_ack_endpoint") or "Not available",
             "",
             "## Allowed Paths",
             *[f"- {path}" for path in allowed],
@@ -339,6 +343,7 @@ class OpenAICompatibleAssistantAdapter(BaseAssistantAdapter):
             "completion_signal_path": request.completion_signal_path,
             "trust_state": dict(request.trust_state),
             "runtime_controls": request.metadata.get("runtime_control_endpoints", {}),
+            "runtime_ack_endpoint": request.metadata.get("runtime_ack_endpoint"),
             "write_validation_endpoint": request.metadata.get("write_validation_endpoint"),
             "required_response_contract": {
                 "return_proposed_changes_only": True,

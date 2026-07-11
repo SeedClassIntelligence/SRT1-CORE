@@ -232,6 +232,7 @@ class ExecutionBridgeCoreTests(unittest.TestCase):
         self.assertEqual(captured["credential_provider"], "openai")
         self.assertIn("app.py", captured["body"])
         self.assertIn("validate-writes", captured["body"])
+        self.assertIn("runtime_ack_endpoint", captured["body"])
         self.assertIn("proposed_changes", captured["body"])
         self.assertIn("new_content", captured["body"])
         self.assertIn("must_respect_pause_stop_cancel", captured["body"])

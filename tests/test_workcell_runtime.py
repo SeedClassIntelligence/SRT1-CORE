@@ -223,6 +223,43 @@ class WorkCellRuntimeTests(unittest.TestCase):
         self.assertNotIn("must-not-persist", registry_text)
         self.assertIn("[REDACTED]", registry_text)
 
+    def test_provider_acknowledgement_updates_current_execution_job(self):
+        with tempfile.TemporaryDirectory() as repo:
+            registry = WorkCellRegistry(repo_path=repo)
+            registry.activate_execution(
+                queue_seed_id="seed_ack",
+                objective="Acknowledge assistant runtime",
+                manifest={"file_manifest": [{"file_path": "app.py"}]},
+            )
+            started = registry.start_execution_job(
+                "seed_ack",
+                provider="openai",
+                adapter="openai_compatible",
+            )
+            job_id = started["job"]["job_id"]
+            registry.control_execution("seed_ack", "stop")
+
+            ack = registry.acknowledge_execution_job(
+                "seed_ack",
+                job_id=job_id,
+                acknowledgement="stopping",
+                actor="provider_runtime",
+                metadata={"authorization": "Bearer must-not-persist"},
+            )
+            current = registry.get_execution_for_seed("seed_ack")
+            registry_text = Path(repo, ".srt1", "workcells", "workcell_registry.json").read_text(encoding="utf-8")
+
+        self.assertEqual(ack["status"], "acknowledged")
+        self.assertEqual(ack["acknowledgement"], "stopping")
+        self.assertEqual(current["current_execution_job"]["acknowledgement"], "stopping")
+        self.assertEqual(current["current_execution_job"]["status"], "stopping")
+        self.assertTrue(current["current_execution_job"]["provider_acknowledged"])
+        self.assertTrue(
+            any(event["event_type"] == "execution_job.acknowledged" for event in current["activity_events"])
+        )
+        self.assertNotIn("must-not-persist", registry_text)
+        self.assertIn("[REDACTED]", registry_text)
+
     def test_old_workcell_registry_without_activity_events_still_loads(self):
         with tempfile.TemporaryDirectory() as repo:
             registry_dir = Path(repo) / ".srt1" / "workcells"
@@ -678,6 +715,7 @@ class WorkCellRuntimeTests(unittest.TestCase):
         self.assertIn("Cancel WorkCell", html)
         self.assertIn("Request stop", html)
         self.assertIn("validate-writes", html)
+        self.assertIn("/ack", html)
         self.assertIn("Run with Assistant", html)
         self.assertIn("Execution Control Truth", html)
         self.assertIn("getWorkCellExecutionControlTruth", html)

@@ -506,6 +506,84 @@ class WorkCellRegistry:
             "job": job,
         }
 
+    def acknowledge_execution_job(
+        self,
+        queue_seed_id: str,
+        job_id: Optional[str] = None,
+        acknowledgement: str = "acknowledged",
+        actor: str = "assistant_runtime",
+        message: str = "",
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """Record a provider/runtime acknowledgement for the active WorkCell job."""
+        allowed = {
+            "acknowledged",
+            "stopping",
+            "stopped",
+            "paused",
+            "resumed",
+            "failed",
+            "completed",
+        }
+        ack = str(acknowledgement or "acknowledged").strip().lower()
+        if ack not in allowed:
+            return {
+                "status": "invalid_acknowledgement",
+                "queue_seed_id": queue_seed_id,
+                "error": "Supported acknowledgements: acknowledged, stopping, stopped, paused, resumed, failed, completed.",
+            }
+        execution = self._executions.get(f"wcx_{_safe_slug(queue_seed_id)}")
+        if not execution:
+            return {"status": "not_found", "queue_seed_id": queue_seed_id}
+        job = self._find_execution_job(execution, job_id)
+        if not job:
+            return {"status": "not_found", "queue_seed_id": queue_seed_id, "job_id": job_id}
+
+        job["provider_acknowledged"] = True
+        job["acknowledgement"] = ack
+        job["updated_at"] = _now()
+        if ack in {"stopping", "stopped"}:
+            job["stop_requested"] = True
+        if ack == "paused":
+            job["pause_requested"] = True
+        if ack == "failed":
+            job["status"] = "failed"
+            job["completed_at"] = job.get("completed_at") or job["updated_at"]
+        elif ack == "completed":
+            job["status"] = "completed"
+            job["completed_at"] = job.get("completed_at") or job["updated_at"]
+        elif ack == "stopped":
+            job["status"] = "stopped"
+            job["completed_at"] = job.get("completed_at") or job["updated_at"]
+        elif ack in {"stopping", "paused"}:
+            job["status"] = ack
+        elif ack == "resumed":
+            job["status"] = "running"
+
+        event = self._append_activity_event(
+            execution,
+            event_type="execution_job.acknowledged",
+            status=ack,
+            actor=actor,
+            message=message or f"Assistant runtime acknowledged job as {ack}.",
+            metadata={
+                "job_id": job.get("job_id"),
+                "acknowledgement": ack,
+                "job_status": job.get("status"),
+                "metadata": self._sanitize_activity_value(metadata or {}),
+            },
+        )
+        self._write_runtime_state(self._workcells[execution.workcell_id], execution)
+        self._save()
+        return {
+            "status": "acknowledged",
+            "acknowledgement": ack,
+            "queue_seed_id": queue_seed_id,
+            "job": job,
+            "execution": execution.to_dict(),
+            "event": event,
+        }
+
     def record_execution_event(
         self,
         queue_seed_id: str,

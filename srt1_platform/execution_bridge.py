@@ -477,6 +477,7 @@ class SCIADispatchBridge:
                 "credential_provider": execution_context.get("credential_provider") or "",
                 "credential_providers": list(execution_context.get("credential_providers") or []),
                 "write_validation_endpoint": f"/api/v1/workcells/{seed_id}/validate-writes",
+                "runtime_ack_endpoint": f"/api/v1/workcells/{seed_id}/ack",
                 "runtime_control_endpoints": {
                     "pause": f"/api/v1/workcells/{seed_id}/pause",
                     "stop": f"/api/v1/workcells/{seed_id}/stop",

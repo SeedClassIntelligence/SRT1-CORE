@@ -199,6 +199,18 @@ class AssistantAdapterSurfaceTests(unittest.TestCase):
         self.assertIn("seed_data = seed_data.to_dict()", source)
         self.assertIn('"secret_persisted": False', source)
 
+    def test_engine_exposes_provider_acknowledgement_route(self):
+        source = (
+            Path(__file__).resolve().parents[1]
+            / "srt1_code_indexer"
+            / "engine.py"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn('path.endswith("/ack")', source)
+        self.assertIn("_acknowledge_workcell_execution_job", source)
+        self.assertIn('body.get("acknowledgement")', source)
+        self.assertIn("invalid_acknowledgement", source)
+
 
 if __name__ == "__main__":
     unittest.main()

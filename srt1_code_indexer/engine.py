@@ -2471,6 +2471,29 @@ class SRT1Engine:
             return {"error": "WorkCell registry unavailable", "status": "error"}
         return registry.control_execution(queue_seed_id, action, actor=actor, reason=reason)
 
+    def _acknowledge_workcell_execution_job(
+        self,
+        queue_seed_id: Optional[str],
+        acknowledgement: str,
+        job_id: Optional[str] = None,
+        actor: str = "assistant_runtime",
+        message: str = "",
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        if not queue_seed_id:
+            return {"error": "queue_seed_id is required", "status": "error"}
+        registry = self._get_workcell_registry()
+        if not registry:
+            return {"error": "WorkCell registry unavailable", "status": "error"}
+        return registry.acknowledge_execution_job(
+            queue_seed_id,
+            job_id=job_id,
+            acknowledgement=acknowledgement,
+            actor=actor,
+            message=message,
+            metadata=metadata,
+        )
+
     def _get_change_proposal_store(self):
         if ChangeProposalStore is None:
             return None
@@ -4912,6 +4935,21 @@ class SRT1Engine:
                     )
                     status_code = 200 if result.get("status") not in {
                         "error", "not_found", "invalid_action", "blocked"
+                    } else 409
+                    return self._json(result, status_code)
+
+                elif path.startswith("/api/v1/workcells/") and path.endswith("/ack"):
+                    queue_seed_id = path[len("/api/v1/workcells/"):-len("/ack")].strip("/")
+                    result = engine._acknowledge_workcell_execution_job(
+                        queue_seed_id,
+                        acknowledgement=body.get("acknowledgement") or body.get("status") or "acknowledged",
+                        job_id=body.get("job_id"),
+                        actor=body.get("actor") or "assistant_runtime",
+                        message=body.get("message") or "",
+                        metadata=body.get("metadata") if isinstance(body.get("metadata"), dict) else {},
+                    )
+                    status_code = 200 if result.get("status") not in {
+                        "error", "not_found", "invalid_acknowledgement"
                     } else 409
                     return self._json(result, status_code)
 

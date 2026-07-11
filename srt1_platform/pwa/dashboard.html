@@ -2961,7 +2961,7 @@ function renderWorkCellDetail(payload, selectedExecution) {
         <div class="workcell-package-title">Execution Controls</div>
         <div class="workcell-package-status ${executionStatus === 'completed' ? 'ready' : ''}">${escapeHtml(executionStatus)}</div>
       </div>
-      <div style="font-size:11px;color:var(--text4);line-height:1.45;margin-bottom:8px;">Assistant runtimes must validate proposed writes through /api/v1/workcells/{queue_seed_id}/validate-writes before changing files. Pause, stop, and cancel requests are written to the WorkCell timeline for assistant adapters to honor.</div>
+      <div style="font-size:11px;color:var(--text4);line-height:1.45;margin-bottom:8px;">Assistant runtimes must validate proposed writes through /api/v1/workcells/{queue_seed_id}/validate-writes before changing files. Pause, stop, and cancel requests are written to the WorkCell timeline for assistant adapters to honor. Provider runtimes report acknowledgement through /api/v1/workcells/{queue_seed_id}/ack.</div>
       <div class="workcell-control-truth ${controlTruth.className}">
         <div class="workcell-control-truth-head">
           <div class="workcell-control-truth-title">Execution Control Truth</div>
