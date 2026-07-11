@@ -333,6 +333,38 @@ class WorkCellRuntimeTests(unittest.TestCase):
             any(event["event_type"] == "verification.completed" for event in current["activity_events"])
         )
 
+    def test_human_completion_decision_records_review_timeline(self):
+        with tempfile.TemporaryDirectory() as repo:
+            registry = WorkCellRegistry(repo_path=repo)
+            registry.activate_execution(
+                queue_seed_id="seed_human_decision",
+                objective="Approve verified provider work",
+                manifest={"file_manifest": [{"file_path": "app.py"}]},
+            )
+            registry.record_verification(
+                "seed_human_decision",
+                verified=True,
+                actor="dashboard_human",
+                details={"method": "manual_core_verification"},
+            )
+
+            result = registry.control_execution(
+                "seed_human_decision",
+                "approve",
+                actor="dashboard_human",
+            )
+            current = registry.get_execution_for_seed("seed_human_decision")
+
+        self.assertEqual(result["status"], "completed")
+        self.assertEqual(current["status"], "completed")
+        decision_event = [
+            event for event in current["activity_events"]
+            if event["event_type"] == "execution.approve"
+        ][-1]
+        self.assertEqual(decision_event["message"], "Human accepted verified WorkCell completion.")
+        self.assertEqual(decision_event["metadata"]["human_decision"], "approve")
+        self.assertEqual(decision_event["metadata"]["verification_state"], "verified")
+
     def test_old_workcell_registry_without_activity_events_still_loads(self):
         with tempfile.TemporaryDirectory() as repo:
             registry_dir = Path(repo) / ".srt1" / "workcells"
@@ -810,6 +842,10 @@ class WorkCellRuntimeTests(unittest.TestCase):
         self.assertIn("verifyWorkCell", html)
         self.assertIn("data-workcell-verify", html)
         self.assertIn("/verify", html)
+        self.assertIn("Verification evidence is recorded", html)
+        self.assertIn("Verification passed", html)
+        self.assertIn("Completion approved", html)
+        self.assertIn("Returned for revision", html)
         self.assertIn("ready for human decision", html)
         self.assertIn("review required", html)
         self.assertIn("inspect Change Proposals below", html)

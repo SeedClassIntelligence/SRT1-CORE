@@ -2808,6 +2808,30 @@ function describeWorkCellActivityEvent(event) {
       meta: `${actor} - ${status}${jobId ? ' - job ' + jobId : ''}`,
     };
   }
+  if (type === 'verification.completed') {
+    const passed = status === 'verified';
+    return {
+      type: passed ? 'Verification passed' : 'Verification failed',
+      message: passed
+        ? 'SRT-1 recorded verification evidence. Human approval is now allowed.'
+        : 'SRT-1 recorded failed verification and returned the WorkCell for revision.',
+      meta: `${actor} - ${status}${metadata.method ? ' - ' + metadata.method : ''}`,
+    };
+  }
+  if (type === 'execution.approve') {
+    return {
+      type: 'Completion approved',
+      message: event?.message || 'Human accepted verified WorkCell completion.',
+      meta: `${actor} - ${status} - verification ${metadata.verification_state || 'unknown'}`,
+    };
+  }
+  if (type === 'execution.reject') {
+    return {
+      type: 'Returned for revision',
+      message: event?.message || 'Human returned the WorkCell for revision.',
+      meta: `${actor} - ${status} - verification ${metadata.verification_state || 'unknown'}`,
+    };
+  }
   if (type === 'execution_job.acknowledged') {
     const ack = metadata.acknowledgement || status;
     const labels = {
@@ -3104,6 +3128,7 @@ function renderWorkCellDetail(payload, selectedExecution) {
         <div class="workcell-package-status ${completionReview.ready ? 'ready' : ''}">${escapeHtml(completionReview.status)}</div>
       </div>
       <div class="workcell-review-lane-copy">${escapeHtml(completionReview.message)}</div>
+      <div class="workcell-review-lane-copy" style="margin-top:6px;">${escapeHtml(completionReview.evidence)}</div>
       <div class="workcell-provider-readiness-grid" style="margin-top:8px;">
         ${completionReview.checks.map(check => `<span class="workcell-provider-check ${check.ready ? 'ready' : ''}">${check.ready ? 'ready' : 'needed'} ${escapeHtml(check.label)}: ${escapeHtml(check.detail)}</span>`).join('')}
       </div>
@@ -3919,6 +3944,9 @@ function getProviderCompletionReviewState(execution) {
     ready,
     canVerify,
     status: ready ? 'ready for human decision' : 'review required',
+    evidence: verified
+      ? 'Verification evidence is recorded. Approve to complete the WorkCell, or return it if the result still needs revision.'
+      : 'Verification evidence is not recorded yet. Run verification before approving completion.',
     message: ready
       ? 'Provider completion has verification evidence. Human approval or return-for-revision is now the lifecycle gate.'
       : 'Provider completion is only a report from the assistant runtime. Review proposals, run verification, then approve or return the WorkCell.',

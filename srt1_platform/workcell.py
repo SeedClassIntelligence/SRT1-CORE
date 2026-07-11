@@ -730,18 +730,24 @@ class WorkCellRegistry:
             current_job["provider_acknowledged"] = False
             current_job["status"] = f"{action}_requested"
             current_job["updated_at"] = _now()
+        decision_messages = {
+            "approve": "Human accepted verified WorkCell completion.",
+            "reject": "Human returned WorkCell for revision.",
+        }
         event = self._append_activity_event(
             execution,
             event_type=f"execution.{action}",
             status=target,
             actor=actor,
-            message=reason or f"WorkCell execution {action} requested.",
+            message=reason or decision_messages.get(action) or f"WorkCell execution {action} requested.",
             metadata={
                 "requested_action": action,
                 "previous_status": previous_status,
                 "requires_runtime_ack": action in {"pause", "stop", "cancel"},
                 "execution_job_id": current_job.get("job_id") if current_job else None,
                 "hard_cancellable": current_job.get("hard_cancellable") if current_job else False,
+                "verification_state": execution.verification_state,
+                "human_decision": action if action in {"approve", "reject"} else None,
             },
         )
         self._write_runtime_state(self._workcells[execution.workcell_id], execution)
