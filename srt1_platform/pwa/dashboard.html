@@ -4756,27 +4756,22 @@ function buildWorkCellAssistantSeed(execution, workcell) {
 
 async function runWorkCellWithAssistant(queueSeedId, button) {
   if (!queueSeedId) return;
-  const execution = findWorkCellExecution(queueSeedId);
-  const workcell = findWorkCellForExecution(execution);
   const originalText = button ? button.textContent : '';
   if (button) {
     button.disabled = true;
     button.textContent = 'Dispatching...';
   }
   try {
-    const data = await postFindingSeedPayload({
-      task: buildWorkCellAssistantSeed(execution, workcell),
-      source: 'dashboard_workcell',
-      priority: 7,
-      auto_dispatch: true,
-      context: {
-        workcell_execution_id: execution?.workcell_execution_id,
-        queue_seed_id: execution?.queue_seed_id,
-        workcell_id: execution?.workcell_id,
-        package_path: execution?.package_path,
-        allowed_paths: workcell?.owned_paths || [],
-      }
+    const response = await fetch(API + '/api/v1/workcells/' + encodeURIComponent(queueSeedId) + '/dispatch', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        actor: 'dashboard_human',
+        assistant_credentials: buildAssistantCredentialPayload()
+      })
     });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Dispatch failed');
     if (button) {
       button.textContent = `Dispatched: ${data.queue_seed_id || data.seed_id || 'seed'}`;
       button.style.color = 'var(--green)';

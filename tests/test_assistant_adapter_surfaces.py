@@ -153,7 +153,7 @@ class AssistantAdapterSurfaceTests(unittest.TestCase):
         self.assertNotIn("localStorage.getItem('srt1_apikey_", dashboard)
         self.assertNotIn('localStorage.getItem("srt1_apikey_', dashboard)
 
-    def test_dashboard_workcell_run_sends_session_credentials_to_task(self):
+    def test_dashboard_workcell_run_sends_session_credentials_to_existing_workcell(self):
         dashboard = (
             Path(__file__).resolve().parents[1]
             / "srt1_platform"
@@ -162,11 +162,9 @@ class AssistantAdapterSurfaceTests(unittest.TestCase):
         ).read_text(encoding="utf-8")
 
         self.assertIn("runWorkCellWithAssistant", dashboard)
-        self.assertIn("auto_dispatch: true", dashboard)
-        self.assertIn("dashboard_workcell", dashboard)
-        self.assertIn("assistant_credentials = buildAssistantCredentialPayload()", dashboard)
-        self.assertIn("workcell_execution_id", dashboard)
-        self.assertIn("allowed_paths", dashboard)
+        self.assertIn("/api/v1/workcells/", dashboard)
+        self.assertIn("/dispatch", dashboard)
+        self.assertIn("assistant_credentials: buildAssistantCredentialPayload()", dashboard)
         self.assertIn("loadWorkCellProposals", dashboard)
         self.assertIn("applyChangeProposal", dashboard)
 
@@ -222,6 +220,18 @@ class AssistantAdapterSurfaceTests(unittest.TestCase):
         self.assertIn("_verify_workcell_execution", source)
         self.assertIn("record_verification", source)
         self.assertIn("manual_core_verification", source)
+
+    def test_engine_exposes_existing_workcell_dispatch_route(self):
+        source = (
+            Path(__file__).resolve().parents[1]
+            / "srt1_code_indexer"
+            / "engine.py"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn('path.endswith("/dispatch")', source)
+        self.assertIn("_dispatch_existing_workcell_execution", source)
+        self.assertIn("without planting a duplicate seed", source)
+        self.assertIn('"dispatch_started"', source)
 
 
 if __name__ == "__main__":

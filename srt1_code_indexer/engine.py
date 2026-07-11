@@ -2493,6 +2493,157 @@ class SRT1Engine:
             details=verification_details,
         )
 
+    def _dispatch_existing_workcell_execution(
+        self,
+        queue_seed_id: Optional[str],
+        assistant_credentials: Optional[Dict[str, Any]] = None,
+        actor: str = "dashboard_human",
+        background: bool = True,
+    ) -> Dict[str, Any]:
+        """Dispatch an existing WorkCell execution without planting a duplicate seed."""
+        if not queue_seed_id:
+            return {"error": "queue_seed_id is required", "status": "error"}
+        registry = self._get_workcell_registry()
+        if not registry:
+            return {"error": "WorkCell registry unavailable", "status": "error"}
+        if not getattr(self, "bridge", None):
+            return {"error": "Execution bridge unavailable", "status": "error"}
+
+        execution = registry.get_execution_for_seed(queue_seed_id)
+        if not execution:
+            return {"error": "WorkCell execution not found", "status": "not_found", "queue_seed_id": queue_seed_id}
+
+        allowed_paths = self._get_workcell_allowed_paths(execution)
+        credential_context = self._normalize_assistant_credentials(assistant_credentials)
+        job_result = registry.start_execution_job(
+            queue_seed_id,
+            provider=credential_context["provider"] or "execution_bridge",
+            adapter="assistant_adapter",
+            cancellable=True,
+            hard_cancellable=False,
+            runtime_port=execution.get("runtime_port"),
+            metadata={
+                "allowed_paths": allowed_paths,
+                "credential_mode": credential_context["mode"],
+                "credential_providers": credential_context["providers"],
+                "dispatch_source": "existing_workcell",
+            },
+        )
+        if job_result.get("status") != "registered":
+            return job_result
+        job_id = (job_result.get("job") or {}).get("job_id")
+
+        def _dispatch_now() -> Dict[str, Any]:
+            try:
+                guard = self._check_workcell_dispatch_guard(queue_seed_id, allowed_paths)
+                if not guard.get("allowed"):
+                    registry.update_execution_job(queue_seed_id, job_id=job_id, status="blocked", metadata=guard)
+                    registry.record_execution_event(
+                        queue_seed_id,
+                        event_type="assistant.dispatch_blocked",
+                        status="blocked",
+                        actor="workcell_runtime_governor",
+                        message=guard.get("reason") or "Assistant dispatch blocked by WorkCell runtime governor.",
+                        metadata=guard,
+                    )
+                    return {"status": "blocked", "queue_seed_id": queue_seed_id, "job_id": job_id, "guard": guard}
+
+                objective = execution.get("objective") or "Execute selected WorkCell objective"
+                bp_result = self.generate_blueprint(objective)
+                if getattr(self, "seed_queue", None):
+                    try:
+                        self.seed_queue.germinate(
+                            seed_id=queue_seed_id,
+                            blueprint=bp_result.get("blueprint", ""),
+                            blueprint_path=bp_result.get("saved_to", ""),
+                            relevant_symbols=bp_result.get("relevant_symbols", 0),
+                            relevant_files=bp_result.get("relevant_files", 0),
+                        )
+                    except Exception:
+                        pass
+
+                dispatch_result = self.bridge.dispatch_seed(
+                    seed_id=queue_seed_id,
+                    intent=objective,
+                    blueprint=bp_result.get("blueprint", ""),
+                    blueprint_meta={
+                        "relevant_symbols": bp_result.get("relevant_symbols", 0),
+                        "relevant_files": bp_result.get("relevant_files", 0),
+                        "workcell_package_path": execution.get("package_path"),
+                        "allowed_paths": allowed_paths,
+                        "restricted_paths": execution.get("restricted_paths", []),
+                        "trust_state": execution.get("trust_state", {}),
+                        "credential_mode": credential_context["mode"],
+                        "credential_provider": credential_context["provider"],
+                        "credential_providers": credential_context["providers"],
+                    },
+                    execution_context={
+                        **execution,
+                        "allowed_paths": allowed_paths,
+                        "credential_mode": credential_context["mode"],
+                        "credential_provider": credential_context["provider"],
+                        "credential_providers": credential_context["providers"],
+                    },
+                    transient_credentials=credential_context["provider_keys"],
+                )
+                registry.update_execution_job(
+                    queue_seed_id,
+                    job_id=job_id,
+                    status="dispatched",
+                    provider_acknowledged=dispatch_result.get("dispatched", False),
+                    result={
+                        "methods": dispatch_result.get("methods", {}),
+                        "dispatched": dispatch_result.get("dispatched", False),
+                    },
+                )
+                registry.record_execution_event(
+                    queue_seed_id,
+                    event_type="assistant.dispatched",
+                    status="dispatched",
+                    actor="execution_bridge",
+                    message="Existing WorkCell execution handed to configured assistant adapters.",
+                    metadata={
+                        "methods": dispatch_result.get("methods", {}),
+                        "dispatched": dispatch_result.get("dispatched", False),
+                        "credential_mode": credential_context["mode"],
+                        "credential_providers": credential_context["providers"],
+                        "credential_secret_persisted": False,
+                    },
+                    execution_status="dispatched",
+                )
+                return {
+                    "status": "dispatched",
+                    "queue_seed_id": queue_seed_id,
+                    "job_id": job_id,
+                    "dispatch": dispatch_result,
+                    "secret_persisted": False,
+                }
+            except Exception as exc:
+                registry.update_execution_job(queue_seed_id, job_id=job_id, status="failed", error=str(exc))
+                registry.record_execution_event(
+                    queue_seed_id,
+                    event_type="assistant.dispatch_failed",
+                    status="failed",
+                    actor="execution_bridge",
+                    message=str(exc),
+                )
+                return {"status": "failed", "queue_seed_id": queue_seed_id, "job_id": job_id, "error": str(exc)}
+
+        if background:
+            threading.Thread(
+                target=_dispatch_now,
+                daemon=True,
+                name=f"workcell-dispatch-{queue_seed_id[:8]}",
+            ).start()
+            return {
+                "status": "dispatch_started",
+                "queue_seed_id": queue_seed_id,
+                "job_id": job_id,
+                "allowed_paths": allowed_paths,
+                "secret_persisted": False,
+            }
+        return _dispatch_now()
+
     def _acknowledge_workcell_execution_job(
         self,
         queue_seed_id: Optional[str],
@@ -4985,6 +5136,19 @@ class SRT1Engine:
                     )
                     status_code = 200 if result.get("status") not in {
                         "error", "not_found"
+                    } else 409
+                    return self._json(result, status_code)
+
+                elif path.startswith("/api/v1/workcells/") and path.endswith("/dispatch"):
+                    queue_seed_id = path[len("/api/v1/workcells/"):-len("/dispatch")].strip("/")
+                    result = engine._dispatch_existing_workcell_execution(
+                        queue_seed_id,
+                        assistant_credentials=body.get("assistant_credentials"),
+                        actor=body.get("actor") or "dashboard_human",
+                        background=True,
+                    )
+                    status_code = 200 if result.get("status") in {
+                        "dispatch_started", "dispatched"
                     } else 409
                     return self._json(result, status_code)
 

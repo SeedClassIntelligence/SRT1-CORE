@@ -664,6 +664,60 @@ class WorkCellRuntimeTests(unittest.TestCase):
         self.assertFalse(cancelled["allowed"])
         self.assertEqual(cancelled["execution_status"], "cancelled")
 
+    def test_engine_dispatches_existing_workcell_without_planting_duplicate_seed(self):
+        class FakeBridge:
+            def __init__(self):
+                self.calls = []
+
+            def dispatch_seed(self, **kwargs):
+                self.calls.append(kwargs)
+                return {
+                    "seed_id": kwargs["seed_id"],
+                    "dispatched": True,
+                    "methods": {"assistant_adapter": {"success": True}},
+                    "monitoring": True,
+                }
+
+        with tempfile.TemporaryDirectory() as repo:
+            engine = engine_module.SRT1Engine.__new__(engine_module.SRT1Engine)
+            engine.repo_path = repo
+            engine.bridge = FakeBridge()
+            engine.seed_queue = None
+            engine.workcell_registry = WorkCellRegistry(repo_path=repo)
+            engine.generate_blueprint = lambda objective: {
+                "blueprint": "bounded blueprint",
+                "saved_to": "",
+                "relevant_symbols": 1,
+                "relevant_files": 1,
+            }
+            engine.workcell_registry.activate_execution(
+                queue_seed_id="seed_existing_workcell",
+                objective="Update app.py",
+                manifest={"file_manifest": [{"file_path": "app.py"}]},
+            )
+
+            result = engine._dispatch_existing_workcell_execution(
+                "seed_existing_workcell",
+                assistant_credentials={
+                    "mode": "session",
+                    "provider": "openai",
+                    "provider_keys": {"openai": "test-session-token"},
+                },
+                background=False,
+            )
+            current = engine.workcell_registry.get_execution_for_seed("seed_existing_workcell")
+
+        self.assertEqual(result["status"], "dispatched")
+        self.assertEqual(engine.bridge.calls[0]["seed_id"], "seed_existing_workcell")
+        self.assertEqual(engine.bridge.calls[0]["transient_credentials"], {"openai": "test-session-token"})
+        self.assertEqual(engine.bridge.calls[0]["execution_context"]["allowed_paths"], ["app.py"])
+        self.assertEqual(current["status"], "dispatched")
+        self.assertEqual(current["current_execution_job"]["status"], "dispatched")
+        self.assertFalse(result["secret_persisted"])
+        self.assertTrue(
+            any(event["event_type"] == "assistant.dispatched" for event in current["activity_events"])
+        )
+
     def test_engine_resolves_allowed_paths_from_selected_workcell(self):
         with tempfile.TemporaryDirectory() as repo:
             engine = engine_module.SRT1Engine.__new__(engine_module.SRT1Engine)
@@ -858,7 +912,10 @@ class WorkCellRuntimeTests(unittest.TestCase):
         self.assertIn("write scope", html)
         self.assertIn("runtime state", html)
         self.assertIn("runWorkCellWithAssistant", html)
-        self.assertIn("dashboard_workcell", html)
+        self.assertIn("/dispatch", html)
+        self.assertIn("_dispatch_existing_workcell_execution", (
+            Path(__file__).resolve().parents[1] / "srt1_code_indexer" / "engine.py"
+        ).read_text(encoding="utf-8"))
         self.assertIn("buildAssistantCredentialPayload", html)
 
 
