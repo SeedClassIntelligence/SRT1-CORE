@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 
 <html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
@@ -2766,18 +2766,75 @@ function renderWorkCellActivity(queueSeedId) {
     list.innerHTML = '<div class="workcell-empty">No recorded WorkCell activity.</div>';
     return;
   }
-  list.innerHTML = state.events.map(event => `
-    <div class="workcell-activity-event">
-      <div class="workcell-activity-type">${escapeHtml(event.event_type || 'activity')}</div>
-      <div>
-        <div class="workcell-activity-message">${escapeHtml(event.message || event.status || 'Recorded')}</div>
-        <div class="workcell-activity-meta">${escapeHtml(event.actor || 'unknown')} · ${escapeHtml(event.status || 'unknown')}</div>
+  list.innerHTML = state.events.map(event => {
+    const semantics = describeWorkCellActivityEvent(event);
+    return `
+      <div class="workcell-activity-event">
+        <div class="workcell-activity-type">${escapeHtml(semantics.type)}</div>
+        <div>
+          <div class="workcell-activity-message">${escapeHtml(semantics.message)}</div>
+          <div class="workcell-activity-meta">${escapeHtml(semantics.meta)}</div>
+        </div>
+        <div class="workcell-activity-time">${escapeHtml(event.created_at ? new Date(event.created_at).toLocaleString() : '')}</div>
       </div>
-      <div class="workcell-activity-time">${escapeHtml(event.created_at ? new Date(event.created_at).toLocaleString() : '')}</div>
-    </div>
-  `).join('');
+    `;
+  }).join('');
 }
 
+function describeWorkCellActivityEvent(event) {
+  const metadata = event?.metadata || {};
+  const type = event?.event_type || 'activity';
+  const status = event?.status || 'unknown';
+  const actor = event?.actor || 'unknown';
+  const jobId = metadata.job_id || metadata.execution_job_id || '';
+  if (type === 'execution.stop') {
+    return {
+      type: 'Stop requested',
+      message: metadata.hard_cancellable
+        ? 'SRT-1 requested a hard stop for the tracked runtime job.'
+        : 'SRT-1 recorded a cooperative stop request and is waiting for provider acknowledgement.',
+      meta: `${actor} - ${status}${jobId ? ' - job ' + jobId : ''}`,
+    };
+  }
+  if (type === 'execution.cancel') {
+    return {
+      type: 'Cancel requested',
+      message: 'SRT-1 cancelled the local WorkCell lifecycle. External runtime cancellation still depends on provider acknowledgement.',
+      meta: `${actor} - ${status}${jobId ? ' - job ' + jobId : ''}`,
+    };
+  }
+  if (type === 'execution_job.acknowledged') {
+    const ack = metadata.acknowledgement || status;
+    const labels = {
+      acknowledged: 'Provider acknowledged',
+      stopping: 'Provider stopping',
+      stopped: 'Provider stopped',
+      paused: 'Provider paused',
+      resumed: 'Provider resumed',
+      failed: 'Provider failed',
+      completed: 'Provider completed',
+    };
+    const messages = {
+      acknowledged: 'The provider runtime acknowledged the WorkCell control channel.',
+      stopping: 'The provider runtime acknowledged the stop request and is stopping.',
+      stopped: 'The provider runtime reported that execution has stopped.',
+      paused: 'The provider runtime reported that execution is paused.',
+      resumed: 'The provider runtime resumed execution.',
+      failed: 'The provider runtime reported failure. Human review is required.',
+      completed: 'The provider runtime reported completion. Verification and human review are still required.',
+    };
+    return {
+      type: labels[ack] || 'Provider acknowledgement',
+      message: messages[ack] || event?.message || status,
+      meta: `${actor} - job ${jobId || 'current'} - ${metadata.job_status || ack}`,
+    };
+  }
+  return {
+    type,
+    message: event?.message || status || 'Recorded',
+    meta: `${actor} - ${status}`,
+  };
+}
 async function loadWorkCellActivity(queueSeedId, append = false, button = null) {
   if (!queueSeedId) return;
   const current = workCellActivityPages[queueSeedId] || { events: [], total: 0, hasMore: false };
@@ -3735,7 +3792,19 @@ function getWorkCellExecutionControlTruth(execution) {
   const jobStatus = currentJob?.status || 'not registered';
   let mode = 'cooperative controls';
   let summary = 'Pause, stop, and cancel are recorded in SRT-1 and sent to adapters. External providers must acknowledge them.';
-  if (hardControl) {
+  if (jobStatus === 'stopping') {
+    mode = 'provider stopping';
+    summary = 'The provider acknowledged the stop request and reports that execution is stopping.';
+  } else if (jobStatus === 'stopped') {
+    mode = 'provider stopped';
+    summary = 'The provider reported that the assistant runtime stopped.';
+  } else if (jobStatus === 'failed') {
+    mode = 'provider failed';
+    summary = 'The provider reported execution failure. Human review is required before continuing.';
+  } else if (jobStatus === 'completed') {
+    mode = 'provider completed';
+    summary = 'The provider reported completion. Verification and human review are still required.';
+  } else if (hardControl) {
     mode = 'hard cancellable';
     summary = 'SRT-1 has a runtime handle for this execution and can attempt direct process/job cancellation.';
   } else if (status === 'stop_requested') {

@@ -246,13 +246,21 @@ class WorkCellRuntimeTests(unittest.TestCase):
                 actor="provider_runtime",
                 metadata={"authorization": "Bearer must-not-persist"},
             )
+            stopped = registry.acknowledge_execution_job(
+                "seed_ack",
+                job_id=job_id,
+                acknowledgement="stopped",
+                actor="provider_runtime",
+            )
             current = registry.get_execution_for_seed("seed_ack")
             registry_text = Path(repo, ".srt1", "workcells", "workcell_registry.json").read_text(encoding="utf-8")
 
         self.assertEqual(ack["status"], "acknowledged")
         self.assertEqual(ack["acknowledgement"], "stopping")
-        self.assertEqual(current["current_execution_job"]["acknowledgement"], "stopping")
-        self.assertEqual(current["current_execution_job"]["status"], "stopping")
+        self.assertEqual(stopped["acknowledgement"], "stopped")
+        self.assertEqual(current["status"], "terminated")
+        self.assertEqual(current["current_execution_job"]["acknowledgement"], "stopped")
+        self.assertEqual(current["current_execution_job"]["status"], "stopped")
         self.assertTrue(current["current_execution_job"]["provider_acknowledged"])
         self.assertTrue(
             any(event["event_type"] == "execution_job.acknowledged" for event in current["activity_events"])
@@ -726,6 +734,11 @@ class WorkCellRuntimeTests(unittest.TestCase):
         self.assertIn("current_execution_job", html)
         self.assertIn("provider ack", html)
         self.assertIn("job handle", html)
+        self.assertIn("describeWorkCellActivityEvent", html)
+        self.assertIn("Stop requested", html)
+        self.assertIn("Provider stopping", html)
+        self.assertIn("Provider stopped", html)
+        self.assertIn("provider stopped", html)
         self.assertIn("Provider Execution Readiness", html)
         self.assertIn("getProviderExecutionReadiness", html)
         self.assertIn("workcell-provider-readiness", html)

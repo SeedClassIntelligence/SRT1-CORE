@@ -549,16 +549,22 @@ class WorkCellRegistry:
         if ack == "failed":
             job["status"] = "failed"
             job["completed_at"] = job.get("completed_at") or job["updated_at"]
+            execution.status = "returned"
         elif ack == "completed":
             job["status"] = "completed"
             job["completed_at"] = job.get("completed_at") or job["updated_at"]
+            execution.status = "awaiting_review"
         elif ack == "stopped":
             job["status"] = "stopped"
             job["completed_at"] = job.get("completed_at") or job["updated_at"]
+            execution.status = "terminated"
         elif ack in {"stopping", "paused"}:
             job["status"] = ack
+            if ack == "paused":
+                execution.status = "paused"
         elif ack == "resumed":
             job["status"] = "running"
+            execution.status = "running"
 
         event = self._append_activity_event(
             execution,
