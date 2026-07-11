@@ -211,6 +211,18 @@ class AssistantAdapterSurfaceTests(unittest.TestCase):
         self.assertIn('body.get("acknowledgement")', source)
         self.assertIn("invalid_acknowledgement", source)
 
+    def test_engine_exposes_workcell_verification_route(self):
+        source = (
+            Path(__file__).resolve().parents[1]
+            / "srt1_code_indexer"
+            / "engine.py"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn('path.endswith("/verify")', source)
+        self.assertIn("_verify_workcell_execution", source)
+        self.assertIn("record_verification", source)
+        self.assertIn("manual_core_verification", source)
+
 
 if __name__ == "__main__":
     unittest.main()

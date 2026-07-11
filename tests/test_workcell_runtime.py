@@ -297,6 +297,42 @@ class WorkCellRuntimeTests(unittest.TestCase):
         self.assertTrue(current["current_execution_job"]["review_required"])
         self.assertTrue(current["current_execution_job"]["verification_required"])
 
+    def test_dashboard_verification_records_review_gate(self):
+        with tempfile.TemporaryDirectory() as repo:
+            registry = WorkCellRegistry(repo_path=repo)
+            registry.activate_execution(
+                queue_seed_id="seed_verify_gate",
+                objective="Verify completed provider work",
+                manifest={"file_manifest": [{"file_path": "app.py"}]},
+            )
+            started = registry.start_execution_job(
+                "seed_verify_gate",
+                provider="openai",
+                adapter="openai_compatible",
+            )
+            registry.acknowledge_execution_job(
+                "seed_verify_gate",
+                job_id=started["job"]["job_id"],
+                acknowledgement="completed",
+                actor="provider_runtime",
+            )
+
+            result = registry.record_verification(
+                "seed_verify_gate",
+                verified=True,
+                actor="dashboard_human",
+                details={"source": "dashboard_review_lane"},
+            )
+            current = registry.get_execution_for_seed("seed_verify_gate")
+
+        self.assertEqual(result["status"], "recorded")
+        self.assertEqual(current["status"], "awaiting_review")
+        self.assertEqual(current["verification_state"], "verified")
+        self.assertEqual(current["trust_state"]["verification"], "verified")
+        self.assertTrue(
+            any(event["event_type"] == "verification.completed" for event in current["activity_events"])
+        )
+
     def test_old_workcell_registry_without_activity_events_still_loads(self):
         with tempfile.TemporaryDirectory() as repo:
             registry_dir = Path(repo) / ".srt1" / "workcells"
@@ -770,6 +806,10 @@ class WorkCellRuntimeTests(unittest.TestCase):
         self.assertIn("provider stopped", html)
         self.assertIn("Provider Completion Review", html)
         self.assertIn("getProviderCompletionReviewState", html)
+        self.assertIn("Run Verification", html)
+        self.assertIn("verifyWorkCell", html)
+        self.assertIn("data-workcell-verify", html)
+        self.assertIn("/verify", html)
         self.assertIn("ready for human decision", html)
         self.assertIn("review required", html)
         self.assertIn("inspect Change Proposals below", html)

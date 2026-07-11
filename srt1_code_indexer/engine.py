@@ -2471,6 +2471,28 @@ class SRT1Engine:
             return {"error": "WorkCell registry unavailable", "status": "error"}
         return registry.control_execution(queue_seed_id, action, actor=actor, reason=reason)
 
+    def _verify_workcell_execution(
+        self,
+        queue_seed_id: Optional[str],
+        verified: bool = True,
+        actor: str = "dashboard_human",
+        details: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        if not queue_seed_id:
+            return {"error": "queue_seed_id is required", "status": "error"}
+        registry = self._get_workcell_registry()
+        if not registry:
+            return {"error": "WorkCell registry unavailable", "status": "error"}
+        verification_details = dict(details or {})
+        verification_details.setdefault("source", "dashboard_review_lane")
+        verification_details.setdefault("method", "manual_core_verification")
+        return registry.record_verification(
+            queue_seed_id,
+            verified=bool(verified),
+            actor=actor or "dashboard_human",
+            details=verification_details,
+        )
+
     def _acknowledge_workcell_execution_job(
         self,
         queue_seed_id: Optional[str],
@@ -4950,6 +4972,19 @@ class SRT1Engine:
                     )
                     status_code = 200 if result.get("status") not in {
                         "error", "not_found", "invalid_acknowledgement"
+                    } else 409
+                    return self._json(result, status_code)
+
+                elif path.startswith("/api/v1/workcells/") and path.endswith("/verify"):
+                    queue_seed_id = path[len("/api/v1/workcells/"):-len("/verify")].strip("/")
+                    result = engine._verify_workcell_execution(
+                        queue_seed_id,
+                        verified=body.get("verified", True),
+                        actor=body.get("actor") or "dashboard_human",
+                        details=body.get("details") if isinstance(body.get("details"), dict) else {},
+                    )
+                    status_code = 200 if result.get("status") not in {
+                        "error", "not_found"
                     } else 409
                     return self._json(result, status_code)
 

@@ -2894,6 +2894,42 @@ async function controlWorkCell(queueSeedId, action, button) {
   }
 }
 
+async function verifyWorkCell(queueSeedId, button, verified = true) {
+  if (!queueSeedId) return;
+  const original = button?.textContent || 'Run Verification';
+  if (button) {
+    button.disabled = true;
+    button.textContent = 'Verifying...';
+  }
+  try {
+    const response = await fetch(API + '/api/v1/workcells/' + encodeURIComponent(queueSeedId) + '/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        verified,
+        actor: 'dashboard_human',
+        details: {
+          source: 'dashboard_review_lane',
+          method: 'manual_core_verification'
+        }
+      })
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || 'Verification failed');
+    delete workCellActivityPages[queueSeedId];
+    await loadWorkCells();
+  } catch (e) {
+    if (button) button.textContent = describeDashboardActionError(e, 'Verification blocked').slice(0, 48);
+  } finally {
+    if (button) {
+      setTimeout(() => {
+        button.disabled = false;
+        button.textContent = original;
+      }, 1400);
+    }
+  }
+}
+
 async function exportWorkCellActivity(queueSeedId, button) {
   if (!queueSeedId) return;
   const original = button?.textContent || 'Export history';
@@ -3071,6 +3107,9 @@ function renderWorkCellDetail(payload, selectedExecution) {
       <div class="workcell-provider-readiness-grid" style="margin-top:8px;">
         ${completionReview.checks.map(check => `<span class="workcell-provider-check ${check.ready ? 'ready' : ''}">${check.ready ? 'ready' : 'needed'} ${escapeHtml(check.label)}: ${escapeHtml(check.detail)}</span>`).join('')}
       </div>
+      <div class="workcell-package-buttons" style="margin-top:10px;">
+        <button type="button" class="workcell-package-btn" data-workcell-verify="${escapeHtml(selectedExecution.queue_seed_id || '')}" ${completionReview.canVerify ? '' : 'disabled'}>Run Verification</button>
+      </div>
     </div>` : ''}
     <div class="workcell-activity">
       <div class="workcell-preview-head">
@@ -3121,6 +3160,13 @@ function renderWorkCellDetail(payload, selectedExecution) {
     button.addEventListener('click', () => runWorkCellWithAssistant(
       button.dataset.workcellAssistantRun,
       button
+    ));
+  });
+  detailEl.querySelectorAll('.workcell-package-btn[data-workcell-verify]').forEach(button => {
+    button.addEventListener('click', () => verifyWorkCell(
+      button.dataset.workcellVerify,
+      button,
+      true
     ));
   });
   document.getElementById('workcellActivityOlder')?.addEventListener('click', event => {
@@ -3867,9 +3913,11 @@ function getProviderCompletionReviewState(execution) {
   const visible = jobStatus === 'completed' || executionStatus === 'awaiting_review';
   const verified = verification === 'verified';
   const ready = verified && executionStatus === 'awaiting_review';
+  const canVerify = visible && !verified;
   return {
     visible,
     ready,
+    canVerify,
     status: ready ? 'ready for human decision' : 'review required',
     message: ready
       ? 'Provider completion has verification evidence. Human approval or return-for-revision is now the lifecycle gate.'
