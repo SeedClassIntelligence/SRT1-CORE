@@ -193,6 +193,12 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 .workcell-package-btn{font-family:var(--sans);font-size:11px;font-weight:700;color:var(--text2);background:var(--bg3);border:1px solid var(--border2);border-radius:6px;padding:6px 9px;cursor:pointer;}
 .workcell-package-btn:hover{color:var(--text);border-color:var(--border3);background:var(--bg4);}
 .workcell-package-btn:disabled{opacity:.45;cursor:not-allowed;}
+.workcell-provider-readiness{margin:10px 0;padding:10px;border:1px solid var(--amber-border);border-radius:7px;background:var(--amber-bg);}
+.workcell-provider-readiness.ready{border-color:var(--green-border);background:var(--green-bg);}
+.workcell-provider-readiness-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:8px;font-size:11px;font-weight:800;color:var(--text2);text-transform:uppercase;letter-spacing:.04em;}
+.workcell-provider-readiness-grid{display:flex;flex-wrap:wrap;gap:6px;}
+.workcell-provider-check{font-family:var(--mono);font-size:10px;padding:4px 7px;border:1px solid var(--amber-border);border-radius:999px;color:var(--amber);background:rgba(245,158,11,.08);}
+.workcell-provider-check.ready{border-color:var(--green-border);color:var(--green);background:rgba(34,197,94,.08);}
 .workcell-preview{margin-top:12px;border:1px solid var(--border);border-radius:7px;background:var(--bg);overflow:hidden;}
 .workcell-preview-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:10px;border-bottom:1px solid var(--border);background:rgba(255,255,255,0.02);}
 .workcell-preview-title{font-size:11px;font-weight:800;color:var(--green);text-transform:uppercase;letter-spacing:.04em;}
@@ -2897,6 +2903,8 @@ function renderWorkCellDetail(payload, selectedExecution) {
   const canCancel = !['completed', 'terminated', 'cancelled'].includes(executionStatus);
   const canReject = !['completed', 'terminated', 'cancelled', 'returned'].includes(executionStatus);
   const canRunAssistant = assistantReady && !['completed', 'terminated', 'cancelled', 'stop_requested', 'pause_requested'].includes(executionStatus);
+  const providerReadiness = getProviderExecutionReadiness(wc, packageStatus, executionStatus);
+  const providerReadinessLabel = providerReadiness.ready ? 'ready to run' : 'setup needed';
 
   detailEl.innerHTML = `
     <div class="workcell-detail-head">
@@ -2943,6 +2951,15 @@ function renderWorkCellDetail(payload, selectedExecution) {
         <div class="workcell-package-status ${executionStatus === 'completed' ? 'ready' : ''}">${escapeHtml(executionStatus)}</div>
       </div>
       <div style="font-size:11px;color:var(--text4);line-height:1.45;margin-bottom:8px;">Assistant runtimes must validate proposed writes through /api/v1/workcells/{queue_seed_id}/validate-writes before changing files. Pause, stop, and cancel requests are written to the WorkCell timeline for assistant adapters to honor.</div>
+      <div class="workcell-provider-readiness ${providerReadiness.ready ? 'ready' : ''}">
+        <div class="workcell-provider-readiness-head">
+          <span>Provider Execution Readiness</span>
+          <span class="workcell-package-status ${providerReadiness.ready ? 'ready' : ''}">${escapeHtml(providerReadinessLabel)}</span>
+        </div>
+        <div class="workcell-provider-readiness-grid">
+          ${providerReadiness.checks.map(check => `<span class="workcell-provider-check ${check.ready ? 'ready' : ''}">${check.ready ? 'ready' : 'needed'} ${escapeHtml(check.label)}: ${escapeHtml(check.detail)}</span>`).join('')}
+        </div>
+      </div>
       <div class="workcell-package-buttons">
         <button type="button" class="workcell-package-btn" data-workcell-assistant-run="${escapeHtml(selectedExecution.queue_seed_id || '')}" ${canRunAssistant ? '' : 'disabled'}>Run with Assistant</button>
         ${canPause ? '<button type="button" class="workcell-package-btn" data-workcell-action="pause">Pause</button>' : ''}
@@ -3647,6 +3664,33 @@ function loadSavedKeys() {
   });
   updateSessionKeyCount();
   setCredentialMode(credentialMode);
+}
+
+function getProviderExecutionReadiness(workcell, packageStatus, executionStatus) {
+  const providerEnabled = document.getElementById('adapterProvider')?.checked === true;
+  const provider = document.getElementById('adapterProviderName')?.value || 'openai';
+  const endpoint = document.getElementById('adapterProviderEndpoint')?.value.trim() || 'https://api.openai.com/v1/chat/completions';
+  const model = document.getElementById('adapterProviderModel')?.value.trim() || 'gpt-4o-mini';
+  const hasCredential = credentialMode === 'external' || !!sessionProviderKeys[provider];
+  const assistantReady = packageStatus?.assistant_ready === true;
+  const allowedPaths = workcell?.owned_paths || [];
+  const hasAllowedPaths = allowedPaths.length > 0;
+  const runtimeOpen = !['completed', 'terminated', 'cancelled', 'stop_requested', 'pause_requested'].includes(executionStatus || 'ready');
+  const checks = [
+    { label: 'provider adapter', ready: providerEnabled, detail: providerEnabled ? provider : 'select OpenAI-compatible provider runtime' },
+    { label: 'session key', ready: hasCredential, detail: credentialMode === 'external' ? 'external runtime' : (hasCredential ? `${provider} session key` : `add ${provider} session key`) },
+    { label: 'endpoint/model', ready: !!endpoint && !!model, detail: `${model}` },
+    { label: 'package', ready: assistantReady, detail: assistantReady ? 'workcell.md + FileCells ready' : 'repair package first' },
+    { label: 'write scope', ready: hasAllowedPaths, detail: hasAllowedPaths ? `${allowedPaths.length} allowed path${allowedPaths.length === 1 ? '' : 's'}` : 'no WorkCell path scope' },
+    { label: 'runtime state', ready: runtimeOpen, detail: executionStatus || 'ready' },
+  ];
+  return {
+    ready: checks.every(check => check.ready),
+    provider,
+    endpoint,
+    model,
+    checks,
+  };
 }
 
 function markDirty(provider) {
