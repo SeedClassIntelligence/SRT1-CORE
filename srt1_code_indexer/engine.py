@@ -2225,7 +2225,7 @@ class SRT1Engine:
             if auto_dispatch and self.bridge:
                 def _dispatch_async(sid, t):
                     try:
-                        allowed_paths = (workcell_execution or {}).get("owned_paths", [])
+                        allowed_paths = self._get_workcell_allowed_paths(workcell_execution)
                         registry = self._get_workcell_registry()
                         if registry:
                             registry.record_execution_event(
@@ -2279,7 +2279,7 @@ class SRT1Engine:
                                 "relevant_symbols": bp_result.get("relevant_symbols", 0),
                                 "relevant_files": bp_result.get("relevant_files", 0),
                                 "workcell_package_path": (workcell_execution or {}).get("package_path"),
-                                "allowed_paths": (workcell_execution or {}).get("owned_paths", []),
+                                "allowed_paths": allowed_paths,
                                 "restricted_paths": (workcell_execution or {}).get("restricted_paths", []),
                                 "trust_state": (workcell_execution or {}).get("trust_state", {}),
                                 "credential_mode": credential_context["mode"],
@@ -2358,6 +2358,19 @@ class SRT1Engine:
         except Exception as exc:
             logger.warning(f"WorkCell execution activation failed for {queue_seed_id}: {exc}")
             return None
+
+    def _get_workcell_allowed_paths(self, workcell_execution: Optional[Dict[str, Any]]) -> List[str]:
+        """Resolve the selected WorkCell's canonical write scope for assistant dispatch."""
+        if not workcell_execution:
+            return []
+        direct = workcell_execution.get("owned_paths") or workcell_execution.get("allowed_paths")
+        if direct:
+            return list(direct)
+        registry = self._get_workcell_registry()
+        workcell_id = workcell_execution.get("workcell_id")
+        workcells = getattr(registry, "_workcells", {}) if registry else {}
+        workcell = workcells.get(workcell_id)
+        return list(getattr(workcell, "owned_paths", []) or [])
 
     def _get_workcell_status(self, queue_seed_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
         """Return WorkCell registry summary or a specific execution for status/API output."""
@@ -3168,7 +3181,11 @@ class SRT1Engine:
         # Save blueprint to file
         blueprint_dir = os.path.join(self.repo_path, ".srt1")
         os.makedirs(blueprint_dir, exist_ok=True)
-        safe_name = seed.lower().replace(" ", "_")[:40]
+        safe_chars = []
+        for char in seed.lower()[:80]:
+            safe_chars.append(char if char.isalnum() else "_")
+        safe_name = "_".join(part for part in "".join(safe_chars).split("_") if part)[:40]
+        safe_name = safe_name or "seed"
         blueprint_path = os.path.join(blueprint_dir, f"blueprint_{safe_name}.md")
         with open(blueprint_path, "w", encoding="utf-8") as f:
             f.write(blueprint_text)
@@ -5177,17 +5194,29 @@ class SRT1Engine:
                         source=source,
                         priority=priority,
                         auto_dispatch=auto_dispatch,
+                        template_id=body.get("template_id"),
+                        assistant_credentials=body.get("assistant_credentials"),
                     )
                     seed_data = engine.seed_queue.get_seed(queue_seed_id) if queue_seed_id else None
+                    if hasattr(seed_data, "to_dict"):
+                        seed_data = seed_data.to_dict()
                     response = engine._build_task_response(
                         task=intent,
                         queue_seed_id=queue_seed_id,
                         auto_dispatch=auto_dispatch,
                     )
+                    credential_summary = engine._normalize_assistant_credentials(
+                        body.get("assistant_credentials")
+                    )
                     response.update({
                         "status": "seed_planted",
                         "seed": seed_data,
                         "tags": tags,
+                        "assistant_credentials": {
+                            "mode": credential_summary["mode"],
+                            "providers": credential_summary["providers"],
+                            "secret_persisted": False,
+                        },
                         "message": "Seed planted. WorkCell execution prepared.",
                     })
                     self._json(response)

@@ -163,6 +163,19 @@ class AssistantAdapterSurfaceTests(unittest.TestCase):
         self.assertIn("loadWorkCellProposals", dashboard)
         self.assertIn("applyChangeProposal", dashboard)
 
+    def test_api_task_route_preserves_credentials_and_serializes_seed(self):
+        source = (
+            Path(__file__).resolve().parents[1]
+            / "srt1_code_indexer"
+            / "engine.py"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn('path in ("/seeds", "/task", "/api/v1/task")', source)
+        self.assertIn('assistant_credentials=body.get("assistant_credentials")', source)
+        self.assertIn('if hasattr(seed_data, "to_dict"):', source)
+        self.assertIn("seed_data = seed_data.to_dict()", source)
+        self.assertIn('"secret_persisted": False', source)
+
 
 if __name__ == "__main__":
     unittest.main()

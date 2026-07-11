@@ -482,6 +482,45 @@ class WorkCellRuntimeTests(unittest.TestCase):
         self.assertFalse(cancelled["allowed"])
         self.assertEqual(cancelled["execution_status"], "cancelled")
 
+    def test_engine_resolves_allowed_paths_from_selected_workcell(self):
+        with tempfile.TemporaryDirectory() as repo:
+            engine = engine_module.SRT1Engine.__new__(engine_module.SRT1Engine)
+            engine.repo_path = repo
+            engine.workcell_registry = WorkCellRegistry(repo_path=repo)
+            execution = engine.workcell_registry.activate_execution(
+                queue_seed_id="seed_dispatch_scope",
+                objective="Update tests/test_assistant_adapter_surfaces.py",
+                manifest={
+                    "file_manifest": [
+                        {"file_path": "tests/test_assistant_adapter_surfaces.py"},
+                        {"file_path": "srt1_code_indexer/engine.py"},
+                    ]
+                },
+            ).to_dict()
+
+            allowed_paths = engine._get_workcell_allowed_paths(execution)
+
+        self.assertEqual(allowed_paths, ["tests/test_assistant_adapter_surfaces.py"])
+
+    def test_blueprint_filename_is_safe_when_seed_mentions_path(self):
+        with tempfile.TemporaryDirectory() as repo:
+            engine = engine_module.SRT1Engine.__new__(engine_module.SRT1Engine)
+            engine.repo_path = repo
+            engine.llm = None
+            engine.symbol_table = {}
+            engine.curation_report = {}
+            engine.manifest = {"file_manifest": []}
+
+            result = engine.generate_blueprint(
+                "Resolve tests/test_assistant_adapter_surfaces.py provider smoke"
+            )
+
+            blueprint_path = Path(result["saved_to"])
+            relative = blueprint_path.relative_to(Path(repo) / ".srt1")
+
+        self.assertEqual(len(relative.parts), 1)
+        self.assertTrue(blueprint_path.name.startswith("blueprint_resolve_tests_test_assistant"))
+
     def test_engine_reviews_change_proposal_and_records_workcell_timeline(self):
         from srt1_platform.change_proposal import ChangeProposalStore
 
