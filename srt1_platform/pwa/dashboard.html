@@ -992,7 +992,7 @@ body.theme-light .file-intel-popover{box-shadow:0 18px 40px rgba(15,23,42,0.18);
   <!-- AI API KEYS -->
   <div class="panel" id="api-keys" style="margin-bottom:32px;scroll-margin-top:80px;">
     <div class="panel-header">
-      <div class="panel-title">AI Provider API Keys <span class="info-icon" data-tooltip="Public Core does not persist provider keys in the browser. Session keys are temporary and are not wired into dispatch until a secure backend vault is configured.">?</span></div>
+      <div class="panel-title">AI Provider API Keys <span class="info-icon" data-tooltip="Public Core does not persist provider keys. Session keys stay in tab memory and are passed only with a bounded WorkCell dispatch request.">?</span></div>
       <div class="panel-badge info" id="apiKeysStatus">0 in session</div>
     </div>
 
@@ -1099,9 +1099,69 @@ body.theme-light .file-intel-popover{box-shadow:0 18px 40px rgba(15,23,42,0.18);
         </div>
       </div>
 
+      <!-- Groq -->
+      <div class="api-key-row" id="keyRow-groq">
+        <div class="api-key-provider">
+          <div class="provider-logo" style="background:rgba(245,126,64,0.12);border:1px solid rgba(245,126,64,0.25);">G</div>
+          <div>
+            <div class="provider-name">Groq</div>
+            <div class="provider-models">OpenAI-compatible low-latency models</div>
+          </div>
+        </div>
+        <div class="api-key-input-wrap">
+          <input type="password" class="api-key-input" id="key-groq" placeholder="gsk_..." oninput="markDirty('groq')" autocomplete="off" spellcheck="false">
+          <button class="key-toggle-btn" id="toggle-groq" onclick="toggleKeyVisibility('groq')" title="Show/hide">o</button>
+        </div>
+        <div class="api-key-actions">
+          <span class="key-status-badge" id="status-groq">not set</span>
+          <button class="key-save-btn" id="save-groq" onclick="saveKey('groq')" disabled>Use this session</button>
+          <button class="key-clear-btn" id="clear-groq" onclick="clearKey('groq')">x</button>
+        </div>
+      </div>
+
+      <!-- Together -->
+      <div class="api-key-row" id="keyRow-together">
+        <div class="api-key-provider">
+          <div class="provider-logo" style="background:rgba(59,130,246,0.12);border:1px solid rgba(59,130,246,0.25);">T</div>
+          <div>
+            <div class="provider-name">Together AI</div>
+            <div class="provider-models">Open-source and hosted model runtime</div>
+          </div>
+        </div>
+        <div class="api-key-input-wrap">
+          <input type="password" class="api-key-input" id="key-together" placeholder="tgp_..." oninput="markDirty('together')" autocomplete="off" spellcheck="false">
+          <button class="key-toggle-btn" id="toggle-together" onclick="toggleKeyVisibility('together')" title="Show/hide">o</button>
+        </div>
+        <div class="api-key-actions">
+          <span class="key-status-badge" id="status-together">not set</span>
+          <button class="key-save-btn" id="save-together" onclick="saveKey('together')" disabled>Use this session</button>
+          <button class="key-clear-btn" id="clear-together" onclick="clearKey('together')">x</button>
+        </div>
+      </div>
+
+      <!-- Custom OpenAI-compatible -->
+      <div class="api-key-row" id="keyRow-custom">
+        <div class="api-key-provider">
+          <div class="provider-logo" style="background:rgba(148,163,184,0.12);border:1px solid rgba(148,163,184,0.25);">*</div>
+          <div>
+            <div class="provider-name">Custom Provider</div>
+            <div class="provider-models">Any OpenAI-compatible endpoint</div>
+          </div>
+        </div>
+        <div class="api-key-input-wrap">
+          <input type="password" class="api-key-input" id="key-custom" placeholder="provider session key" oninput="markDirty('custom')" autocomplete="off" spellcheck="false">
+          <button class="key-toggle-btn" id="toggle-custom" onclick="toggleKeyVisibility('custom')" title="Show/hide">o</button>
+        </div>
+        <div class="api-key-actions">
+          <span class="key-status-badge" id="status-custom">not set</span>
+          <button class="key-save-btn" id="save-custom" onclick="saveKey('custom')" disabled>Use this session</button>
+          <button class="key-clear-btn" id="clear-custom" onclick="clearKey('custom')">x</button>
+        </div>
+      </div>
+
     </div>
     <div style="margin-top:16px;padding:12px 16px;background:var(--bg);border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--text4);display:flex;align-items:center;gap:8px;">
-      <span style="font-size:14px;">■</span> Session keys stay in this browser tab only and are cleared on reload. Secure backend provider-key storage is intentionally not shipped in public Core yet.
+      <span style="font-size:14px;">■</span> Session keys stay in this browser tab only, are cleared on reload, and are sent only with a bounded WorkCell dispatch request. Secure backend provider-key storage is intentionally not shipped in public Core yet.
     </div>
   </div>
 
@@ -1109,9 +1169,9 @@ body.theme-light .file-intel-popover{box-shadow:0 18px 40px rgba(15,23,42,0.18);
 
   <!-- These panels need to be in the overview pane but were defined after settings -->
   <!-- AI CONNECTION — Shows which AI is connected to this module -->
-  <!-- NOTE: Phase 2 addition. This is the EXECUTE section of the workflow.
-       Works with external AI assistants by generating bounded context files and MCP surfaces.
-       A first-party execution runtime is planned and inactive in the current Core dashboard. -->
+  <!-- NOTE: This is the assistant connection section of the workflow.
+       Core supports bounded file/context handoff and OpenAI-compatible provider dispatch.
+       Direct writes still require Change Proposal review and approval. -->
   <div class="panel" id="ai-connection" style="margin-bottom:32px;scroll-margin-top: 80px;">
     <div class="panel-header">
       <div class="panel-title">AI Connection <span class="info-icon" data-tooltip="Shows which AI code assistant is connected to this module and what context SRT-1 is injecting.">?</span></div>
@@ -3531,7 +3591,7 @@ async function loadWorkCells() {
   }
 }
 
-const AI_KEY_PROVIDERS = ['openai','anthropic','gemini','grok'];
+const AI_KEY_PROVIDERS = ['openai','anthropic','gemini','grok','groq','together','custom'];
 const sessionProviderKeys = {};
 let credentialMode = 'session';
 
