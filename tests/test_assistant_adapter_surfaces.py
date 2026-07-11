@@ -127,6 +127,8 @@ class AssistantAdapterSurfaceTests(unittest.TestCase):
         self.assertIn("Slack Seed Intake", dashboard)
         self.assertIn("submitSlackSeed", dashboard)
         self.assertIn("/api/v1/slack/seed", dashboard)
+        self.assertIn("describeDashboardActionError", dashboard)
+        self.assertIn("SRT-1 runtime is unreachable", dashboard)
 
     def test_dashboard_does_not_persist_provider_keys(self):
         dashboard = (
@@ -167,6 +169,22 @@ class AssistantAdapterSurfaceTests(unittest.TestCase):
         self.assertIn("allowed_paths", dashboard)
         self.assertIn("loadWorkCellProposals", dashboard)
         self.assertIn("applyChangeProposal", dashboard)
+
+    def test_dashboard_seed_actions_use_unified_task_helper(self):
+        dashboard = (
+            Path(__file__).resolve().parents[1]
+            / "srt1_platform"
+            / "pwa"
+            / "dashboard.html"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("data-submit-task", dashboard)
+        self.assertIn("await postFindingSeedPayload({", dashboard)
+        self.assertIn('source: "dashboard"', dashboard)
+        self.assertIn("auto_dispatch: false", dashboard)
+        self.assertIn("getPlatformApiBase", dashboard)
+        self.assertIn("window.SRT1Platform", dashboard)
+        self.assertNotIn("SRT1Platform?.API_BASE", dashboard)
 
     def test_api_task_route_preserves_credentials_and_serializes_seed(self):
         source = (

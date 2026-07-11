@@ -1428,7 +1428,7 @@ body.theme-light .file-intel-popover{box-shadow:0 18px 40px rgba(15,23,42,0.18);
       </div>
       <div style="display:flex; gap:8px;">
         <input type="text" id="taskInput" placeholder="Describe a task or architectural change..." style="flex:1; padding: 12px 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: var(--sans); outline: none; transition: border-color 0.2s;" onkeydown="if(event.key === 'Enter') submitTask()">
-        <button onclick="submitTask()" style="padding: 12px 24px; background: linear-gradient(135deg, var(--green), var(--cyan)); color: #000; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; transition: opacity 0.2s;">Plant Seed</button>
+        <button data-submit-task onclick="submitTask()" style="padding: 12px 24px; background: linear-gradient(135deg, var(--green), var(--cyan)); color: #000; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; transition: opacity 0.2s;">Plant Seed</button>
       </div>
     </div>
   </div>
@@ -2811,7 +2811,7 @@ async function controlWorkCell(queueSeedId, action, button) {
     delete workCellActivityPages[queueSeedId];
     await loadWorkCells();
   } catch (e) {
-    if (button) button.textContent = e.message || 'Action blocked';
+    if (button) button.textContent = describeDashboardActionError(e, 'Action blocked').slice(0, 48);
   } finally {
     if (button) {
       setTimeout(() => {
@@ -3904,7 +3904,7 @@ async function saveAssistantAdapters() {
     await loadAssistantAdapters();
   } catch(e) {
     if (status) {
-      status.textContent = e.message || 'Adapter save failed.';
+      status.textContent = describeDashboardActionError(e, 'Adapter save failed');
       status.style.color = 'var(--amber)';
     }
   }
@@ -3944,7 +3944,7 @@ async function submitSlackSeed() {
     }, 800);
   } catch(e) {
     if (status) {
-      status.textContent = e.message || 'Slack seed failed.';
+      status.textContent = describeDashboardActionError(e, 'Slack seed failed');
       status.style.color = 'var(--amber)';
     }
   }
@@ -4340,8 +4340,9 @@ function showFileCardDetails(filePath) {
 
 async function toggleNudge(enabled) {
   try {
-    const res = await fetch(`${SRT1Platform?.API_BASE || '/api/v1'}/enforcement/nudge/toggle`, {
+    const res = await fetch(`${getPlatformApiBase()}/enforcement/nudge/toggle`, {
       method: "POST",
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ enabled })
     });
     if (!res.ok) console.error("Failed to toggle nudge");
@@ -4353,10 +4354,12 @@ async function toggleNudge(enabled) {
 let chatHistoryCleared = false;
 async function submitTask() {
   const input = document.getElementById('taskInput');
-  const text = input.value.trim();
+  const text = input?.value.trim();
   if(!text) return;
   
   const history = document.getElementById('chatHistory');
+  const button = document.querySelector('button[data-submit-task]');
+  const originalText = button?.textContent || 'Plant Seed';
   if(!chatHistoryCleared) {
     history.innerHTML = '';
     chatHistoryCleared = true;
@@ -4367,26 +4370,33 @@ async function submitTask() {
     <strong style="color:var(--text);">You:</strong> ${text}
   </div>`;
   input.value = '';
+  if (button) {
+    button.disabled = true;
+    button.textContent = 'Planting...';
+  }
   
   try {
-    const res = await fetch(`${SRT1Platform?.API_BASE || '/api/v1'}/task`, {
-      method: "POST",
-      body: JSON.stringify({ task: text, source: "dashboard" })
+    const data = await postFindingSeedPayload({
+      task: text,
+      source: "dashboard",
+      auto_dispatch: false
     });
-    const data = await res.json();
-    
-    if(res.ok) {
-      history.innerHTML += `<div style="padding: 10px; background: rgba(62,207,142,0.1); border-radius: 8px; border: 1px solid rgba(62,207,142,0.3);">
-        <strong style="color:var(--green);">SRT-1:</strong> Seed planted successfully. Context bundle is being generated. <span style="font-family:var(--mono); font-size:10px; color:var(--text4);">[${data.queue_seed_id}]</span>
-      </div>`;
-      setTimeout(loadManifest, 1500); // refresh UI
-    } else {
-      history.innerHTML += `<div style="padding: 10px; background: rgba(248,81,73,0.1); border-radius: 8px; border: 1px solid rgba(248,81,73,0.3);">
-        <strong style="color:var(--red);">Error:</strong> ${data.error || 'Failed to plant seed.'}
-      </div>`;
-    }
+    history.innerHTML += `<div style="padding: 10px; background: rgba(62,207,142,0.1); border-radius: 8px; border: 1px solid rgba(62,207,142,0.3);">
+      <strong style="color:var(--green);">SRT-1:</strong> Seed planted successfully. Review it in the Fix Queue or WorkCell surface. <span style="font-family:var(--mono); font-size:10px; color:var(--text4);">[${escapeHtml(data.queue_seed_id || data.seed_id || 'seed queued')}]</span>
+    </div>`;
+    await Promise.allSettled([loadSeedQueue(), loadWorkCells(), loadStatus()]);
+    setTimeout(loadManifest, 1500);
   } catch (e) {
     console.error(e);
+    const message = describeDashboardActionError(e, 'Seed creation failed');
+    history.innerHTML += `<div style="padding: 10px; background: rgba(248,81,73,0.1); border-radius: 8px; border: 1px solid rgba(248,81,73,0.3);">
+      <strong style="color:var(--red);">Error:</strong> ${escapeHtml(message)}
+    </div>`;
+  } finally {
+    if (button) {
+      button.disabled = false;
+      button.textContent = originalText;
+    }
   }
   history.scrollTop = history.scrollHeight;
 }
@@ -4404,6 +4414,20 @@ function getFindingSeedApiOrigins() {
     'http://127.0.0.1:7484'
   ];
   return [...new Set(origins.filter(origin => origin && origin.startsWith('http')))];
+}
+
+function getPlatformApiBase() {
+  const platform = window.SRT1Platform;
+  return platform?.API_BASE || '/api/v1';
+}
+
+function describeDashboardActionError(error, fallback = 'Action failed') {
+  const message = error?.message || String(error || '');
+  if (message.startsWith(`${fallback}:`)) return message;
+  if (!message || message === 'Failed to fetch') {
+    return `${fallback}: SRT-1 runtime is unreachable. Start or refresh the active repository runtime, then try again.`;
+  }
+  return `${fallback}: ${message}`;
 }
 
 function buildAssistantCredentialPayload() {
@@ -4444,7 +4468,7 @@ async function postFindingSeedPayload(payload) {
       lastError = e;
     }
   }
-  throw lastError || new Error('Seed creation failed');
+  throw new Error(describeDashboardActionError(lastError, 'Seed creation failed'));
 }
 
 function findWorkCellExecution(queueSeedId) {
@@ -4496,7 +4520,7 @@ async function runWorkCellWithAssistant(queueSeedId, button) {
   } catch (e) {
     if (button) {
       button.disabled = false;
-      button.textContent = `Failed: ${(e.message || String(e)).slice(0, 42)}`;
+      button.textContent = `Failed: ${describeDashboardActionError(e, 'Dispatch failed').slice(0, 48)}`;
       button.style.color = 'var(--red)';
       button.style.borderColor = 'rgba(239,68,68,0.2)';
     }
@@ -4558,7 +4582,7 @@ async function createFindingFixSeed(actionId, button) {
     await Promise.allSettled([loadSeedQueue(), loadWorkCells(), loadStatus()]);
   } catch (e) {
     console.error('Finding seed creation failed', e);
-    const message = e.message || String(e);
+    const message = describeDashboardActionError(e, 'Finding seed creation failed');
     if (button) {
       button.disabled = false;
       button.textContent = `Failed: ${message.slice(0, 48)}`;
