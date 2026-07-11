@@ -3038,6 +3038,7 @@ function renderWorkCellDetail(payload, selectedExecution) {
   const providerReadiness = getProviderExecutionReadiness(wc, packageStatus, executionStatus);
   const providerReadinessLabel = providerReadiness.ready ? 'ready to run' : 'setup needed';
   const controlTruth = getWorkCellExecutionControlTruth(selectedExecution);
+  const providerResult = getProviderResultSummary(selectedExecution);
   const completionReview = getProviderCompletionReviewState(selectedExecution);
 
   detailEl.innerHTML = `
@@ -3102,6 +3103,16 @@ function renderWorkCellDetail(payload, selectedExecution) {
         </div>
         <div class="workcell-provider-readiness-grid">
           ${providerReadiness.checks.map(check => `<span class="workcell-provider-check ${check.ready ? 'ready' : ''}">${check.ready ? 'ready' : 'needed'} ${escapeHtml(check.label)}: ${escapeHtml(check.detail)}</span>`).join('')}
+        </div>
+      </div>
+      <div class="workcell-provider-readiness ${providerResult.ready ? 'ready' : ''}">
+        <div class="workcell-provider-readiness-head">
+          <span>Provider Result</span>
+          <span class="workcell-package-status ${providerResult.ready ? 'ready' : ''}">${escapeHtml(providerResult.status)}</span>
+        </div>
+        <div class="workcell-review-lane-copy">${escapeHtml(providerResult.message)}</div>
+        <div class="workcell-provider-readiness-grid" style="margin-top:8px;">
+          ${providerResult.checks.map(check => `<span class="workcell-provider-check ${check.ready ? 'ready' : ''}">${check.ready ? 'ready' : 'needed'} ${escapeHtml(check.label)}: ${escapeHtml(check.detail)}</span>`).join('')}
         </div>
       </div>
       <div class="workcell-package-buttons">
@@ -3923,6 +3934,58 @@ function getWorkCellExecutionControlTruth(execution) {
       { label: 'job handle', value: currentJob?.job_id || (hasJobHandle ? 'registered' : 'not registered') },
       { label: 'runtime port', value: currentJob?.runtime_port || (hasRuntimePort ? String(execution.runtime_port) : 'repository') },
       { label: 'adapter', value: provider },
+    ],
+  };
+}
+
+function getProviderResultSummary(execution) {
+  const currentJob = execution?.current_execution_job
+    || (Array.isArray(execution?.execution_jobs) && execution.execution_jobs.length
+      ? execution.execution_jobs[execution.execution_jobs.length - 1]
+      : null);
+  const jobStatus = currentJob?.status || 'not dispatched';
+  const result = currentJob?.result || {};
+  const methods = result.methods || {};
+  const methodEntries = Object.entries(methods);
+  const adapterEntries = [];
+  let proposalCount = 0;
+  let degradedCount = 0;
+  let errorCount = 0;
+
+  methodEntries.forEach(([methodName, methodResult]) => {
+    const adapters = methodResult?.adapters || {};
+    Object.entries(adapters).forEach(([adapterName, adapterResult]) => {
+      const status = adapterResult?.status || (methodResult?.success ? 'dispatched' : 'unknown');
+      adapterEntries.push({ methodName, adapterName, status });
+      if (status === 'degraded') degradedCount += 1;
+      if (adapterResult?.error || status === 'failed') errorCount += 1;
+    });
+    const proposals = methodResult?.proposals || [];
+    if (Array.isArray(proposals)) proposalCount += proposals.length;
+    if (methodResult?.error) errorCount += 1;
+  });
+
+  const adapterSummary = adapterEntries.length
+    ? adapterEntries.map(item => `${item.adapterName}:${item.status}`).join(', ')
+    : (methodEntries.length ? methodEntries.map(([name]) => name).join(', ') : 'none yet');
+  const ready = proposalCount > 0 || jobStatus === 'dispatched' || jobStatus === 'completed';
+  const status = errorCount ? 'attention needed' : (degradedCount ? 'degraded' : (ready ? 'reviewable' : 'waiting'));
+  const message = proposalCount
+    ? `${proposalCount} provider proposal${proposalCount === 1 ? '' : 's'} captured for human review.`
+    : (degradedCount || errorCount
+      ? 'Provider response did not produce reviewable proposals. Inspect adapter status before retrying.'
+      : 'No provider proposals are recorded yet. Dispatch a WorkCell or wait for adapter completion.');
+
+  return {
+    ready,
+    status,
+    message,
+    checks: [
+      { label: 'job status', ready: ['dispatched', 'completed'].includes(jobStatus), detail: jobStatus },
+      { label: 'adapters', ready: adapterEntries.length > 0, detail: adapterSummary },
+      { label: 'proposals', ready: proposalCount > 0, detail: String(proposalCount) },
+      { label: 'degraded', ready: degradedCount === 0, detail: String(degradedCount) },
+      { label: 'errors', ready: errorCount === 0, detail: String(errorCount) },
     ],
   };
 }

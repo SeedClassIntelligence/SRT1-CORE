@@ -674,7 +674,13 @@ class WorkCellRuntimeTests(unittest.TestCase):
                 return {
                     "seed_id": kwargs["seed_id"],
                     "dispatched": True,
-                    "methods": {"assistant_adapter": {"success": True}},
+                    "methods": {
+                        "assistant_adapter": {
+                            "success": True,
+                            "adapters": {"openai_compatible": {"status": "dispatched"}},
+                            "proposals": [{"proposal_id": "proposal_1", "status": "awaiting_review"}],
+                        }
+                    },
                     "monitoring": True,
                 }
 
@@ -713,6 +719,10 @@ class WorkCellRuntimeTests(unittest.TestCase):
         self.assertEqual(engine.bridge.calls[0]["execution_context"]["allowed_paths"], ["app.py"])
         self.assertEqual(current["status"], "dispatched")
         self.assertEqual(current["current_execution_job"]["status"], "dispatched")
+        self.assertEqual(
+            len(current["current_execution_job"]["result"]["methods"]["assistant_adapter"]["proposals"]),
+            1,
+        )
         self.assertFalse(result["secret_persisted"])
         self.assertTrue(
             any(event["event_type"] == "assistant.dispatched" for event in current["activity_events"])
@@ -906,6 +916,10 @@ class WorkCellRuntimeTests(unittest.TestCase):
         self.assertIn("Provider Execution Readiness", html)
         self.assertIn("getProviderExecutionReadiness", html)
         self.assertIn("workcell-provider-readiness", html)
+        self.assertIn("Provider Result", html)
+        self.assertIn("getProviderResultSummary", html)
+        self.assertIn("provider proposals are recorded", html)
+        self.assertIn("adapter status", html)
         self.assertIn("provider adapter", html)
         self.assertIn("session key", html)
         self.assertIn("endpoint/model", html)
