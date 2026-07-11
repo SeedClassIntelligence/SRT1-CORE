@@ -837,6 +837,66 @@ class WorkCellRuntimeTests(unittest.TestCase):
             any(event["event_type"] == "change_proposal.apply" for event in current["activity_events"])
             )
 
+    def test_full_provider_smoke_path_uses_workcell_guard_and_verification(self):
+        from srt1_platform.change_proposal import ChangeProposalStore
+
+        with tempfile.TemporaryDirectory() as repo:
+            app = Path(repo) / "app.py"
+            other = Path(repo) / "other.py"
+            app.write_text("value = 'old'\n", encoding="utf-8")
+            other.write_text("untouched = True\n", encoding="utf-8")
+            engine = engine_module.SRT1Engine.__new__(engine_module.SRT1Engine)
+            engine.repo_path = repo
+            engine.workcell_registry = WorkCellRegistry(repo_path=repo)
+            engine.workcell_registry.activate_execution(
+                queue_seed_id="seed_provider_smoke",
+                objective="Update app.py through provider proposal",
+                manifest={"file_manifest": [{"file_path": "app.py"}, {"file_path": "other.py"}]},
+            )
+            store = ChangeProposalStore(repo_path=repo)
+            record = store.create_from_provider_result(
+                queue_seed_id="seed_provider_smoke",
+                objective="Update app.py through provider proposal",
+                provider_result={
+                    "provider": "fake_local",
+                    "proposed_changes": [{
+                        "file_path": "app.py",
+                        "action": "MODIFY",
+                        "new_content": "value = 'new'\n",
+                        "rationale": "Local smoke provider proposed a bounded change.",
+                    }],
+                },
+                allowed_paths=["app.py"],
+            )
+            proposal_id = record["proposal"]["proposal_id"]
+
+            reviewed = engine._review_change_proposal(
+                proposal_id,
+                action="approve",
+                actor="dashboard_human",
+            )
+            applied = engine._apply_change_proposal(proposal_id, actor="dashboard_human")
+            verified = engine._verify_workcell_execution(
+                "seed_provider_smoke",
+                verified=applied.get("applied") is True,
+                actor="dashboard_human",
+                details={"method": "local_provider_smoke"},
+            )
+            current = engine.workcell_registry.get_execution_for_seed("seed_provider_smoke")
+
+            self.assertEqual(reviewed["status"], "approved")
+            self.assertEqual(applied["status"], "completed")
+            self.assertTrue(applied["applied"])
+            self.assertEqual(app.read_text(encoding="utf-8"), "value = 'new'\n")
+            self.assertEqual(other.read_text(encoding="utf-8"), "untouched = True\n")
+            self.assertEqual(verified["status"], "recorded")
+            self.assertEqual(current["status"], "awaiting_review")
+            self.assertEqual(current["verification_state"], "verified")
+            event_types = [event["event_type"] for event in current["activity_events"]]
+            self.assertIn("change_proposal.approve", event_types)
+            self.assertIn("change_proposal.apply", event_types)
+            self.assertIn("verification.completed", event_types)
+
     def test_dashboard_contains_workcell_operations_surface(self):
         dashboard = Path(__file__).resolve().parents[1] / "srt1_platform" / "pwa" / "dashboard.html"
         html = dashboard.read_text(encoding="utf-8")
