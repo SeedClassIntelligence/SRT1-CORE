@@ -90,6 +90,7 @@ class WorkCellExecution:
     verification_state: str = "unverified"
     package_path: Optional[str] = None
     package_status: Dict[str, Any] = field(default_factory=dict)
+    workspace: Dict[str, Any] = field(default_factory=dict)
     activity_events: List[Dict[str, Any]] = field(default_factory=list)
     activity_event_count: int = 0
     execution_jobs: List[Dict[str, Any]] = field(default_factory=list)
@@ -367,6 +368,8 @@ class WorkCellRegistry:
             )
         self._write_filecells_json(workcell, execution)
         self._write_workcell_md(workcell, execution)
+        execution.workspace = self._build_workspace_descriptor(workcell, execution)
+        self._write_workspace_json(workcell, execution)
         self._write_runtime_state(workcell, execution)
         execution.package_status = self._build_package_status(execution)
         self._write_runtime_state(workcell, execution)
@@ -379,6 +382,10 @@ class WorkCellRegistry:
             return None
         data = execution.to_dict()
         data["package_status"] = self._build_package_status(execution)
+        if not data.get("workspace"):
+            workcell = self._workcells.get(execution.workcell_id)
+            if workcell:
+                data["workspace"] = self._build_workspace_descriptor(workcell, execution)
         data["current_execution_job"] = self._current_execution_job(execution)
         return data
 
@@ -988,6 +995,8 @@ class WorkCellRegistry:
         os.makedirs(package_path, exist_ok=True)
         self._write_filecells_json(workcell, execution)
         self._write_workcell_md(workcell, execution)
+        execution.workspace = self._build_workspace_descriptor(workcell, execution)
+        self._write_workspace_json(workcell, execution)
         self._write_runtime_state(workcell, execution)
         execution.package_status = self._build_package_status(execution)
         self._append_activity_event(
@@ -1055,6 +1064,40 @@ class WorkCellRegistry:
             "package_status": package_status,
         }
 
+    def get_execution_workspace(self, queue_seed_id: str) -> Dict[str, Any]:
+        """Return the browser IDE/workspace contract for a WorkCell execution."""
+        execution = self._executions.get(f"wcx_{_safe_slug(queue_seed_id)}")
+        if not execution:
+            return {
+                "status": "not_found",
+                "queue_seed_id": queue_seed_id,
+                "error": "WorkCell execution not found",
+            }
+
+        workcell = self._workcells.get(execution.workcell_id)
+        if not workcell:
+            return {
+                "status": "not_found",
+                "queue_seed_id": queue_seed_id,
+                "workcell_execution_id": execution.workcell_execution_id,
+                "error": "Persistent WorkCell not found",
+            }
+
+        workspace = self._build_workspace_descriptor(workcell, execution)
+        execution.workspace = workspace
+        self._write_workspace_json(workcell, execution)
+        self._write_runtime_state(workcell, execution)
+        execution.package_status = self._build_package_status(execution)
+        self._save()
+        return {
+            "status": "ok",
+            "queue_seed_id": queue_seed_id,
+            "workcell_execution_id": execution.workcell_execution_id,
+            "workcell_id": execution.workcell_id,
+            "workspace": workspace,
+            "package_status": execution.package_status,
+        }
+
     def summary(self) -> Dict[str, Any]:
         execution_dicts = []
         for execution in self._executions.values():
@@ -1091,11 +1134,17 @@ class WorkCellRegistry:
             "workcell_md": os.path.join(package_path, "workcell.md"),
             "filecells_json": os.path.join(package_path, "filecells.json"),
             "runtime_state_json": os.path.join(package_path, "runtime_state.json"),
+            "workspace_json": os.path.join(package_path, "workspace.json"),
         }
         exists = {name: os.path.exists(path) for name, path in expected.items()}
         missing = [name for name, present in exists.items() if not present]
+        assistant_missing = [
+            name for name in ("workcell_md", "filecells_json", "runtime_state_json")
+            if not exists[name]
+        ]
         return {
-            "assistant_ready": os.path.isdir(package_path) and not missing,
+            "assistant_ready": os.path.isdir(package_path) and not assistant_missing,
+            "workspace_ready": exists["workspace_json"],
             "package_exists": os.path.isdir(package_path),
             "package_path": package_path,
             "workcell_md_exists": exists["workcell_md"],
@@ -1104,18 +1153,127 @@ class WorkCellRegistry:
             "filecells_json_path": expected["filecells_json"],
             "runtime_state_json_exists": exists["runtime_state_json"],
             "runtime_state_json_path": expected["runtime_state_json"],
+            "workspace_json_exists": exists["workspace_json"],
+            "workspace_json_path": expected["workspace_json"],
             "missing_files": missing,
+            "assistant_missing_files": assistant_missing,
         }
+
+    def _workspace_port(self, execution: WorkCellExecution) -> int:
+        if execution.runtime_port:
+            try:
+                return int(execution.runtime_port) + 1000
+            except (TypeError, ValueError):
+                pass
+        digest = hashlib.sha1(execution.queue_seed_id.encode("utf-8")).hexdigest()
+        return 4100 + (int(digest[:4], 16) % 1000)
+
+    def _build_workspace_descriptor(
+        self,
+        workcell: WorkCell,
+        execution: WorkCellExecution,
+    ) -> Dict[str, Any]:
+        workspace_port = self._workspace_port(execution)
+        base_url = os.environ.get("SRT1_WORKCELL_IDE_URL", "").strip()
+        template = os.environ.get("SRT1_WORKCELL_IDE_URL_TEMPLATE", "").strip()
+        if template:
+            try:
+                ide_url = template.format(
+                    port=workspace_port,
+                    queue_seed_id=execution.queue_seed_id,
+                    workcell_id=workcell.workcell_id,
+                )
+            except (KeyError, ValueError):
+                ide_url = ""
+        elif base_url:
+            ide_url = base_url.rstrip("/")
+        else:
+            ide_url = ""
+
+        package_path = execution.package_path or os.path.join(self.registry_dir, execution.queue_seed_id)
+        workspace_path = os.path.join(package_path, "workspace.json")
+        return {
+            "status": "configured" if ide_url else "launch_required",
+            "workspace_kind": "workcell_browser_ide",
+            "ide_url": ide_url,
+            "recommended_provider": "openvscode-server_or_code-server",
+            "workspace_port": workspace_port,
+            "repo_path": self.repo_path,
+            "package_path": package_path,
+            "workspace_manifest_path": workspace_path,
+            "queue_seed_id": execution.queue_seed_id,
+            "workcell_id": workcell.workcell_id,
+            "workcell_execution_id": execution.workcell_execution_id,
+            "objective": execution.objective,
+            "allowed_paths": list(workcell.owned_paths or []),
+            "restricted_paths": list(workcell.restricted_paths or []),
+            "entry_files": {
+                "workcell_md": os.path.join(package_path, "workcell.md"),
+                "filecells_json": os.path.join(package_path, "filecells.json"),
+                "runtime_state_json": os.path.join(package_path, "runtime_state.json"),
+                "workspace_json": workspace_path,
+            },
+            "srt1_authority": [
+                "WorkCell scope",
+                "canonical seed",
+                "repository index",
+                "recall and reinjection context",
+                "verification rules",
+                "lifecycle and trust state",
+            ],
+            "ide_surface": [
+                "editor",
+                "file tree",
+                "source control",
+                "terminal",
+                "tests",
+                "assistant activity",
+            ],
+            "launch_commands": [
+                {
+                    "label": "Open in desktop VS Code",
+                    "command": f'code "{self.repo_path}"',
+                    "purpose": "Open the active repository locally while SRT-1 remains WorkCell authority.",
+                },
+                {
+                    "label": "Launch code-server",
+                    "command": f'code-server --auth none --bind-addr 127.0.0.1:{workspace_port} "{self.repo_path}"',
+                    "purpose": "Expose a VS Code-compatible browser workspace for this WorkCell.",
+                },
+                {
+                    "label": "Launch OpenVSCode Server",
+                    "command": f'openvscode-server --host 127.0.0.1 --port {workspace_port} --without-connection-token "{self.repo_path}"',
+                    "purpose": "Run an OpenVSCode Server instance attached to the WorkCell repository.",
+                },
+            ],
+            "notes": [
+                "The IDE is a visual surface only; SRT-1 remains the WorkCell authority.",
+                "Assistant runtimes must still validate writes through the WorkCell API before source mutation.",
+            ],
+            "updated_at": _now(),
+        }
+
+    def _write_workspace_json(self, workcell: WorkCell, execution: WorkCellExecution) -> None:
+        if not execution.package_path:
+            return
+        workspace = execution.workspace or self._build_workspace_descriptor(workcell, execution)
+        execution.workspace = workspace
+        path = os.path.join(execution.package_path, "workspace.json")
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(workspace, f, indent=2, sort_keys=True)
 
     def _write_runtime_state(self, workcell: WorkCell, execution: WorkCellExecution) -> None:
         if not execution.package_path:
             return
         state_path = os.path.join(execution.package_path, "runtime_state.json")
+        workspace = execution.workspace or self._build_workspace_descriptor(workcell, execution)
+        execution.workspace = workspace
         with open(state_path, "w", encoding="utf-8") as f:
             json.dump({
                 "workcell": workcell.to_dict(),
                 "execution": execution.to_dict(),
                 "filecells": [workcell.filecell_summary] if workcell.filecell_summary else [],
+                "workspace": workspace,
             }, f, indent=2, sort_keys=True)
 
     def _write_filecells_json(self, workcell: WorkCell, execution: WorkCellExecution) -> None:
@@ -1155,6 +1313,7 @@ class WorkCellRegistry:
             "## Operating Rule",
             "Begin inside this WorkCell package. Do not broaden context because files are nearby.",
             "Broaden scope only when dependency evidence, verification needs, or human approval requires it.",
+            "Use workspace.json to enter the same WorkCell visually through an approved browser IDE surface.",
             "",
             "## Attached FileCell",
             f"- filecell_id: {filecell.get('filecell_id', 'unknown')}",

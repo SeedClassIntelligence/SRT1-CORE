@@ -2444,6 +2444,15 @@ class SRT1Engine:
             return {"error": "WorkCell registry unavailable", "status": "error"}
         return registry.read_workcell_md(queue_seed_id)
 
+    def _get_workcell_workspace(self, queue_seed_id: Optional[str]) -> Dict[str, Any]:
+        """Return the visual WorkCell workspace descriptor for browser IDE surfaces."""
+        if not queue_seed_id:
+            return {"error": "queue_seed_id is required", "status": "error"}
+        registry = self._get_workcell_registry()
+        if not registry:
+            return {"error": "WorkCell registry unavailable", "status": "error"}
+        return registry.get_execution_workspace(queue_seed_id)
+
     def _get_workcell_activity(
         self,
         queue_seed_id: Optional[str],
@@ -4279,6 +4288,12 @@ class SRT1Engine:
                 elif path.startswith("/api/v1/workcells/") and path.endswith("/package/workcell-md"):
                     queue_seed_id = path[len("/api/v1/workcells/"):-len("/package/workcell-md")].strip("/")
                     result = engine._get_workcell_md_preview(queue_seed_id)
+                    status_code = 200 if result.get("status") == "ok" else 404
+                    self._json(result, status_code)
+
+                elif path.startswith("/api/v1/workcells/") and path.endswith("/workspace"):
+                    queue_seed_id = path[len("/api/v1/workcells/"):-len("/workspace")].strip("/")
+                    result = engine._get_workcell_workspace(queue_seed_id)
                     status_code = 200 if result.get("status") == "ok" else 404
                     self._json(result, status_code)
 

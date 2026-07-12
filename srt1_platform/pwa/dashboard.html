@@ -2693,6 +2693,18 @@ async function copyWorkCellPackagePath(value, button) {
   }
 }
 
+function openWorkCellWorkspace(url, button) {
+  if (!url) {
+    if (button) {
+      const original = button.textContent;
+      button.textContent = 'Launch first';
+      setTimeout(() => { button.textContent = original; }, 1400);
+    }
+    return;
+  }
+  window.open(url, '_blank', 'noopener,noreferrer');
+}
+
 async function repairWorkCellPackage(queueSeedId, button) {
   if (!queueSeedId) return;
   const original = button?.textContent || 'Repair package';
@@ -3016,10 +3028,15 @@ function renderWorkCellDetail(payload, selectedExecution) {
   const packageStatus = selectedExecution.package_status || {};
   const assistantReady = packageStatus.assistant_ready === true;
   const packageLabel = assistantReady ? 'assistant ready' : 'package incomplete';
+  const workspace = selectedExecution.workspace || {};
+  const workspaceCommands = workspace.launch_commands || [];
+  const workspaceUrl = workspace.ide_url || '';
+  const workspaceState = workspace.status || (workspaceUrl ? 'configured' : 'launch required');
   const packageFiles = [
     ['workcell.md', packageStatus.workcell_md_exists, packageStatus.workcell_md_path || `${packagePath}/workcell.md`],
     ['filecells.json', packageStatus.filecells_json_exists, packageStatus.filecells_json_path || `${packagePath}/filecells.json`],
     ['runtime_state.json', packageStatus.runtime_state_json_exists, packageStatus.runtime_state_json_path || `${packagePath}/runtime_state.json`],
+    ['workspace.json', packageStatus.workspace_json_exists, packageStatus.workspace_json_path || workspace.workspace_manifest_path || `${packagePath}/workspace.json`],
   ];
   const executionStatus = selectedExecution.status || 'ready';
   const canPause = ['ready', 'running', 'dispatched'].includes(executionStatus);
@@ -3072,6 +3089,31 @@ function renderWorkCellDetail(payload, selectedExecution) {
         ${packageFiles.map(([label, present, path]) => `<button type="button" class="workcell-package-btn" ${present ? '' : 'disabled'} data-copy-value="${escapeHtml(path)}">Copy ${escapeHtml(label)} path</button>`).join('')}
         <button type="button" class="workcell-package-btn" ${packageStatus.workcell_md_exists ? '' : 'disabled'} data-preview-queue-seed-id="${escapeHtml(selectedExecution.queue_seed_id || '')}">Refresh preview</button>
         ${assistantReady ? '' : `<button type="button" class="workcell-package-btn" data-repair-queue-seed-id="${escapeHtml(selectedExecution.queue_seed_id || '')}">Repair package</button>`}
+      </div>
+    </div>
+    <div class="workcell-package-actions">
+      <div class="workcell-package-head">
+        <div class="workcell-package-title">WorkCell Workspace</div>
+        <div class="workcell-package-status ${workspaceUrl ? 'ready' : ''}">${escapeHtml(workspaceState)}</div>
+      </div>
+      <div style="font-size:11px;color:var(--text4);line-height:1.45;margin-bottom:8px;">The dashboard manages WorkCells. The browser IDE is the visual workspace attached to this same WorkCell package, file scope, seed, and verification contract.</div>
+      <div class="workcell-control-truth ${workspaceUrl ? 'ready' : 'pending'}">
+        <div class="workcell-control-truth-head">
+          <div class="workcell-control-truth-title">Visible Workspace Contract</div>
+          <div class="workcell-package-status ${workspaceUrl ? 'ready' : ''}">${escapeHtml(workspace.recommended_provider || 'openvscode-server_or_code-server')}</div>
+        </div>
+        <div class="workcell-control-truth-copy">${escapeHtml(workspaceUrl ? 'Workspace URL is configured. Open it to enter the WorkCell visually.' : 'No browser IDE URL is configured yet. Copy a launch command below, start the IDE server, then set SRT1_WORKCELL_IDE_URL or SRT1_WORKCELL_IDE_URL_TEMPLATE for direct open links.')}</div>
+        <div class="workcell-control-truth-grid">
+          <div class="workcell-control-truth-item"><div class="workcell-control-truth-label">Workspace Port</div><div class="workcell-control-truth-value">${escapeHtml(workspace.workspace_port || 'pending')}</div></div>
+          <div class="workcell-control-truth-item"><div class="workcell-control-truth-label">IDE URL</div><div class="workcell-control-truth-value">${escapeHtml(workspaceUrl || 'not configured')}</div></div>
+          <div class="workcell-control-truth-item"><div class="workcell-control-truth-label">Manifest</div><div class="workcell-control-truth-value">${escapeHtml(workspace.workspace_manifest_path || packageStatus.workspace_json_path || 'workspace.json')}</div></div>
+          <div class="workcell-control-truth-item"><div class="workcell-control-truth-label">Allowed Paths</div><div class="workcell-control-truth-value">${escapeHtml((workspace.allowed_paths || paths).join(', ') || 'scope unavailable')}</div></div>
+        </div>
+      </div>
+      <div class="workcell-package-buttons">
+        <button type="button" class="workcell-package-btn" data-workcell-open-workspace="${escapeHtml(workspaceUrl)}" ${workspaceUrl ? '' : 'disabled'}>Open Workspace</button>
+        <button type="button" class="workcell-package-btn" data-copy-value="${escapeHtml(workspace.workspace_manifest_path || packageStatus.workspace_json_path || `${packagePath}/workspace.json`)}">Copy workspace.json path</button>
+        ${workspaceCommands.map(command => `<button type="button" class="workcell-package-btn" data-copy-value="${escapeHtml(command.command || '')}">Copy ${escapeHtml(command.label || 'launch command')}</button>`).join('')}
       </div>
     </div>
     <div class="workcell-package-actions">
@@ -3175,6 +3217,9 @@ function renderWorkCellDetail(payload, selectedExecution) {
   `;
   detailEl.querySelectorAll('.workcell-package-btn[data-copy-value]').forEach(button => {
     button.addEventListener('click', () => copyWorkCellPackagePath(button.dataset.copyValue, button));
+  });
+  detailEl.querySelectorAll('.workcell-package-btn[data-workcell-open-workspace]').forEach(button => {
+    button.addEventListener('click', () => openWorkCellWorkspace(button.dataset.workcellOpenWorkspace, button));
   });
   detailEl.querySelectorAll('.workcell-package-btn[data-repair-queue-seed-id]').forEach(button => {
     button.addEventListener('click', () => repairWorkCellPackage(button.dataset.repairQueueSeedId, button));

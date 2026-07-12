@@ -108,6 +108,7 @@ class WorkCellRuntimeTests(unittest.TestCase):
             workcell_md = package / "workcell.md"
             runtime_state = package / "runtime_state.json"
             filecells_json = package / "filecells.json"
+            workspace_json = package / "workspace.json"
             content = workcell_md.read_text(encoding="utf-8")
             filecells = json.loads(filecells_json.read_text(encoding="utf-8"))
             runtime = json.loads(runtime_state.read_text(encoding="utf-8"))
@@ -117,14 +118,17 @@ class WorkCellRuntimeTests(unittest.TestCase):
             self.assertTrue(workcell_md.exists())
             self.assertTrue(runtime_state.exists())
             self.assertTrue(filecells_json.exists())
+            self.assertTrue(workspace_json.exists())
             self.assertTrue(execution.package_status["assistant_ready"])
             self.assertTrue(execution.package_status["workcell_md_exists"])
             self.assertTrue(execution.package_status["filecells_json_exists"])
             self.assertTrue(execution.package_status["runtime_state_json_exists"])
+            self.assertTrue(execution.package_status["workspace_json_exists"])
             self.assertEqual(execution.package_status["missing_files"], [])
             self.assertIn("Refactor src/auth.py safely", content)
             self.assertIn("queue_seed_id: seed_0001_workcell", content)
             self.assertIn("Do not broaden context because files are nearby.", content)
+            self.assertIn("workspace.json", content)
             self.assertIn("## Attached FileCell", content)
             self.assertIn("src/auth.py", content)
             self.assertEqual(filecells["filecells"][0]["path"], "src/auth.py")
@@ -132,7 +136,37 @@ class WorkCellRuntimeTests(unittest.TestCase):
             self.assertEqual(filecells["filecells"][0]["symbols"][0]["name"], "authenticate")
             self.assertIn("load_user", filecells["filecells"][0]["dependencies"])
             self.assertEqual(runtime["filecells"][0]["path"], "src/auth.py")
+            self.assertEqual(runtime["workspace"]["queue_seed_id"], "seed_0001_workcell")
             self.assertTrue(runtime["execution"]["package_status"]["assistant_ready"])
+
+    def test_workcell_registry_creates_visual_workspace_contract(self):
+        with tempfile.TemporaryDirectory() as repo:
+            registry = WorkCellRegistry(repo_path=repo)
+            execution = registry.activate_execution(
+                queue_seed_id="seed_0001_workspace",
+                objective="Open app.py in a visual WorkCell workspace",
+                runtime_port=7484,
+                manifest={
+                    "integrity": {"manifest_hash": "abc123"},
+                    "file_manifest": [{"file_path": "app.py"}],
+                },
+            )
+
+            package = Path(execution.package_path)
+            workspace_file = package / "workspace.json"
+            workspace_result = registry.get_execution_workspace("seed_0001_workspace")
+            current = registry.get_execution_for_seed("seed_0001_workspace")
+            runtime_state = json.loads((package / "runtime_state.json").read_text(encoding="utf-8"))
+            workspace_exists = workspace_file.exists()
+
+        self.assertTrue(workspace_exists)
+        self.assertEqual(workspace_result["status"], "ok")
+        self.assertEqual(workspace_result["workspace"]["workspace_kind"], "workcell_browser_ide")
+        self.assertEqual(workspace_result["workspace"]["workspace_port"], 8484)
+        self.assertEqual(workspace_result["workspace"]["allowed_paths"], ["app.py"])
+        self.assertIn("code-server", workspace_result["workspace"]["launch_commands"][1]["command"])
+        self.assertTrue(current["package_status"]["workspace_json_exists"])
+        self.assertEqual(runtime_state["workspace"]["queue_seed_id"], "seed_0001_workspace")
 
     def test_workcell_candidate_generation_does_not_write_assistant_files(self):
         with tempfile.TemporaryDirectory() as repo:
@@ -921,6 +955,13 @@ class WorkCellRuntimeTests(unittest.TestCase):
         self.assertIn("setDashboardPreference", html)
         self.assertIn("Package Actions", html)
         self.assertIn("assistant_ready", html)
+        self.assertIn("WorkCell Workspace", html)
+        self.assertIn("Visible Workspace Contract", html)
+        self.assertIn("workspace.json", html)
+        self.assertIn("Open Workspace", html)
+        self.assertIn("openWorkCellWorkspace", html)
+        self.assertIn("data-workcell-open-workspace", html)
+        self.assertIn("code-server", html)
         self.assertIn("copyWorkCellPackagePath", html)
         self.assertIn("Copy package path", html)
         self.assertIn("repairWorkCellPackage", html)
@@ -995,6 +1036,12 @@ class WorkCellRuntimeTests(unittest.TestCase):
         self.assertIn("/dispatch", html)
         self.assertIn("_dispatch_existing_workcell_execution", (
             Path(__file__).resolve().parents[1] / "srt1_code_indexer" / "engine.py"
+        ).read_text(encoding="utf-8"))
+        self.assertIn("_get_workcell_workspace", (
+            Path(__file__).resolve().parents[1] / "srt1_code_indexer" / "engine.py"
+        ).read_text(encoding="utf-8"))
+        self.assertIn("OpenVSCode Server", (
+            Path(__file__).resolve().parents[1] / "srt1_platform" / "workcell.py"
         ).read_text(encoding="utf-8"))
         self.assertIn("buildAssistantCredentialPayload", html)
 
