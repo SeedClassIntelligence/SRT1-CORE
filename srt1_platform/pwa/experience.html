@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SRT-1 Experience</title>
+  <style>
+    :root {
+      --bg: #070a12;
+      --panel: #101622;
+      --panel2: #151d2b;
+      --line: #263142;
+      --text: #f4f7fb;
+      --muted: #9aa7b7;
+      --soft: #c7d1dd;
+      --blue: #58a6ff;
+      --cyan: #39d0d8;
+      --green: #3fb950;
+      --amber: #d29922;
+      --red: #f85149;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(57, 208, 216, .14), transparent 34%),
+        radial-gradient(circle at top right, rgba(88, 166, 255, .12), transparent 30%),
+        var(--bg);
+    }
+    a { color: inherit; }
+    .shell { width: min(1180px, calc(100% - 40px)); margin: 0 auto; padding: 28px 0 52px; }
+    .topbar { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 42px; }
+    .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+    .mark { width: 38px; height: 38px; display: grid; place-items: center; border: 1px solid rgba(57, 208, 216, .45); border-radius: 9px; background: rgba(57, 208, 216, .1); font-weight: 900; color: var(--cyan); }
+    .brand-title { font-size: 15px; font-weight: 850; letter-spacing: .01em; }
+    .brand-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .nav { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .nav a, .ghost-btn {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 9px 12px;
+      color: var(--soft);
+      background: rgba(255,255,255,.02);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .nav a:hover, .ghost-btn:hover { border-color: rgba(88,166,255,.5); color: var(--text); }
+    .hero { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(320px, .9fr); gap: 24px; align-items: stretch; }
+    .welcome, .panel {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.018));
+      box-shadow: 0 18px 55px rgba(0,0,0,.28);
+    }
+    .welcome { padding: clamp(24px, 5vw, 48px); }
+    .eyebrow { color: var(--cyan); font-size: 12px; text-transform: uppercase; letter-spacing: .12em; font-weight: 900; margin-bottom: 14px; }
+    h1 { font-size: clamp(32px, 5vw, 62px); line-height: 1.04; margin: 0 0 18px; letter-spacing: -1px; }
+    .lead { color: var(--soft); font-size: 17px; line-height: 1.7; max-width: 680px; margin: 0; }
+    .action-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 30px; }
+    .action-card {
+      text-align: left;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      border-radius: 10px;
+      padding: 16px;
+      color: var(--text);
+      cursor: pointer;
+      min-height: 116px;
+    }
+    .action-card.primary { border-color: rgba(63,185,80,.46); background: linear-gradient(180deg, rgba(63,185,80,.11), rgba(255,255,255,.018)); }
+    .action-title { font-size: 15px; font-weight: 850; margin-bottom: 8px; }
+    .action-copy { color: var(--muted); font-size: 13px; line-height: 1.55; }
+    .panel { padding: 18px; }
+    .panel-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 14px; }
+    .panel-title { font-size: 13px; font-weight: 900; text-transform: uppercase; letter-spacing: .08em; color: var(--soft); }
+    .status { font-size: 11px; color: var(--amber); border: 1px solid rgba(210,153,34,.35); background: rgba(210,153,34,.08); border-radius: 999px; padding: 4px 8px; font-weight: 800; }
+    .status.ready { color: var(--green); border-color: rgba(63,185,80,.35); background: rgba(63,185,80,.08); }
+    .project-form { display: grid; gap: 10px; }
+    .input, textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(0,0,0,.2);
+      color: var(--text);
+      padding: 11px 12px;
+      font: inherit;
+      outline: none;
+    }
+    textarea { min-height: 112px; resize: vertical; line-height: 1.55; }
+    .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn {
+      border: 0;
+      border-radius: 8px;
+      padding: 10px 13px;
+      color: #041014;
+      background: linear-gradient(135deg, var(--green), var(--cyan));
+      font-weight: 850;
+      cursor: pointer;
+    }
+    .btn.secondary { color: var(--soft); background: var(--panel2); border: 1px solid var(--line); }
+    .helper { color: var(--muted); font-size: 12px; line-height: 1.55; margin-top: 8px; }
+    .section { margin-top: 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    .work-list { display: grid; gap: 10px; }
+    .work-card { border: 1px solid var(--line); background: var(--panel); border-radius: 10px; padding: 14px; display: grid; grid-template-columns: 1fr auto; gap: 10px; }
+    .work-name { font-weight: 850; margin-bottom: 5px; }
+    .work-meta { color: var(--muted); font-size: 12px; line-height: 1.45; }
+    .work-state { color: var(--cyan); font-size: 12px; font-weight: 850; white-space: nowrap; }
+    .chat-box { display: grid; gap: 10px; }
+    .message { border: 1px solid var(--line); border-radius: 10px; background: var(--panel); padding: 12px; color: var(--soft); font-size: 13px; line-height: 1.55; }
+    .message strong { color: var(--text); }
+    .prep-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+    .prep-list li { display: flex; gap: 9px; color: var(--soft); font-size: 13px; }
+    .prep-list li::before { content: "✓"; color: var(--green); font-weight: 900; }
+    .hidden { display: none !important; }
+    @media (max-width: 860px) {
+      .hero, .section { grid-template-columns: 1fr; }
+      .action-grid { grid-template-columns: 1fr; }
+      .topbar { align-items: flex-start; flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <a class="brand" href="srt1-core.html">
+        <div class="mark">S1</div>
+        <div>
+          <div class="brand-title">SRT-1</div>
+          <div class="brand-sub">Standard Experience</div>
+        </div>
+      </a>
+      <nav class="nav" aria-label="Experience navigation">
+        <a href="dashboard.html">Advanced</a>
+        <a href="documentation.html#quickstart">Quickstart</a>
+        <a href="srt1-core.html">Public Site</a>
+      </nav>
+    </header>
+
+    <section class="hero">
+      <div class="welcome">
+        <div class="eyebrow">Welcome to SRT-1</div>
+        <h1>What would you like to work on?</h1>
+        <p class="lead">Start by adding the project from this computer. Once SRT-1 understands the folder or repository, you can plant ideas, talk with the work, review progress, and open technical details only when you want them.</p>
+        <div class="action-grid">
+          <button class="action-card primary" onclick="focusProjectPath()">
+            <div class="action-title">Add a project</div>
+            <div class="action-copy">Choose a folder, paste a path, or register the current local project so SRT-1 can prepare it.</div>
+          </button>
+          <button class="action-card" onclick="loadActiveWork()">
+            <div class="action-title">Continue previous work</div>
+            <div class="action-copy">Load active work, recent requests, review items, and anything ready to continue.</div>
+          </button>
+          <button class="action-card" onclick="focusIdeaDraft()">
+            <div class="action-title">Capture an idea for later</div>
+            <div class="action-copy">Shape the idea now. It becomes executable after a project is attached.</div>
+          </button>
+          <button class="action-card" onclick="location.href='dashboard.html'">
+            <div class="action-title">Open Advanced</div>
+            <div class="action-copy">Use the existing Operations Console for WorkCells, manifests, runtime state, adapters, and technical controls.</div>
+          </button>
+        </div>
+      </div>
+
+      <aside class="panel" id="projectPanel">
+        <div class="panel-head">
+          <div class="panel-title">Add Project</div>
+          <div class="status" id="projectStatus">waiting</div>
+        </div>
+        <div class="project-form">
+          <input id="projectPath" class="input" placeholder="Paste a local folder path, for example C:\Users\SEEDN\Downloads\SRT1 CODING">
+          <div class="btn-row">
+            <button class="btn" onclick="registerPath()">Register Path</button>
+            <button class="btn secondary" onclick="browseFolder()">Choose Folder</button>
+            <button class="btn secondary" onclick="registerCurrent()">Use Current</button>
+          </div>
+        </div>
+        <p class="helper">SRT-1 will use the existing repository registration and preparation routes. No new backend is required for this first front-facing layer.</p>
+        <ul class="prep-list" style="margin-top:14px;">
+          <li>Reading project files</li>
+          <li>Understanding project structure</li>
+          <li>Preparing project memory</li>
+          <li>Creating focused workspaces</li>
+          <li>Keeping Advanced details available</li>
+        </ul>
+      </aside>
+    </section>
+
+    <section class="section">
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">Active Work</div>
+          <button class="ghost-btn" onclick="loadActiveWork()">Refresh</button>
+        </div>
+        <div id="activeWorkList" class="work-list">
+          <div class="message">Add or open a project to see work that is running, waiting for review, or ready to continue.</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">Project Conversation</div>
+          <div class="status" id="conversationStatus">project needed</div>
+        </div>
+        <div class="chat-box">
+          <div id="conversationMessages">
+            <div class="message"><strong>SRT-1:</strong> Attach a project first. Then ideas and messages can be connected to the right workspace, review path, and assistant adapter.</div>
+          </div>
+          <textarea id="ideaDraft" placeholder="Capture an idea or ask what should happen next. If no project is active, this remains a draft."></textarea>
+          <div class="btn-row">
+            <button class="btn" onclick="captureIdea()">Capture Idea</button>
+            <button class="btn secondary" onclick="sendToActiveWork()">Send To Active Work</button>
+            <button class="btn secondary" onclick="location.href='dashboard.html#workcells'">Show Technical Details</button>
+          </div>
+          <p class="helper">Standard language stays simple. The existing Operations Console still owns the technical details.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const API = localStorage.getItem('srt1_api_base') || 'http://127.0.0.1:7484';
+    let latestWorkCells = null;
+
+    function setStatus(id, text, ready = false) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.textContent = text;
+      el.classList.toggle('ready', ready);
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    function focusProjectPath() {
+      document.getElementById('projectPath')?.focus();
+      document.getElementById('projectPanel')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    function focusIdeaDraft() {
+      document.getElementById('ideaDraft')?.focus();
+      setStatus('conversationStatus', 'draft only');
+    }
+
+    async function postJson(path, body = {}) {
+      const response = await fetch(API + path, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || data.message || 'Request failed');
+      return data;
+    }
+
+    async function registerPath() {
+      const path = document.getElementById('projectPath')?.value.trim();
+      if (!path) {
+        setStatus('projectStatus', 'path needed');
+        focusProjectPath();
+        return;
+      }
+      setStatus('projectStatus', 'preparing');
+      try {
+        await postJson('/api/v1/repositories/register-path', { path });
+        setStatus('projectStatus', 'ready', true);
+        await loadActiveWork();
+      } catch (error) {
+        setStatus('projectStatus', 'unavailable');
+        addMessage('SRT-1', error.message || 'Project registration failed.');
+      }
+    }
+
+    async function browseFolder() {
+      setStatus('projectStatus', 'opening chooser');
+      try {
+        await postJson('/api/v1/repositories/browse-folder', {});
+        setStatus('projectStatus', 'ready', true);
+        await loadActiveWork();
+      } catch (error) {
+        setStatus('projectStatus', 'unavailable');
+        addMessage('SRT-1', error.message || 'Folder chooser is unavailable. Paste the path instead.');
+      }
+    }
+
+    async function registerCurrent() {
+      setStatus('projectStatus', 'preparing');
+      try {
+        await postJson('/api/v1/repositories/register-current', {});
+        setStatus('projectStatus', 'ready', true);
+        await loadActiveWork();
+      } catch (error) {
+        setStatus('projectStatus', 'unavailable');
+        addMessage('SRT-1', error.message || 'Current project registration failed.');
+      }
+    }
+
+    function plainStatus(execution) {
+      const status = String(execution?.status || '').toLowerCase();
+      const verification = String(execution?.verification_state || '').toLowerCase();
+      if (status === 'completed') return 'Completed';
+      if (status === 'returned') return 'Needs changes';
+      if (status === 'awaiting_review') return 'Waiting for review';
+      if (verification === 'verified') return 'Checks passed';
+      if (['running', 'dispatched', 'ready'].includes(status)) return 'Working';
+      return status ? status.replace(/_/g, ' ') : 'Ready to continue';
+    }
+
+    async function loadActiveWork() {
+      const list = document.getElementById('activeWorkList');
+      if (list) list.innerHTML = '<div class="message">Loading active work...</div>';
+      try {
+        const [summaryResponse, workResponse] = await Promise.allSettled([
+          fetch(API + '/dashboard-summary').then(r => r.json()),
+          fetch(API + '/api/v1/workcells').then(r => r.json())
+        ]);
+        const summary = summaryResponse.status === 'fulfilled' ? summaryResponse.value : {};
+        latestWorkCells = workResponse.status === 'fulfilled' ? workResponse.value : {};
+        const executions = latestWorkCells.executions || [];
+        const repo = summary.repo || summary.repository_activation?.active_repository?.name || 'Current project';
+        setStatus('projectStatus', repo && repo !== 'Unknown' ? 'ready' : 'waiting', repo && repo !== 'Unknown');
+        setStatus('conversationStatus', executions.length ? 'connected' : 'ready');
+
+        if (!executions.length) {
+          list.innerHTML = `<div class="message"><strong>${escapeHtml(repo)}</strong><br>No active work yet. Plant an idea in this project when you are ready.</div>`;
+          return;
+        }
+
+        list.innerHTML = executions.slice(0, 8).map(ex => `
+          <button class="work-card" onclick="openConversation('${escapeHtml(ex.queue_seed_id || '')}')">
+            <div>
+              <div class="work-name">${escapeHtml(ex.objective || ex.queue_seed_id || 'Active work')}</div>
+              <div class="work-meta">${escapeHtml(repo)} / ${escapeHtml(ex.updated_at || ex.created_at || 'recent')}</div>
+            </div>
+            <div class="work-state">${escapeHtml(plainStatus(ex))}</div>
+          </button>
+        `).join('');
+      } catch (error) {
+        if (list) list.innerHTML = `<div class="message">SRT-1 runtime is not reachable at ${escapeHtml(API)}. You can still open Advanced or start the local engine.</div>`;
+        setStatus('projectStatus', 'offline');
+      }
+    }
+
+    function addMessage(author, text) {
+      const box = document.getElementById('conversationMessages');
+      if (!box) return;
+      box.insertAdjacentHTML('beforeend', `<div class="message"><strong>${escapeHtml(author)}:</strong> ${escapeHtml(text)}</div>`);
+    }
+
+    async function openConversation(queueSeedId) {
+      if (!queueSeedId) return;
+      setStatus('conversationStatus', 'loading');
+      try {
+        const response = await fetch(API + '/api/v1/workcells/' + encodeURIComponent(queueSeedId) + '/messages?limit=20');
+        const data = await response.json();
+        const messages = data.messages || [];
+        const box = document.getElementById('conversationMessages');
+        box.innerHTML = messages.length
+          ? messages.slice().reverse().map(msg => `<div class="message"><strong>${escapeHtml(msg.role || 'message')}:</strong> ${escapeHtml(msg.content || '')}</div>`).join('')
+          : `<div class="message"><strong>SRT-1:</strong> This work is ready for conversation. Ask what changed, what needs review, or what should happen next.</div>`;
+        box.dataset.queueSeedId = queueSeedId;
+        setStatus('conversationStatus', 'connected', true);
+      } catch (error) {
+        addMessage('SRT-1', error.message || 'Could not load this conversation.');
+        setStatus('conversationStatus', 'unavailable');
+      }
+    }
+
+    function captureIdea() {
+      const text = document.getElementById('ideaDraft')?.value.trim();
+      if (!text) return;
+      addMessage('You', text);
+        addMessage('SRT-1', 'Idea captured as project-pending. Add or open the project folder when you are ready to turn it into active work.');
+        setStatus('conversationStatus', 'project-pending');
+    }
+
+    async function sendToActiveWork() {
+      const text = document.getElementById('ideaDraft')?.value.trim();
+      const queueSeedId = document.getElementById('conversationMessages')?.dataset.queueSeedId;
+      if (!text) return;
+      if (!queueSeedId) {
+        captureIdea();
+        return;
+      }
+      setStatus('conversationStatus', 'sending');
+      try {
+        await postJson('/api/v1/workcells/' + encodeURIComponent(queueSeedId) + '/chat', {
+          role: 'user',
+          content: text,
+          channel: 'front_facing_experience',
+          actor: 'standard_user',
+          metadata: { source: 'experience_html' }
+        });
+        addMessage('You', text);
+        document.getElementById('ideaDraft').value = '';
+        setStatus('conversationStatus', 'connected', true);
+      } catch (error) {
+        addMessage('SRT-1', error.message || 'Message could not be sent to active work.');
+        setStatus('conversationStatus', 'unavailable');
+      }
+    }
+
+    loadActiveWork();
+  </script>
+</body>
+</html>

@@ -404,7 +404,7 @@
       let target = 'srt1-core.html';
       if (user) {
         if (user.role === 'developer' || role === 'developer') {
-          target = 'dashboard.html';
+          target = 'experience.html';
         } else {
           target = 'srt1-core.html';
         }
@@ -428,7 +428,7 @@
       .then(() => {
         showAlert('Entering Demo Workspace as Guest...', 'success');
         setTimeout(() => {
-          location.href = 'dashboard.html';
+          location.href = 'experience.html';
         }, 800);
       });
   }
