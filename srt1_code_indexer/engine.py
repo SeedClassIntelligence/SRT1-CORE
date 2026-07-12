@@ -2555,6 +2555,52 @@ class SRT1Engine:
             return {"error": "WorkCell registry unavailable", "status": "error", "events": []}
         return registry.get_execution_activity(queue_seed_id, limit=limit, offset=offset)
 
+    def _get_workcell_messages(
+        self,
+        queue_seed_id: Optional[str],
+        limit: int = 100,
+        offset: int = 0,
+    ) -> Dict[str, Any]:
+        if not queue_seed_id:
+            return {"error": "queue_seed_id is required", "status": "error", "messages": []}
+        registry = self._get_workcell_registry()
+        if not registry:
+            return {"error": "WorkCell registry unavailable", "status": "error", "messages": []}
+        return registry.get_execution_messages(queue_seed_id, limit=limit, offset=offset)
+
+    def _get_workcell_stream(
+        self,
+        queue_seed_id: Optional[str],
+        limit: int = 100,
+        offset: int = 0,
+    ) -> Dict[str, Any]:
+        result = self._get_workcell_messages(queue_seed_id, limit=limit, offset=offset)
+        result["stream_mode"] = "polling"
+        result["events"] = result.get("messages", [])
+        return result
+
+    def _post_workcell_chat(
+        self,
+        queue_seed_id: Optional[str],
+        body: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        if not queue_seed_id:
+            return {"error": "queue_seed_id is required", "status": "error"}
+        registry = self._get_workcell_registry()
+        if not registry:
+            return {"error": "WorkCell registry unavailable", "status": "error"}
+        body = body or {}
+        metadata = body.get("metadata") if isinstance(body.get("metadata"), dict) else {}
+        return registry.post_conversation_message(
+            queue_seed_id,
+            role=body.get("role") or "user",
+            content=body.get("content") or body.get("message") or "",
+            channel=body.get("channel") or "pwa",
+            actor=body.get("actor") or "dashboard_human",
+            assistant_adapter=body.get("assistant_adapter"),
+            metadata=metadata,
+        )
+
     def _control_workcell_execution(
         self,
         queue_seed_id: Optional[str],
@@ -4398,6 +4444,30 @@ class SRT1Engine:
                     status_code = 200 if result.get("status") == "ok" else 404
                     self._json(result, status_code)
 
+                elif path.startswith("/api/v1/workcells/") and path.endswith("/messages"):
+                    queue_seed_id = path[len("/api/v1/workcells/"):-len("/messages")].strip("/")
+                    query = parse_qs(urlparse(self.path).query)
+                    try:
+                        limit = int(query.get("limit", ["100"])[0])
+                        offset = int(query.get("offset", ["0"])[0])
+                    except (TypeError, ValueError):
+                        limit, offset = 100, 0
+                    result = engine._get_workcell_messages(queue_seed_id, limit=limit, offset=offset)
+                    status_code = 200 if result.get("status") == "ok" else 404
+                    self._json(result, status_code)
+
+                elif path.startswith("/api/v1/workcells/") and path.endswith("/stream"):
+                    queue_seed_id = path[len("/api/v1/workcells/"):-len("/stream")].strip("/")
+                    query = parse_qs(urlparse(self.path).query)
+                    try:
+                        limit = int(query.get("limit", ["100"])[0])
+                        offset = int(query.get("offset", ["0"])[0])
+                    except (TypeError, ValueError):
+                        limit, offset = 100, 0
+                    result = engine._get_workcell_stream(queue_seed_id, limit=limit, offset=offset)
+                    status_code = 200 if result.get("status") == "ok" else 404
+                    self._json(result, status_code)
+
                 # NOTE: /admin/stats handler consolidated above (line ~1668). Dead duplicate removed.
 
                 elif path == "/activity":
@@ -5200,6 +5270,12 @@ class SRT1Engine:
                     queue_seed_id = path[len("/api/v1/workcells/"):-len("/repair-package")].strip("/")
                     result = engine._repair_workcell_package(queue_seed_id)
                     status_code = 200 if result.get("status") in {"repaired", "degraded"} else 404
+                    return self._json(result, status_code)
+
+                elif path.startswith("/api/v1/workcells/") and path.endswith("/chat"):
+                    queue_seed_id = path[len("/api/v1/workcells/"):-len("/chat")].strip("/")
+                    result = engine._post_workcell_chat(queue_seed_id, body)
+                    status_code = 200 if result.get("status") == "recorded" else 409
                     return self._json(result, status_code)
 
                 elif path.startswith("/api/v1/workcells/") and path.endswith("/action"):

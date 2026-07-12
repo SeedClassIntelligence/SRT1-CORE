@@ -109,6 +109,8 @@ class WorkCellRuntimeTests(unittest.TestCase):
             runtime_state = package / "runtime_state.json"
             filecells_json = package / "filecells.json"
             workspace_json = package / "workspace.json"
+            conversation_json = package / "conversation.json"
+            chat_jsonl = package / "chat.jsonl"
             content = workcell_md.read_text(encoding="utf-8")
             filecells = json.loads(filecells_json.read_text(encoding="utf-8"))
             runtime = json.loads(runtime_state.read_text(encoding="utf-8"))
@@ -119,11 +121,16 @@ class WorkCellRuntimeTests(unittest.TestCase):
             self.assertTrue(runtime_state.exists())
             self.assertTrue(filecells_json.exists())
             self.assertTrue(workspace_json.exists())
+            self.assertTrue(conversation_json.exists())
+            self.assertTrue(chat_jsonl.exists())
             self.assertTrue(execution.package_status["assistant_ready"])
             self.assertTrue(execution.package_status["workcell_md_exists"])
             self.assertTrue(execution.package_status["filecells_json_exists"])
             self.assertTrue(execution.package_status["runtime_state_json_exists"])
             self.assertTrue(execution.package_status["workspace_json_exists"])
+            self.assertTrue(execution.package_status["conversation_json_exists"])
+            self.assertTrue(execution.package_status["chat_jsonl_exists"])
+            self.assertTrue(execution.package_status["conversation_ready"])
             self.assertEqual(execution.package_status["missing_files"], [])
             self.assertIn("Refactor src/auth.py safely", content)
             self.assertIn("queue_seed_id: seed_0001_workcell", content)
@@ -137,6 +144,8 @@ class WorkCellRuntimeTests(unittest.TestCase):
             self.assertIn("load_user", filecells["filecells"][0]["dependencies"])
             self.assertEqual(runtime["filecells"][0]["path"], "src/auth.py")
             self.assertEqual(runtime["workspace"]["queue_seed_id"], "seed_0001_workcell")
+            self.assertEqual(runtime["conversation"]["queue_seed_id"], "seed_0001_workcell")
+            self.assertEqual(runtime["conversation"]["status"], "active")
             self.assertTrue(runtime["execution"]["package_status"]["assistant_ready"])
 
     def test_workcell_registry_creates_visual_workspace_contract(self):
@@ -167,6 +176,76 @@ class WorkCellRuntimeTests(unittest.TestCase):
         self.assertIn("code-server", workspace_result["workspace"]["launch_commands"][1]["command"])
         self.assertTrue(current["package_status"]["workspace_json_exists"])
         self.assertEqual(runtime_state["workspace"]["queue_seed_id"], "seed_0001_workspace")
+
+    def test_workcell_registry_records_bounded_conversation_messages(self):
+        with tempfile.TemporaryDirectory() as repo:
+            registry = WorkCellRegistry(repo_path=repo)
+            execution = registry.activate_execution(
+                queue_seed_id="seed_chat",
+                objective="Chat inside app.py WorkCell",
+                manifest={"file_manifest": [{"file_path": "app.py"}]},
+            )
+
+            result = registry.post_conversation_message(
+                "seed_chat",
+                role="user",
+                content="Show me what changed",
+                channel="pwa",
+                actor="dashboard_human",
+                assistant_adapter="codex",
+                metadata={"api_key": "must-not-persist"},
+            )
+            messages = registry.get_execution_messages("seed_chat")
+            current = registry.get_execution_for_seed("seed_chat")
+            package = Path(execution.package_path)
+            conversation = json.loads((package / "conversation.json").read_text(encoding="utf-8"))
+            chat_text = (package / "chat.jsonl").read_text(encoding="utf-8")
+            runtime = json.loads((package / "runtime_state.json").read_text(encoding="utf-8"))
+
+        self.assertEqual(result["status"], "recorded")
+        self.assertEqual(result["conversation"]["queue_seed_id"], "seed_chat")
+        self.assertEqual(result["conversation"]["assistant_adapter"], "codex")
+        self.assertEqual(result["message"]["role"], "user")
+        self.assertEqual(result["message"]["content"], "Show me what changed")
+        self.assertEqual(messages["status"], "ok")
+        self.assertEqual(messages["total"], 1)
+        self.assertEqual(messages["messages"][0]["message_id"], result["message"]["message_id"])
+        self.assertEqual(conversation["conversation_id"], result["conversation"]["conversation_id"])
+        self.assertEqual(runtime["conversation"]["conversation_id"], result["conversation"]["conversation_id"])
+        self.assertTrue(current["package_status"]["conversation_ready"])
+        self.assertTrue(any(event["event_type"] == "conversation.message" for event in current["activity_events"]))
+        self.assertIn("[REDACTED]", chat_text)
+        self.assertNotIn("must-not-persist", chat_text)
+
+    def test_engine_exposes_workcell_chat_contract(self):
+        with tempfile.TemporaryDirectory() as repo:
+            engine = engine_module.SRT1Engine.__new__(engine_module.SRT1Engine)
+            engine.repo_path = repo
+            engine.workcell_registry = WorkCellRegistry(repo_path=repo)
+            engine.workcell_registry.activate_execution(
+                queue_seed_id="seed_engine_chat",
+                objective="Expose WorkCell chat",
+                manifest={"file_manifest": [{"file_path": "app.py"}]},
+            )
+
+            posted = engine._post_workcell_chat(
+                "seed_engine_chat",
+                {
+                    "content": "Continue in this WorkCell",
+                    "channel": "slack",
+                    "actor": "slack_human",
+                    "assistant_adapter": "claude-code",
+                },
+            )
+            messages = engine._get_workcell_messages("seed_engine_chat")
+            stream = engine._get_workcell_stream("seed_engine_chat")
+
+        self.assertEqual(posted["status"], "recorded")
+        self.assertEqual(posted["conversation"]["channel"], "slack")
+        self.assertEqual(messages["total"], 1)
+        self.assertEqual(messages["messages"][0]["content"], "Continue in this WorkCell")
+        self.assertEqual(stream["stream_mode"], "polling")
+        self.assertEqual(stream["events"][0]["message_id"], messages["messages"][0]["message_id"])
 
     def test_engine_opens_workcell_workspace_in_desktop_vscode(self):
         with tempfile.TemporaryDirectory() as repo:
@@ -990,6 +1069,17 @@ class WorkCellRuntimeTests(unittest.TestCase):
         self.assertIn("data-workcell-open-desktop", html)
         self.assertIn("workspace/open", html)
         self.assertIn("code-server", html)
+        self.assertIn("conversation.json", html)
+        self.assertIn("chat.jsonl", html)
+        self.assertIn("WorkCell Chat", html)
+        self.assertIn("workcellChatList", html)
+        self.assertIn("workcellChatInput", html)
+        self.assertIn("data-workcell-chat-send", html)
+        self.assertIn("loadWorkCellMessages", html)
+        self.assertIn("sendWorkCellChat", html)
+        self.assertIn("/messages?limit=50", html)
+        self.assertIn("/chat", html)
+        self.assertIn("dashboard_workcell_chat", html)
         self.assertIn("copyWorkCellPackagePath", html)
         self.assertIn("Copy package path", html)
         self.assertIn("repairWorkCellPackage", html)
@@ -1071,7 +1161,19 @@ class WorkCellRuntimeTests(unittest.TestCase):
         self.assertIn("_open_workcell_workspace", (
             Path(__file__).resolve().parents[1] / "srt1_code_indexer" / "engine.py"
         ).read_text(encoding="utf-8"))
+        self.assertIn("_post_workcell_chat", (
+            Path(__file__).resolve().parents[1] / "srt1_code_indexer" / "engine.py"
+        ).read_text(encoding="utf-8"))
+        self.assertIn("_get_workcell_messages", (
+            Path(__file__).resolve().parents[1] / "srt1_code_indexer" / "engine.py"
+        ).read_text(encoding="utf-8"))
+        self.assertIn("_get_workcell_stream", (
+            Path(__file__).resolve().parents[1] / "srt1_code_indexer" / "engine.py"
+        ).read_text(encoding="utf-8"))
         self.assertIn("OpenVSCode Server", (
+            Path(__file__).resolve().parents[1] / "srt1_platform" / "workcell.py"
+        ).read_text(encoding="utf-8"))
+        self.assertIn("conversation_ready", (
             Path(__file__).resolve().parents[1] / "srt1_platform" / "workcell.py"
         ).read_text(encoding="utf-8"))
         self.assertIn("buildAssistantCredentialPayload", html)

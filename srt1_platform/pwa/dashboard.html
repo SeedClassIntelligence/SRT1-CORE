@@ -3069,6 +3069,8 @@ function renderWorkCellDetail(payload, selectedExecution) {
     ['filecells.json', packageStatus.filecells_json_exists, packageStatus.filecells_json_path || `${packagePath}/filecells.json`],
     ['runtime_state.json', packageStatus.runtime_state_json_exists, packageStatus.runtime_state_json_path || `${packagePath}/runtime_state.json`],
     ['workspace.json', packageStatus.workspace_json_exists, packageStatus.workspace_json_path || workspace.workspace_manifest_path || `${packagePath}/workspace.json`],
+    ['conversation.json', packageStatus.conversation_json_exists, packageStatus.conversation_json_path || `${packagePath}/conversation.json`],
+    ['chat.jsonl', packageStatus.chat_jsonl_exists, packageStatus.chat_jsonl_path || `${packagePath}/chat.jsonl`],
   ];
   const executionStatus = selectedExecution.status || 'ready';
   const canPause = ['ready', 'running', 'dispatched'].includes(executionStatus);
@@ -3197,6 +3199,20 @@ function renderWorkCellDetail(payload, selectedExecution) {
         <button type="button" class="workcell-package-btn" data-workcell-action="reject" ${canReject ? '' : 'disabled'}>Return for revision</button>
       </div>
     </div>
+    <div class="workcell-activity">
+      <div class="workcell-preview-head">
+        <div class="workcell-preview-title">WorkCell Chat</div>
+        <div id="workcellChatBadge" class="workcell-package-status">loading</div>
+      </div>
+      <div style="font-size:11px;color:var(--text4);line-height:1.45;margin-bottom:8px;">This conversation belongs to SRT-1, not a specific assistant. PWA, Slack, mobile, IDE, and adapter messages all attach to the same queue seed and WorkCell context.</div>
+      <div id="workcellChatList" class="workcell-activity-list">
+        <div class="workcell-empty">Loading chat...</div>
+      </div>
+      <div class="workcell-package-buttons" style="padding:10px;border-top:1px solid var(--border);align-items:stretch;">
+        <textarea id="workcellChatInput" class="workcell-input" rows="3" placeholder="Message this WorkCell..." style="min-height:68px;flex:1 1 240px;"></textarea>
+        <button type="button" class="workcell-package-btn" data-workcell-chat-send="${escapeHtml(selectedExecution.queue_seed_id || '')}">Send Message</button>
+      </div>
+    </div>
     <div class="workcell-preview">
       <div class="workcell-preview-head">
         <div class="workcell-preview-title">workcell.md Preview</div>
@@ -3290,6 +3306,12 @@ function renderWorkCellDetail(payload, selectedExecution) {
       button
     ));
   });
+  detailEl.querySelectorAll('.workcell-package-btn[data-workcell-chat-send]').forEach(button => {
+    button.addEventListener('click', () => sendWorkCellChat(
+      button.dataset.workcellChatSend,
+      button
+    ));
+  });
   document.getElementById('workcellActivityOlder')?.addEventListener('click', event => {
     loadWorkCellActivity(selectedExecution.queue_seed_id, true, event.currentTarget);
   });
@@ -3299,6 +3321,81 @@ function renderWorkCellDetail(payload, selectedExecution) {
   loadWorkCellMdPreview(selectedExecution.queue_seed_id);
   loadWorkCellProposals(selectedExecution.queue_seed_id);
   loadWorkCellActivity(selectedExecution.queue_seed_id);
+  loadWorkCellMessages(selectedExecution.queue_seed_id);
+}
+
+async function loadWorkCellMessages(queueSeedId) {
+  const list = document.getElementById('workcellChatList');
+  const badge = document.getElementById('workcellChatBadge');
+  if (!list || !queueSeedId) return;
+  try {
+    const response = await fetch(API + '/api/v1/workcells/' + encodeURIComponent(queueSeedId) + '/messages?limit=50');
+    const result = await response.json();
+    if (!response.ok || result.status !== 'ok') throw new Error(result.error || 'Chat unavailable');
+    const messages = result.messages || [];
+    const conversation = result.conversation || {};
+    if (badge) {
+      badge.textContent = messages.length ? `${result.total || messages.length} message${(result.total || messages.length) === 1 ? '' : 's'}` : 'ready';
+      badge.className = 'workcell-package-status ready';
+    }
+    if (!messages.length) {
+      list.innerHTML = `<div class="workcell-empty">No WorkCell chat messages yet. Conversation ${escapeHtml(conversation.conversation_id || 'pending')} is ready.</div>`;
+      return;
+    }
+    list.innerHTML = messages.slice().reverse().map(message => {
+      const created = formatTime(message.created_at);
+      const role = message.role || 'user';
+      const adapter = message.assistant_adapter || conversation.assistant_adapter || 'unassigned';
+      return `<div class="workcell-activity-event" style="grid-template-columns:minmax(0,1fr);">
+        <div>
+          <div class="workcell-activity-type">${escapeHtml(role)} / ${escapeHtml(message.channel || 'pwa')} / ${escapeHtml(adapter)}</div>
+          <div class="workcell-activity-message">${escapeHtml(message.content || '')}</div>
+          <div class="workcell-activity-meta">${escapeHtml(created)} / ${escapeHtml(message.message_id || '')}</div>
+        </div>
+      </div>`;
+    }).join('');
+  } catch (e) {
+    if (badge) badge.textContent = 'unavailable';
+    list.innerHTML = `<div class="workcell-empty">${escapeHtml(e.message || 'Chat unavailable')}</div>`;
+  }
+}
+
+async function sendWorkCellChat(queueSeedId, button) {
+  const input = document.getElementById('workcellChatInput');
+  const content = (input?.value || '').trim();
+  if (!queueSeedId || !content) return;
+  const original = button?.textContent || 'Send Message';
+  if (button) {
+    button.disabled = true;
+    button.textContent = 'Sending...';
+  }
+  try {
+    const response = await fetch(API + '/api/v1/workcells/' + encodeURIComponent(queueSeedId) + '/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        role: 'user',
+        content,
+        channel: 'pwa',
+        actor: 'dashboard_human',
+        metadata: { source: 'dashboard_workcell_chat' }
+      })
+    });
+    const result = await response.json();
+    if (!response.ok || result.status !== 'recorded') throw new Error(result.error || 'Message blocked');
+    if (input) input.value = '';
+    await loadWorkCellMessages(queueSeedId);
+    await loadWorkCellActivity(queueSeedId);
+  } catch (e) {
+    if (button) button.textContent = e.message || 'Message blocked';
+  } finally {
+    if (button) {
+      setTimeout(() => {
+        button.disabled = false;
+        button.textContent = original;
+      }, 1200);
+    }
+  }
 }
 
 async function loadWorkCellProposals(queueSeedId) {

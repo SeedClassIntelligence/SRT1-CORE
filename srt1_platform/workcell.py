@@ -91,6 +91,8 @@ class WorkCellExecution:
     package_path: Optional[str] = None
     package_status: Dict[str, Any] = field(default_factory=dict)
     workspace: Dict[str, Any] = field(default_factory=dict)
+    conversation: Dict[str, Any] = field(default_factory=dict)
+    conversation_message_count: int = 0
     activity_events: List[Dict[str, Any]] = field(default_factory=list)
     activity_event_count: int = 0
     execution_jobs: List[Dict[str, Any]] = field(default_factory=list)
@@ -370,6 +372,9 @@ class WorkCellRegistry:
         self._write_workcell_md(workcell, execution)
         execution.workspace = self._build_workspace_descriptor(workcell, execution)
         self._write_workspace_json(workcell, execution)
+        execution.conversation = self._build_conversation_descriptor(workcell, execution)
+        self._write_conversation_json(workcell, execution)
+        self._touch_conversation_log(execution)
         self._write_runtime_state(workcell, execution)
         execution.package_status = self._build_package_status(execution)
         self._write_runtime_state(workcell, execution)
@@ -386,6 +391,10 @@ class WorkCellRegistry:
             workcell = self._workcells.get(execution.workcell_id)
             if workcell:
                 data["workspace"] = self._build_workspace_descriptor(workcell, execution)
+        if not data.get("conversation"):
+            workcell = self._workcells.get(execution.workcell_id)
+            if workcell:
+                data["conversation"] = self._build_conversation_descriptor(workcell, execution)
         data["current_execution_job"] = self._current_execution_job(execution)
         return data
 
@@ -451,7 +460,9 @@ class WorkCellRegistry:
                 "hard_cancellable": job["hard_cancellable"],
             },
         )
-        self._write_runtime_state(self._workcells[execution.workcell_id], execution)
+        workcell = self._workcells.get(execution.workcell_id)
+        if workcell:
+            self._write_runtime_state(workcell, execution)
         self._save()
         return {
             "status": "registered",
@@ -505,7 +516,9 @@ class WorkCellRegistry:
                 "error": job.get("error", ""),
             },
         )
-        self._write_runtime_state(self._workcells[execution.workcell_id], execution)
+        workcell = self._workcells.get(execution.workcell_id)
+        if workcell:
+            self._write_runtime_state(workcell, execution)
         self._save()
         return {
             "status": "updated",
@@ -680,6 +693,170 @@ class WorkCellRegistry:
             "offset": offset,
             "has_more": start > 0,
             "next_offset": offset + len(page) if start > 0 else None,
+        }
+
+    def get_execution_messages(
+        self,
+        queue_seed_id: str,
+        limit: int = 100,
+        offset: int = 0,
+    ) -> Dict[str, Any]:
+        """Return a bounded page from the WorkCell-owned conversation log."""
+        execution = self._executions.get(f"wcx_{_safe_slug(queue_seed_id)}")
+        if not execution:
+            return {
+                "status": "not_found",
+                "queue_seed_id": queue_seed_id,
+                "messages": [],
+            }
+
+        workcell = self._workcells.get(execution.workcell_id)
+        if workcell:
+            execution.conversation = self._build_conversation_descriptor(workcell, execution)
+            self._write_conversation_json(workcell, execution)
+        self._touch_conversation_log(execution)
+
+        limit = max(1, min(int(limit or 100), 200))
+        offset = max(0, int(offset or 0))
+        log_path = self._conversation_log_path(execution)
+        messages: List[Dict[str, Any]] = []
+        if os.path.exists(log_path):
+            with open(log_path, "r", encoding="utf-8") as chat_file:
+                for line in chat_file:
+                    try:
+                        messages.append(json.loads(line))
+                    except (TypeError, ValueError):
+                        continue
+
+        execution.conversation_message_count = len(messages)
+        total = len(messages)
+        end = max(0, total - offset)
+        start = max(0, end - limit)
+        page = list(reversed(messages[start:end]))
+        self._write_runtime_state(self._workcells[execution.workcell_id], execution)
+        self._save()
+        return {
+            "status": "ok",
+            "queue_seed_id": queue_seed_id,
+            "workcell_execution_id": execution.workcell_execution_id,
+            "workcell_id": execution.workcell_id,
+            "conversation": execution.conversation,
+            "messages": page,
+            "total": total,
+            "limit": limit,
+            "offset": offset,
+            "has_more": start > 0,
+            "next_offset": offset + len(page) if start > 0 else None,
+        }
+
+    def post_conversation_message(
+        self,
+        queue_seed_id: str,
+        role: str,
+        content: str,
+        channel: Optional[str] = None,
+        actor: str = "human",
+        assistant_adapter: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """Append one WorkCell-bound chat message without invoking an adapter."""
+        execution = self._executions.get(f"wcx_{_safe_slug(queue_seed_id)}")
+        if not execution:
+            return {"status": "not_found", "queue_seed_id": queue_seed_id}
+
+        workcell = self._workcells.get(execution.workcell_id)
+        if not workcell:
+            return {
+                "status": "not_found",
+                "queue_seed_id": queue_seed_id,
+                "workcell_execution_id": execution.workcell_execution_id,
+                "error": "Persistent WorkCell not found",
+            }
+
+        role = str(role or "user").strip().lower()
+        if role not in {"user", "assistant", "system", "tool"}:
+            return {
+                "status": "invalid_role",
+                "queue_seed_id": queue_seed_id,
+                "error": "Supported roles: user, assistant, system, tool.",
+            }
+        content = str(content or "").strip()
+        if not content:
+            return {
+                "status": "empty_message",
+                "queue_seed_id": queue_seed_id,
+                "error": "Message content is required.",
+            }
+
+        now = _now()
+        channel = _safe_slug(str(channel or "pwa"))
+        if assistant_adapter:
+            execution.assigned_agent = str(assistant_adapter)
+        execution.conversation = self._build_conversation_descriptor(
+            workcell,
+            execution,
+            channel=channel,
+            assistant_adapter=assistant_adapter or execution.assigned_agent,
+        )
+        self._write_conversation_json(workcell, execution)
+        self._touch_conversation_log(execution)
+
+        safe_metadata = self._sanitize_activity_value(metadata or {})
+        message_id = "wcm_" + hashlib.sha1(
+            "|".join([
+                execution.workcell_execution_id,
+                execution.conversation.get("conversation_id", ""),
+                role,
+                content,
+                now,
+                str(execution.conversation_message_count),
+            ]).encode("utf-8")
+        ).hexdigest()[:12]
+        message = {
+            "message_id": message_id,
+            "conversation_id": execution.conversation.get("conversation_id"),
+            "queue_seed_id": execution.queue_seed_id,
+            "workcell_id": execution.workcell_id,
+            "workcell_execution_id": execution.workcell_execution_id,
+            "role": role,
+            "content": self._sanitize_activity_value(content),
+            "channel": channel,
+            "actor": self._sanitize_activity_value(str(actor or "human")),
+            "assistant_adapter": self._sanitize_activity_value(
+                str(assistant_adapter or execution.assigned_agent or "unassigned")
+            ),
+            "metadata": safe_metadata,
+            "created_at": now,
+        }
+        with open(self._conversation_log_path(execution), "a", encoding="utf-8") as chat_file:
+            chat_file.write(json.dumps(message, sort_keys=True) + "\n")
+
+        execution.conversation_message_count += 1
+        execution.updated_at = now
+        self._append_activity_event(
+            execution,
+            event_type="conversation.message",
+            status=role,
+            actor=actor or "human",
+            message=f"WorkCell chat message recorded from {channel}.",
+            metadata={
+                "message_id": message_id,
+                "conversation_id": execution.conversation.get("conversation_id"),
+                "channel": channel,
+                "role": role,
+                "assistant_adapter": assistant_adapter or execution.assigned_agent,
+                "source_mutation": False,
+            },
+        )
+        self._write_runtime_state(workcell, execution)
+        self._save()
+        return {
+            "status": "recorded",
+            "queue_seed_id": queue_seed_id,
+            "workcell_execution_id": execution.workcell_execution_id,
+            "workcell_id": execution.workcell_id,
+            "conversation": execution.conversation,
+            "message": message,
         }
 
     def control_execution(
@@ -881,6 +1058,16 @@ class WorkCellRegistry:
         os.makedirs(package_path, exist_ok=True)
         return os.path.join(package_path, "activity.jsonl")
 
+    def _conversation_log_path(self, execution: WorkCellExecution) -> str:
+        package_path = os.path.realpath(
+            execution.package_path or os.path.join(self.registry_dir, execution.queue_seed_id)
+        )
+        registry_root = os.path.realpath(self.registry_dir)
+        if package_path != registry_root and not package_path.startswith(registry_root + os.sep):
+            raise ValueError("Conversation log path escaped WorkCell registry boundary")
+        os.makedirs(package_path, exist_ok=True)
+        return os.path.join(package_path, "chat.jsonl")
+
     def _resolve_repo_path(self, path: str) -> str:
         candidate = str(path or "")
         if os.path.isabs(candidate):
@@ -997,6 +1184,9 @@ class WorkCellRegistry:
         self._write_workcell_md(workcell, execution)
         execution.workspace = self._build_workspace_descriptor(workcell, execution)
         self._write_workspace_json(workcell, execution)
+        execution.conversation = self._build_conversation_descriptor(workcell, execution)
+        self._write_conversation_json(workcell, execution)
+        self._touch_conversation_log(execution)
         self._write_runtime_state(workcell, execution)
         execution.package_status = self._build_package_status(execution)
         self._append_activity_event(
@@ -1135,6 +1325,8 @@ class WorkCellRegistry:
             "filecells_json": os.path.join(package_path, "filecells.json"),
             "runtime_state_json": os.path.join(package_path, "runtime_state.json"),
             "workspace_json": os.path.join(package_path, "workspace.json"),
+            "conversation_json": os.path.join(package_path, "conversation.json"),
+            "chat_jsonl": os.path.join(package_path, "chat.jsonl"),
         }
         exists = {name: os.path.exists(path) for name, path in expected.items()}
         missing = [name for name, present in exists.items() if not present]
@@ -1145,6 +1337,7 @@ class WorkCellRegistry:
         return {
             "assistant_ready": os.path.isdir(package_path) and not assistant_missing,
             "workspace_ready": exists["workspace_json"],
+            "conversation_ready": exists["conversation_json"] and exists["chat_jsonl"],
             "package_exists": os.path.isdir(package_path),
             "package_path": package_path,
             "workcell_md_exists": exists["workcell_md"],
@@ -1155,6 +1348,10 @@ class WorkCellRegistry:
             "runtime_state_json_path": expected["runtime_state_json"],
             "workspace_json_exists": exists["workspace_json"],
             "workspace_json_path": expected["workspace_json"],
+            "conversation_json_exists": exists["conversation_json"],
+            "conversation_json_path": expected["conversation_json"],
+            "chat_jsonl_exists": exists["chat_jsonl"],
+            "chat_jsonl_path": expected["chat_jsonl"],
             "missing_files": missing,
             "assistant_missing_files": assistant_missing,
         }
@@ -1212,6 +1409,8 @@ class WorkCellRegistry:
                 "filecells_json": os.path.join(package_path, "filecells.json"),
                 "runtime_state_json": os.path.join(package_path, "runtime_state.json"),
                 "workspace_json": workspace_path,
+                "conversation_json": os.path.join(package_path, "conversation.json"),
+                "chat_jsonl": os.path.join(package_path, "chat.jsonl"),
             },
             "srt1_authority": [
                 "WorkCell scope",
@@ -1262,18 +1461,94 @@ class WorkCellRegistry:
         with open(path, "w", encoding="utf-8") as f:
             json.dump(workspace, f, indent=2, sort_keys=True)
 
+    def _conversation_id(self, execution: WorkCellExecution) -> str:
+        digest = hashlib.sha1(
+            "|".join([
+                execution.workcell_execution_id,
+                execution.queue_seed_id,
+                execution.workcell_id,
+            ]).encode("utf-8")
+        ).hexdigest()[:12]
+        return f"conv_{digest}"
+
+    def _build_conversation_descriptor(
+        self,
+        workcell: WorkCell,
+        execution: WorkCellExecution,
+        channel: str = "pwa",
+        assistant_adapter: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        package_path = execution.package_path or os.path.join(self.registry_dir, execution.queue_seed_id)
+        existing = execution.conversation or {}
+        conversation_id = existing.get("conversation_id") or self._conversation_id(execution)
+        created_at = existing.get("created_at") or execution.created_at or _now()
+        channel = _safe_slug(str(channel or existing.get("channel") or "pwa"))
+        adapter = assistant_adapter or existing.get("assistant_adapter") or execution.assigned_agent or "unassigned"
+        return {
+            "conversation_id": conversation_id,
+            "workcell_id": workcell.workcell_id,
+            "workcell_execution_id": execution.workcell_execution_id,
+            "queue_seed_id": execution.queue_seed_id,
+            "channel": channel,
+            "assistant_adapter": str(adapter),
+            "status": "active" if execution.status not in {"completed", "terminated", "cancelled"} else execution.status,
+            "repo_path": self.repo_path,
+            "package_path": package_path,
+            "conversation_manifest_path": os.path.join(package_path, "conversation.json"),
+            "message_log_path": os.path.join(package_path, "chat.jsonl"),
+            "workspace_manifest_path": os.path.join(package_path, "workspace.json"),
+            "allowed_paths": list(workcell.owned_paths or []),
+            "restricted_paths": list(workcell.restricted_paths or []),
+            "context_carried": [
+                "queue_seed_id",
+                "workcell_id",
+                "allowed_paths",
+                "restricted_paths",
+                "repository_index",
+                "local_instructions",
+                "recall_packets",
+                "current_changes",
+                "test_state",
+                "verification_requirements",
+                "assistant_adapter_profile",
+            ],
+            "surfaces": ["pwa", "slack", "mobile", "embedded_ide"],
+            "created_at": created_at,
+            "updated_at": _now(),
+        }
+
+    def _write_conversation_json(self, workcell: WorkCell, execution: WorkCellExecution) -> None:
+        if not execution.package_path:
+            return
+        conversation = execution.conversation or self._build_conversation_descriptor(workcell, execution)
+        execution.conversation = conversation
+        path = os.path.join(execution.package_path, "conversation.json")
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(conversation, f, indent=2, sort_keys=True)
+
+    def _touch_conversation_log(self, execution: WorkCellExecution) -> None:
+        if not execution.package_path:
+            return
+        path = self._conversation_log_path(execution)
+        if not os.path.exists(path):
+            with open(path, "a", encoding="utf-8"):
+                pass
+
     def _write_runtime_state(self, workcell: WorkCell, execution: WorkCellExecution) -> None:
         if not execution.package_path:
             return
         state_path = os.path.join(execution.package_path, "runtime_state.json")
         workspace = execution.workspace or self._build_workspace_descriptor(workcell, execution)
         execution.workspace = workspace
+        conversation = execution.conversation or self._build_conversation_descriptor(workcell, execution)
+        execution.conversation = conversation
         with open(state_path, "w", encoding="utf-8") as f:
             json.dump({
                 "workcell": workcell.to_dict(),
                 "execution": execution.to_dict(),
                 "filecells": [workcell.filecell_summary] if workcell.filecell_summary else [],
                 "workspace": workspace,
+                "conversation": conversation,
             }, f, indent=2, sort_keys=True)
 
     def _write_filecells_json(self, workcell: WorkCell, execution: WorkCellExecution) -> None:
