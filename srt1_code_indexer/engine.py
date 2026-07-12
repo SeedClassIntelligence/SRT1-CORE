@@ -55,6 +55,7 @@ import logging
 import threading
 import argparse
 import subprocess
+import shutil
 import socket
 import signal
 import webbrowser
@@ -2452,6 +2453,94 @@ class SRT1Engine:
         if not registry:
             return {"error": "WorkCell registry unavailable", "status": "error"}
         return registry.get_execution_workspace(queue_seed_id)
+
+    def _open_workcell_workspace(
+        self,
+        queue_seed_id: Optional[str],
+        provider: str = "desktop_vscode",
+        actor: str = "dashboard_human",
+    ) -> Dict[str, Any]:
+        """Open a visual IDE surface for a WorkCell without changing WorkCell authority."""
+        if not queue_seed_id:
+            return {"error": "queue_seed_id is required", "status": "error"}
+        registry = self._get_workcell_registry()
+        if not registry:
+            return {"error": "WorkCell registry unavailable", "status": "error"}
+
+        workspace_result = registry.get_execution_workspace(queue_seed_id)
+        if workspace_result.get("status") != "ok":
+            return workspace_result
+        workspace = workspace_result.get("workspace") or {}
+        provider = (provider or "desktop_vscode").strip().lower()
+
+        if provider not in {"desktop_vscode", "vscode", "code"}:
+            return {
+                "status": "unsupported_provider",
+                "queue_seed_id": queue_seed_id,
+                "provider": provider,
+                "error": "Only desktop_vscode launch is supported by public Core right now.",
+                "workspace": workspace,
+            }
+
+        code_bin = shutil.which("code") or shutil.which("code.cmd")
+        if not code_bin:
+            return {
+                "status": "unavailable",
+                "queue_seed_id": queue_seed_id,
+                "provider": provider,
+                "error": "VS Code command `code` was not found on PATH.",
+                "workspace": workspace,
+            }
+
+        repo_path = workspace.get("repo_path") or self.repo_path
+        workcell_md = (workspace.get("entry_files") or {}).get("workcell_md")
+        args = [code_bin, repo_path]
+        if workcell_md and os.path.exists(workcell_md):
+            args.append(workcell_md)
+        creationflags = getattr(subprocess, "CREATE_NO_WINDOW", 0) if os.name == "nt" else 0
+        try:
+            process = subprocess.Popen(
+                args,
+                cwd=repo_path if os.path.isdir(repo_path) else self.repo_path,
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                creationflags=creationflags,
+            )
+        except Exception as exc:
+            return {
+                "status": "error",
+                "queue_seed_id": queue_seed_id,
+                "provider": provider,
+                "error": f"Could not open WorkCell workspace: {exc}",
+                "workspace": workspace,
+            }
+
+        registry.record_execution_event(
+            queue_seed_id,
+            event_type="workspace.opened",
+            status="launched",
+            actor=actor or "dashboard_human",
+            message="Desktop VS Code opened for the selected WorkCell workspace.",
+            metadata={
+                "provider": "desktop_vscode",
+                "pid": getattr(process, "pid", None),
+                "repo_path": repo_path,
+                "workcell_md": workcell_md,
+                "source_mutation": False,
+            },
+        )
+        return {
+            "status": "launched",
+            "queue_seed_id": queue_seed_id,
+            "provider": "desktop_vscode",
+            "pid": getattr(process, "pid", None),
+            "workspace": workspace,
+            "opened": {
+                "repo_path": repo_path,
+                "workcell_md": workcell_md if workcell_md and os.path.exists(workcell_md) else None,
+            },
+        }
 
     def _get_workcell_activity(
         self,
@@ -5165,6 +5254,16 @@ class SRT1Engine:
                     status_code = 200 if result.get("status") in {
                         "dispatch_started", "dispatched"
                     } else 409
+                    return self._json(result, status_code)
+
+                elif path.startswith("/api/v1/workcells/") and path.endswith("/workspace/open"):
+                    queue_seed_id = path[len("/api/v1/workcells/"):-len("/workspace/open")].strip("/")
+                    result = engine._open_workcell_workspace(
+                        queue_seed_id,
+                        provider=body.get("provider") or "desktop_vscode",
+                        actor=body.get("actor") or "dashboard_human",
+                    )
+                    status_code = 200 if result.get("status") == "launched" else 409
                     return self._json(result, status_code)
 
                 elif path.startswith("/api/v1/workcells/") and any(

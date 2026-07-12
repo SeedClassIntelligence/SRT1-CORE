@@ -2,7 +2,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from srt1_code_indexer import engine as engine_module
 from srt1_platform.workcell import WorkCellRegistry
@@ -167,6 +167,30 @@ class WorkCellRuntimeTests(unittest.TestCase):
         self.assertIn("code-server", workspace_result["workspace"]["launch_commands"][1]["command"])
         self.assertTrue(current["package_status"]["workspace_json_exists"])
         self.assertEqual(runtime_state["workspace"]["queue_seed_id"], "seed_0001_workspace")
+
+    def test_engine_opens_workcell_workspace_in_desktop_vscode(self):
+        with tempfile.TemporaryDirectory() as repo:
+            engine = engine_module.SRT1Engine.__new__(engine_module.SRT1Engine)
+            engine.repo_path = repo
+            engine.workcell_registry = WorkCellRegistry(repo_path=repo)
+            engine.workcell_registry.activate_execution(
+                queue_seed_id="seed_open_workspace",
+                objective="Open visual workspace for app.py",
+                manifest={"file_manifest": [{"file_path": "app.py"}]},
+            )
+
+            with patch.object(engine_module.shutil, "which", return_value="code.cmd"), \
+                 patch.object(engine_module.subprocess, "Popen", return_value=Mock(pid=4321)) as popen:
+                result = engine._open_workcell_workspace("seed_open_workspace")
+            current = engine.workcell_registry.get_execution_for_seed("seed_open_workspace")
+
+        self.assertEqual(result["status"], "launched")
+        self.assertEqual(result["provider"], "desktop_vscode")
+        self.assertEqual(result["pid"], 4321)
+        args = popen.call_args.args[0]
+        self.assertEqual(args[0], "code.cmd")
+        self.assertIn(str(Path(repo).resolve()), args)
+        self.assertTrue(any(event["event_type"] == "workspace.opened" for event in current["activity_events"]))
 
     def test_workcell_candidate_generation_does_not_write_assistant_files(self):
         with tempfile.TemporaryDirectory() as repo:
@@ -959,8 +983,12 @@ class WorkCellRuntimeTests(unittest.TestCase):
         self.assertIn("Visible Workspace Contract", html)
         self.assertIn("workspace.json", html)
         self.assertIn("Open Workspace", html)
+        self.assertIn("Open in VS Code", html)
         self.assertIn("openWorkCellWorkspace", html)
+        self.assertIn("openWorkCellInDesktopIDE", html)
         self.assertIn("data-workcell-open-workspace", html)
+        self.assertIn("data-workcell-open-desktop", html)
+        self.assertIn("workspace/open", html)
         self.assertIn("code-server", html)
         self.assertIn("copyWorkCellPackagePath", html)
         self.assertIn("Copy package path", html)
@@ -1038,6 +1066,9 @@ class WorkCellRuntimeTests(unittest.TestCase):
             Path(__file__).resolve().parents[1] / "srt1_code_indexer" / "engine.py"
         ).read_text(encoding="utf-8"))
         self.assertIn("_get_workcell_workspace", (
+            Path(__file__).resolve().parents[1] / "srt1_code_indexer" / "engine.py"
+        ).read_text(encoding="utf-8"))
+        self.assertIn("_open_workcell_workspace", (
             Path(__file__).resolve().parents[1] / "srt1_code_indexer" / "engine.py"
         ).read_text(encoding="utf-8"))
         self.assertIn("OpenVSCode Server", (

@@ -2705,6 +2705,38 @@ function openWorkCellWorkspace(url, button) {
   window.open(url, '_blank', 'noopener,noreferrer');
 }
 
+async function openWorkCellInDesktopIDE(queueSeedId, button) {
+  if (!queueSeedId) return;
+  const original = button?.textContent || 'Open in VS Code';
+  if (button) {
+    button.disabled = true;
+    button.textContent = 'Opening...';
+  }
+  try {
+    const response = await fetch(API + '/api/v1/workcells/' + encodeURIComponent(queueSeedId) + '/workspace/open', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ provider: 'desktop_vscode', actor: 'dashboard_human' })
+    });
+    const result = await response.json();
+    if (!response.ok || result.status !== 'launched') {
+      throw new Error(result.error || 'IDE launch failed');
+    }
+    delete workCellActivityPages[queueSeedId];
+    await loadWorkCellActivity(queueSeedId);
+    if (button) button.textContent = 'Opened';
+  } catch (e) {
+    if (button) button.textContent = describeDashboardActionError(e, 'Open failed').slice(0, 48);
+  } finally {
+    if (button) {
+      setTimeout(() => {
+        button.disabled = false;
+        button.textContent = original;
+      }, 1400);
+    }
+  }
+}
+
 async function repairWorkCellPackage(queueSeedId, button) {
   if (!queueSeedId) return;
   const original = button?.textContent || 'Repair package';
@@ -3111,6 +3143,7 @@ function renderWorkCellDetail(payload, selectedExecution) {
         </div>
       </div>
       <div class="workcell-package-buttons">
+        <button type="button" class="workcell-package-btn" data-workcell-open-desktop="${escapeHtml(selectedExecution.queue_seed_id || '')}">Open in VS Code</button>
         <button type="button" class="workcell-package-btn" data-workcell-open-workspace="${escapeHtml(workspaceUrl)}" ${workspaceUrl ? '' : 'disabled'}>Open Workspace</button>
         <button type="button" class="workcell-package-btn" data-copy-value="${escapeHtml(workspace.workspace_manifest_path || packageStatus.workspace_json_path || `${packagePath}/workspace.json`)}">Copy workspace.json path</button>
         ${workspaceCommands.map(command => `<button type="button" class="workcell-package-btn" data-copy-value="${escapeHtml(command.command || '')}">Copy ${escapeHtml(command.label || 'launch command')}</button>`).join('')}
@@ -3220,6 +3253,9 @@ function renderWorkCellDetail(payload, selectedExecution) {
   });
   detailEl.querySelectorAll('.workcell-package-btn[data-workcell-open-workspace]').forEach(button => {
     button.addEventListener('click', () => openWorkCellWorkspace(button.dataset.workcellOpenWorkspace, button));
+  });
+  detailEl.querySelectorAll('.workcell-package-btn[data-workcell-open-desktop]').forEach(button => {
+    button.addEventListener('click', () => openWorkCellInDesktopIDE(button.dataset.workcellOpenDesktop, button));
   });
   detailEl.querySelectorAll('.workcell-package-btn[data-repair-queue-seed-id]').forEach(button => {
     button.addEventListener('click', () => repairWorkCellPackage(button.dataset.repairQueueSeedId, button));
