@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SRT-1 — Comprehensive Platform Capabilities</title>
-  <meta name="description" content="SRT-1 provides enterprise-grade codebase intelligence, continuity tracking, and is the only platform that cryptographically proves you built it.">
+  <meta name="description" content="SRT-1 Core provides local codebase intelligence, continuity tracking, WorkCell execution boundaries, assistant handoff, and Seed Signature-ready trust awareness.">
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
     *{margin:0;padding:0;box-sizing:border-box}
@@ -16,6 +16,11 @@
       --amber:#d29922;--red:#f85149;--purple:#bc8cff;
     }
     body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);line-height:1.6;overflow-x:hidden}
+    *{scrollbar-width:thin;scrollbar-color:var(--border-light) transparent}
+    *::-webkit-scrollbar{width:8px;height:8px}
+    *::-webkit-scrollbar-track{background:transparent}
+    *::-webkit-scrollbar-thumb{background:var(--border-light);border-radius:999px}
+    *::-webkit-scrollbar-thumb:hover{background:var(--text4)}
     a{color:var(--cyan);text-decoration:none}
     a:hover{text-decoration:underline}
 
@@ -222,11 +227,11 @@
 <!-- HERO -->
 <section class="hero">
   <div class="hero-eyebrow">🌱 SRT-1 — The Codebase Intelligence Standard</div>
-  <h1>Definitive codebase intelligence.<br>Uncompromising continuity. <span class="hl">We prove you built it.</span></h1>
+  <h1>Definitive codebase intelligence.<br>Bounded assistant execution. <span class="hl">Trust-ready by design.</span></h1>
   <p class="hero-sub">
-    While traditional context systems focus on basic retrieval, SRT-1 provides true conversation recovery,
-    cryptographic state tracking, and autonomous guardrails for developers and engineering teams.
-    See why SRT-1 is the definitive platform for codebase intelligence.
+    While traditional context systems focus on basic retrieval, SRT-1 Core registers your repository,
+    builds FileCells and WorkCells, hands bounded context to AI assistants, tracks seeds, and verifies outcomes.
+    Seed Signature can attach creator attribution and provenance when the external signing authority is connected.
   </p>
 
   <div class="scoreboard" style="grid-template-columns: repeat(2, 1fr); max-width: 600px;">
@@ -235,14 +240,14 @@
       <div class="sc-name">SRT-1</div>
       <div class="sc-score">First-Mover Architecture</div>
       <span class="sc-tag">Complete System</span>
-      <div class="sc-desc">Recovers ideas. Detects drift. Plants seeds. Maps codebases. Signs everything. Proves you built it.</div>
+      <div class="sc-desc">Registers repos. Builds FileCells. Creates WorkCells. Plants seeds. Hands off bounded context. Verifies outcomes. Records trust state.</div>
     </div>
     <div class="score-card them">
       <div class="sc-label">Legacy Market</div>
       <div class="sc-name">Traditional RAG</div>
       <div class="sc-score">Retrieval Only</div>
       <span class="sc-tag">Filing Cabinet</span>
-      <div class="sc-desc">Stores what you said. Can't tell you what matters. No drift. No semantics. No cryptographic provenance.</div>
+      <div class="sc-desc">Retrieves text. Does not own repo activation, WorkCell boundaries, lifecycle state, verification, or external signing handoff.</div>
     </div>
   </div>
 </section>
@@ -259,22 +264,22 @@
       <div class="pb-icon">🛡️</div>
       <div>
         <h3>Built for Uncompromising Continuity</h3>
-        <p>Traditional coding assistants hallucinate, drift from architectural constraints, and lose context over long sessions. SRT-1 acts as the immune system for your repository—embedding deep codebase knowledge directly into the AI's execution context and guarding against deviations.</p>
+        <p>Traditional coding assistants hallucinate, drift from architectural constraints, and lose context over long sessions. SRT-1 acts as the local continuity layer for your repository: it turns repo understanding into WorkCell packages, bounded assistant context, review gates, and verification evidence.</p>
         <div class="timeline">
           <div class="tl-row">
             <div class="tl-date">Phase 1</div>
             <div class="tl-dot us"></div>
-            <div class="tl-text"><span class="us-tag">Code Indexing</span> — Deep AST traversal of your entire repository, mapping variables, functions, dependencies, and risk factors into a signed manifest.</div>
+            <div class="tl-text"><span class="us-tag">Repository Activation</span> — Register the local folder SRT-1 should manage, then build a manifest, FileCells, WorkCells, dependency evidence, and dashboard state.</div>
           </div>
           <div class="tl-row">
             <div class="tl-date">Phase 2</div>
             <div class="tl-dot us"></div>
-            <div class="tl-text"><span class="us-tag">Context Bundling</span> — Deterministic selection of relevant symbols required to assist with your specific task, reducing context saturation.</div>
+            <div class="tl-text"><span class="us-tag">WorkCell Handoff</span> — Select the bounded execution environment, attach relevant FileCells and recall packets, and give the assistant the minimum useful context.</div>
           </div>
           <div class="tl-row">
             <div class="tl-date">Phase 3</div>
             <div class="tl-dot us"></div>
-            <div class="tl-text"><span class="us-tag">Cryptographic Wrapping</span> — Every execution sequence is timestamped and signed via SHA-256 trust chaining, guaranteeing unalterable provenance.</div>
+            <div class="tl-text"><span class="us-tag">Trust Awareness</span> — Core records signed/unsigned, verified/unverified, and lineage present/missing. Seed Signature signs when the external authority is connected.</div>
           </div>
         </div>
       </div>
@@ -286,7 +291,7 @@
     </h3>
     <div class="gap-grid">
       <div class="gap-card us-card">
-        <h4>SRT-1 Seed Reflection — Beyond Standard Search</h4>
+        <h4>Seed Reflection — Related Consumer Product</h4>
         <div class="feat-list">
           <div class="feat-row"><span class="fi has">✓</span>Mines conversation history from any AI platform</div>
           <div class="feat-row"><span class="fi has">✓</span>Drift detection — flags when AI left your original goal <span class="excl-pill">ONLY SRT-1</span></div>
@@ -304,12 +309,12 @@
         <h4>SRT-1 Code Indexer — Fully Automated Pipeline</h4>
         <div class="feat-list">
           <div class="feat-row"><span class="fi has">✓</span>10+ language codebase indexing <span class="excl-pill">ONLY SRT-1</span></div>
-          <div class="feat-row"><span class="fi has">✓</span>7-stage cryptographic pipeline <span class="excl-pill">ONLY SRT-1</span></div>
+          <div class="feat-row"><span class="fi has">✓</span>7-stage repo intelligence pipeline <span class="excl-pill">ONLY SRT-1</span></div>
           <div class="feat-row"><span class="fi has">✓</span>Role tagging: ORCHESTRATOR, AUTH_SECURITY, SERVICE_LAYER <span class="excl-pill">ONLY SRT-1</span></div>
           <div class="feat-row"><span class="fi has">✓</span>Risk tagging: AUTH_SENSITIVE, WRITES_TO_DB, DYNAMIC_EXECUTION <span class="excl-pill">ONLY SRT-1</span></div>
           <div class="feat-row"><span class="fi has">✓</span>SHA-256 trust chain across all pipeline stages <span class="excl-pill">ONLY SRT-1</span></div>
-          <div class="feat-row"><span class="fi has">✓</span>Signed manifest — tamper-proof ground truth <span class="excl-pill">ONLY SRT-1</span></div>
-          <div class="feat-row"><span class="fi has">✓</span>automated state correction engine: dupes, stale files, gaps <span class="excl-pill">ONLY SRT-1</span></div>
+          <div class="feat-row"><span class="fi has">✓</span>Manifest hash, lineage, and external signing readiness <span class="excl-pill">ONLY SRT-1</span></div>
+          <div class="feat-row"><span class="fi has">✓</span>Detective-first findings: dupes, stale files, gaps, and reviewable recovery actions <span class="excl-pill">ONLY SRT-1</span></div>
           <div class="feat-row"><span class="fi has">✓</span>CLAUDE.md, .cursorrules, AGENTS.md auto-generated <span class="excl-pill">ONLY SRT-1</span></div>
           <div class="feat-row"><span class="fi has">✓</span>Live dashboard at localhost:7484 by default <span class="excl-pill">ONLY SRT-1</span></div>
           <div class="feat-row"><span class="fi has">✓</span>MCP server grounded in your actual codebase <span class="excl-pill">ONLY SRT-1</span></div>
@@ -387,7 +392,7 @@
           <tr class="rc"><td colspan="2">💻 CODEBASE INTELLIGENCE</td></tr>
           <tr><td class="rl">Code indexing</td><td class="us"><span class="yb">✓</span> 10+ languages fully supported <span class="only">NATIVE</span></td></tr>
           <tr><td class="rl">Role &amp; risk tagging</td><td class="us"><span class="yb">✓</span> Every function classified autonomously <span class="only">NATIVE</span></td></tr>
-          <tr><td class="rl">automated state correction engine</td><td class="us"><span class="yb">✓</span> Dupes, stale files, gaps auto-detected <span class="only">NATIVE</span></td></tr>
+          <tr><td class="rl">Detective-first findings</td><td class="us"><span class="yb">✓</span> Dupes, stale files, gaps, and reviewable recovery actions <span class="only">NATIVE</span></td></tr>
           <tr><td class="rl">AI context file generation</td><td class="us"><span class="yb">✓</span> Continual generation of CLAUDE.md · .cursorrules · AGENTS.md <span class="only">NATIVE</span></td></tr>
           <tr><td class="rl">Live codebase dashboard</td><td class="us"><span class="yb">✓</span> localhost:7484 by default — repository cockpit <span class="only">NATIVE</span></td></tr>
 
@@ -401,11 +406,11 @@
           <tr><td class="rl">Offline operation</td><td class="us"><span class="yb">✓</span> Full offline-first design <span class="only">NATIVE</span></td></tr>
           <tr><td class="rl">Background sync</td><td class="us"><span class="yb">✓</span> Worker-level caching and background sync <span class="only">NATIVE</span></td></tr>
 
-          <tr class="rc"><td colspan="2">🔐 CRYPTOGRAPHIC SECURITY &amp; PROVENANCE</td></tr>
-          <tr><td class="rl">Cryptographic signing</td><td class="us"><span class="yb">✓</span> SHA-256 chained trust validation <span class="only">NATIVE</span></td></tr>
-          <tr><td class="rl">Creator provenance / attribution</td><td class="us"><span class="yb">✓</span> Your developer identity inside every output signature <span class="only">NATIVE</span></td></tr>
-          <tr><td class="rl">Intellectual provenance protocol</td><td class="us"><span class="yb">✓</span> SCIA Provenance Stamp Protocol integration <span class="only">NATIVE</span></td></tr>
-          <tr><td class="rl">Audit trail</td><td class="us"><span class="yb">✓</span> Complete tracking of internal API operations <span class="only">NATIVE</span></td></tr>
+          <tr class="rc"><td colspan="2">🔐 TRUST AWARENESS &amp; PROVENANCE</td></tr>
+          <tr><td class="rl">Trust state vocabulary</td><td class="us"><span class="yb">✓</span> signed/unsigned, verified/unverified, lineage present/missing <span class="only">CORE</span></td></tr>
+          <tr><td class="rl">External Seed Signature handoff</td><td class="us"><span class="yb">✓</span> Creator attribution and signatures when external authority is connected <span class="only">INTEGRATION</span></td></tr>
+          <tr><td class="rl">Intellectual provenance protocol</td><td class="us"><span class="yb">✓</span> Core prepares the artifact trail; Seed Signature provides signing authority <span class="only">BOUNDARY SAFE</span></td></tr>
+          <tr><td class="rl">Local activity timeline</td><td class="us"><span class="yb">✓</span> Tracks indexing, seeds, WorkCell dispatch, review, and verification events <span class="only">CORE</span></td></tr>
 
           <tr class="rc"><td colspan="2">💰 DEVELOPER &amp; TEAM PRICING</td></tr>
           <tr><td class="rl">Developer Intelligence</td><td class="us">$39/mo (Full Development Asset Insight)</td></tr>
@@ -422,13 +427,13 @@
 <!-- PROVENANCE -->
 <section class="section">
   <div class="section-inner">
-    <span class="eyebrow">The Capability That Changes Everything</span>
-    <h2 class="section-h2">The only platform that can <span class="hl">prove you built it.</span></h2>
+    <span class="eyebrow">Seed Signature Integration</span>
+    <h2 class="section-h2">Creator attribution can follow <span class="hl">every artifact.</span></h2>
     <div class="prov-section">
-      <h2>Your signature. In every artifact. Forever.</h2>
-      <p>Generic knowledge systems throw away the conceptual origin and leave execution up to chance. SRT-1 acts securely by embedding your identity as the originating creator in every artifact it surfaces — cryptographically, immutably, verifiably.</p>
-      <p>SRT-1 embeds your identity as the originating creator in every artifact it produces — cryptographically, immutably, verifiably. As AI-generated output floods every industry, the question of "who originated this" becomes the most important question. SRT-1 is the only system building the infrastructure to answer it.</p>
-      <p style="color:var(--text3);font-size:14px">This is not a watermark. This is a cryptographic chain. Break it and it shows. Dispute it and the chain is the evidence.</p>
+      <h2>Your signature, attached through the signing authority you choose.</h2>
+      <p>SRT-1 Core records the artifact trail: repository state, seed identity, WorkCell scope, review decisions, verification status, and release intent. Seed Signature is the external authority that can attach creator attribution and signed provenance across developer, Pro, and Enterprise tiers.</p>
+      <p>That separation matters. Core remains open and local-first. Private keys, signing services, and private audit chains stay outside public Core, while the dashboard still shows whether an artifact is signed, unsigned, verified, or missing lineage.</p>
+      <p style="color:var(--text3);font-size:14px">This is not a watermark claim inside Core. It is a clean integration boundary: Core prepares trusted development evidence; Seed Signature signs it when connected.</p>
       <div class="sig-block">
 <span class="sk">_integrity</span>: {<br>
 &nbsp;&nbsp;<span class="sk">signature_id</span>:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="sh">"a3f7c2b1d9e4f582"</span>,<br>
@@ -457,11 +462,11 @@
     <h2>Stop losing your ideas.<br><span class="hl">Start owning them.</span></h2>
     <p>One system. Uncompromising continuity, deterministic codebase intelligence, and cryptographic provenance. Complete control over your development process.</p>
     <div class="install">
-      <code>pip install SRT1-CORE</code>
-      <button class="cp" onclick="navigator.clipboard.writeText('pip install SRT1-CORE');this.textContent='Copied!';setTimeout(()=>this.textContent='Copy',1500)">Copy</button>
+      <code>pip install srt1-core</code>
+      <button class="cp" onclick="navigator.clipboard.writeText('pip install srt1-core');this.textContent='Copied!';setTimeout(()=>this.textContent='Copy',1500)">Copy</button>
     </div>
     <div>
-      <a href="auth.html?mode=signup&type=developer&next=dashboard.html" class="btn-p">🌱 Start Free — Register Repository</a>
+      <a href="documentation.html#quickstart" class="btn-p">🌱 Start Local Core</a>
       
     </div>
   </div>
@@ -472,7 +477,7 @@
   <div class="fl">
     <a href="index.html">Home</a>
     
-    <a href="https://seeds.srt1.io">Seed Reflection</a>
+    <a href="https://seedreflections.netlify.app/">Seed Reflections</a>
     <a href="documentation.html">Docs</a>
     <a href="https://github.com/SeedClassIntelligence/SRT1-CORE">GitHub</a>
     <a href="https://pypi.org/project/srt1-core">PyPI</a>

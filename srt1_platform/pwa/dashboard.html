@@ -589,10 +589,7 @@ body.theme-light .file-intel-popover{box-shadow:0 18px 40px rgba(15,23,42,0.18);
     </div>
     <div style="display: flex; gap: 8px;">
       <button class="modal-btn" style="flex:1;" onclick="dismissIntroModal()">Got it, let’s go →</button>
-      <a href="/download/srt1-core.zip" class="modal-btn" style="flex:1; background: transparent; color: var(--text2); text-decoration: none; display: flex; justify-content: center; align-items: center; gap: 6px; border-color: var(--border2);">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-        Download ZIP
-      </a>
+      <a href="https://pypi.org/project/srt1-core/" target="_blank" class="modal-btn" style="flex:1; background: transparent; color: var(--text2); text-decoration: none; display: flex; justify-content: center; align-items: center; gap: 6px; border-color: var(--border2);">View PyPI</a>
     </div>
   </div>
 </div>
@@ -956,7 +953,7 @@ body.theme-light .file-intel-popover{box-shadow:0 18px 40px rgba(15,23,42,0.18);
       <div id="licenseUpgrade" style="margin-top:16px;padding:16px;background:linear-gradient(135deg,rgba(88,166,255,.06),rgba(57,208,216,.04));border:1px solid rgba(88,166,255,.2);border-radius:10px;">
         <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:6px;">Unlock Pro Features</div>
         <div style="font-size:12px;color:var(--text3);line-height:1.6;margin-bottom:12px;">Upgrade to Pro for richer local constellation coordination, multi-workspace observability, and advanced packaging. Core remains local-first and usable without proprietary backend services.</div>
-        <a href="https://srt-1.lemonsqueezy.com/checkout/buy/3c7b5b89-fe57-4f36-a664-59d7b69aa04f" class="lemonsqueezy-button" style="display:block;text-align:center;padding:10px;border-radius:8px;font-weight:700;font-size:13px;background:var(--blue,#58a6ff);color:#000;border:none;cursor:pointer;text-decoration:none;">Upgrade to Pro — $9/mo</a>
+        <a href="/contact.html?plan=pro&payment=paypal" style="display:block;text-align:center;padding:10px;border-radius:8px;font-weight:700;font-size:13px;background:var(--blue,#58a6ff);color:#000;border:none;cursor:pointer;text-decoration:none;">Get Pro with PayPal — $19/mo</a>
       </div>
     </div>
 
@@ -980,10 +977,7 @@ body.theme-light .file-intel-popover{box-shadow:0 18px 40px rgba(15,23,42,0.18);
           </div>
           <div style="display:flex; gap:8px;">
             <button class="download-btn" onclick="navigator.clipboard.writeText('pip install srt1-core');this.innerText='Copied!';setTimeout(()=>this.innerText='Copy',2000)">Copy</button>
-            <a href="/download/srt1-core.zip" class="download-btn" style="text-decoration:none; display:flex; align-items:center; gap:6px;">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-              Download ZIP
-            </a>
+            <a href="https://pypi.org/project/srt1-core/" target="_blank" class="download-btn" style="text-decoration:none; display:flex; align-items:center; gap:6px;">View PyPI</a>
           </div>
         </div>
         <div class="download-item">
@@ -5383,7 +5377,6 @@ function setDashboardPreference(key, value) {
 // The dashboard should open into the operational cockpit. The intro is first-run help only.
 setTimeout(() => showIntroModal(false), 500);
 </script>
-<script src="https://app.lemonsqueezy.com/js/lemon.js" defer></script>
 </body></html>
 
 

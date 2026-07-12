@@ -170,6 +170,25 @@
       overflow-y: auto;
       padding-right: 16px;
       border-right: 1px solid var(--border);
+      scrollbar-width: thin;
+      scrollbar-color: var(--border-light) transparent;
+    }
+
+    .docs-sidebar::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .docs-sidebar::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .docs-sidebar::-webkit-scrollbar-thumb {
+      background: var(--border-light);
+      border-radius: 999px;
+    }
+
+    .docs-sidebar::-webkit-scrollbar-thumb:hover {
+      background: var(--text4);
     }
 
     .sidebar-section {
@@ -398,8 +417,8 @@
   <main class="docs-main">
     <div class="badge">Documentation</div>
     <h1>SRT-1 Docs</h1>
-    <p>SRT-1 is a 7-stage codebase intelligence pipeline that produces a verified Code Manifest. It gives any AI assistant a ground-truth map of your codebase — with every function tagged by architectural role and risk profile.</p>
-    <p>Start with the <a href="#quickstart">Quickstart</a> to register a repository and open the dashboard cockpit, then read the <a href="#architecture">Architecture</a> guide to understand the pipeline stages.</p>
+    <p>SRT-1 Core is a local repo-continuity and alignment runtime for AI coding assistants. It registers a repository, builds repo intelligence, creates FileCells and WorkCells, serves bounded context to assistants, tracks seeds, and keeps verification and human review in the loop.</p>
+    <p>Start with the <a href="#quickstart">Quickstart</a> to register a repository and open the dashboard cockpit, then read <a href="#architecture">Architecture</a> and <a href="#context-injection">Assistant Handoff</a> to understand how SRT-1 connects to Codex, Claude, Cursor, local models, Slack-style seed intake, and live development runtimes.</p>
 
     <h2 id="overview">Guides</h2>
     <div class="card-grid">
@@ -409,23 +428,23 @@
       </a>
       <a href="#architecture" class="doc-card" style="color:inherit">
         <h3>🏗️ Architecture</h3>
-        <p>The 7-stage SCIA pipeline from scan to signed manifest.</p>
+        <p>Repository Activation, repo understanding, FileCells, WorkCells, seeds, recall, reinjection, verification, and review.</p>
       </a>
       <a href="#trust-layer" class="doc-card" style="color:inherit">
         <h3>🔐 Trust Layer</h3>
-        <p>Integrity hashing, trust chains, and manifest verification.</p>
+        <p>Core trust states, manifest hashes, verification status, and optional external Seed Signature signing.</p>
       </a>
       <a href="#api-reference" class="doc-card" style="color:inherit">
         <h3>📖 API Reference</h3>
-        <p>SRT1CodeIndexer class, CLI flags, and manifest schema.</p>
+        <p>CLI commands, local runtime routes, repository activation, seed planting, and WorkCell status surfaces.</p>
       </a>
       <a href="#mobile" class="doc-card" style="color:inherit">
         <h3>📱 Mobile PWA</h3>
-        <p>Set up the mobile dashboard and remote auth tokens.</p>
+        <p>Plant seeds and observe status through the same queue-first WorkCell path.</p>
       </a>
       <a href="#context-injection" class="doc-card" style="color:inherit">
         <h3>🧠 AI Context Injection</h3>
-        <p>How AGENTS.md and CLAUDE.md give AI complete repo comprehension.</p>
+        <p>How RecallPackets, WorkCell packages, assistant files, and adapters deliver bounded context.</p>
       </a>
       <a href="#signing" class="doc-card" style="color:inherit">
         <h3>🔏 External Signing</h3>
@@ -452,7 +471,62 @@
     <pre style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:16px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--text2);margin-bottom:16px;overflow-x:auto">http://127.0.0.1:7484/dashboard</pre>
     <h3>4. Register or switch repositories</h3>
     <p>Use the dashboard Repository Manager to register a local folder, launch its runtime, stop stale runtimes, and select the repository SRT-1 should manage. After activation, SRT-1 builds the manifest, FileCells, WorkCells, recall context, and verification surfaces for that project.</p>
-    <h3>What Gets Signed</h3>
+
+    <h2 id="architecture">Architecture</h2>
+    <p>SRT-1 starts before the assistant receives a task. First, the user activates a repository. Core scans the local project, builds a manifest, derives FileCells, creates WorkCells, and exposes the result through the dashboard, MCP/context surfaces, and local HTTP API.</p>
+    <div style="overflow-x:auto;margin-bottom:24px">
+    <table style="width:100%;border-collapse:collapse;font-size:14px;color:var(--text2)">
+      <thead><tr style="border-bottom:2px solid var(--border)">
+        <th style="text-align:left;padding:10px 12px;color:var(--text);font-weight:700">Layer</th>
+        <th style="text-align:left;padding:10px 12px;color:var(--text);font-weight:700">What it does</th>
+      </tr></thead>
+      <tbody>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">Repository Activation</td><td style="padding:8px 12px">Registers a local folder, launches or selects its SRT-1 runtime, and keeps the repo as the active project.</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">Repo Understanding</td><td style="padding:8px 12px">Scans files, hashes content, extracts symbols, maps dependencies, and produces manifest intelligence.</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">FileCells</td><td style="padding:8px 12px">Persistent intelligence objects for files: symbols, imports, role, risk, contracts, dependencies, and verification metadata.</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">WorkCells</td><td style="padding:8px 12px">Bounded execution environments assembled from FileCells, allowed paths, recall packets, instructions, and verification rules.</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">Assistant Handoff</td><td style="padding:8px 12px">Passes WorkCell-scoped context to Codex, Claude, Cursor, local/open-source models, or other adapters without giving whole-repo context by default.</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">Human Review</td><td style="padding:8px 12px">Keeps blueprint review, result review, verification, approval, rejection, and return-for-revision visible in the cockpit.</td></tr>
+      </tbody>
+    </table>
+    </div>
+
+    <h2 id="api-reference">API Reference</h2>
+    <p>The public developer path is intentionally small: install Core, start a runtime, open the dashboard, register a repository, plant seeds, and inspect WorkCell or verification state.</p>
+    <pre>pip install srt1-core
+srt1 start --repo /path/to/your/repository --port 7484
+srt1 status
+srt1 dashboard
+srt1 stop --port 7484</pre>
+
+    <h2 id="context-injection">Assistant Handoff</h2>
+    <p>SRT-1 can work with multiple assistant surfaces. The dashboard and API plant seeds into the canonical queue. Recall and context bundling produce packet-shaped context. Reinjection and provider adapters deliver that bounded context to the configured assistant path.</p>
+    <div style="overflow-x:auto;margin-bottom:24px">
+    <table style="width:100%;border-collapse:collapse;font-size:14px;color:var(--text2)">
+      <thead><tr style="border-bottom:2px solid var(--border)">
+        <th style="text-align:left;padding:10px 12px;color:var(--text);font-weight:700">Surface</th>
+        <th style="text-align:left;padding:10px 12px;color:var(--text);font-weight:700">How it connects</th>
+      </tr></thead>
+      <tbody>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">Codex / Claude / Cursor</td><td style="padding:8px 12px">Use assistant adapters, MCP/context files, or bounded WorkCell packages so the assistant starts from SRT-1's repo intelligence.</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">OpenAI-compatible local models</td><td style="padding:8px 12px">Configure a provider endpoint and supply a session key only when the developer chooses provider execution.</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">Slack-style intake</td><td style="padding:8px 12px">Slack or team messages plant seeds into the same queue-first WorkCell path; they do not bypass boundaries.</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">Live preview ports</td><td style="padding:8px 12px">When a project already runs a dev server, SRT-1 can associate that local runtime with the active WorkCell for review.</td></tr>
+      </tbody>
+    </table>
+    </div>
+
+    <h2 id="mobile">Mobile PWA</h2>
+    <p>The mobile PWA is a human observability and approval surface. It can plant seeds, review blueprints, monitor status, and approve or reject work. It should not bypass WorkCell boundaries, verification, or queue lifecycle ownership.</p>
+
+    <h2 id="trust-layer">Trust Layer</h2>
+    <p>Core understands trust states such as signed/unsigned, verified/unverified, lineage present/missing, fresh/stale/degraded/unknown. Core can hash and verify local artifacts, but private Seed Signature authority, private keys, private audit chains, and enterprise signing services remain external integrations.</p>
+
+    <h2 id="signing">External Signing</h2>
+    <p>Seed Signature is a standalone signing platform that can be connected to SRT-1. When configured, it can sign artifacts, code-generation events, review decisions, and release actions across developer, Pro, and Enterprise tiers. Public Core records the signing state and fails closed when the external authority is unavailable.</p>
+
+    <h3>What Seed Signature Can Sign</h3>
+    <p>When the external Seed Signature authority is connected, SRT-1 can attach attribution and provenance to important development artifacts. Without that external authority, Core still records trust metadata locally as unsigned or unavailable instead of pretending a signature exists.</p>
     <div style="overflow-x:auto;margin-bottom:24px">
     <table style="width:100%;border-collapse:collapse;font-size:14px;color:var(--text2)">
       <thead><tr style="border-bottom:2px solid var(--border)">
@@ -465,13 +539,13 @@
         <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">Enforcement violations</td><td style="padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan)">enforcement</td><td style="padding:8px 12px;color:var(--text3)">When violations are detected</td></tr>
         <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">Context documents</td><td style="padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan)">context_generation</td><td style="padding:8px 12px;color:var(--text3)">After AGENTS.md is written</td></tr>
         <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">Violation resolutions</td><td style="padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan)">enforcement_resolve</td><td style="padding:8px 12px;color:var(--text3)">When developer resolves a block</td></tr>
-        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">Violation overrides</td><td style="padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan)">enforcement_override</td><td style="padding:8px 12px;color:var(--text3)">When developer overrides with justification (signed)</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">Violation overrides</td><td style="padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan)">enforcement_override</td><td style="padding:8px 12px;color:var(--text3)">When developer overrides with justification and external signing is configured</td></tr>
         <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">External reflection records</td><td style="padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan)">external_reflection</td><td style="padding:8px 12px;color:var(--text3)">Every Seed Reflections output</td></tr>
       </tbody>
     </table>
     </div>
     <h3>Signature Envelope</h3>
-    <p>Each signed artifact receives a sealed envelope containing a composite SHA-256 hash (content + semantic + timestamp), a unique <code style="color:var(--cyan);background:var(--bg-card);padding:2px 8px;border-radius:4px;font-size:13px">SCIA-[hash]</code> signature ID, and a chain link to the previous signature. The signing authority verifies via a three-pillar model: content integrity, registry presence, and digest validation.</p>
+    <p>When Seed Signature is connected, a signed artifact can receive a sealed envelope containing a composite hash, signature ID, timestamp, attribution metadata, and lineage link. The signing authority lives outside public Core; Core records the resulting trust state and fails closed if the external authority is unavailable.</p>
 
     <!-- ── OPTIONAL PRIVATE INTEGRATIONS ── -->
     <h2 id="scia-packages">📦 Optional Private Integrations</h2>
@@ -486,10 +560,10 @@
       </tr></thead>
       <tbody>
         <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan)">External signing hook</td><td style="padding:8px 12px">Optional external authority attaches provenance when configured</td></tr>
-        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan)">IntegrityValidator</td><td style="padding:8px 12px">SHA-256 content hashing, tamper detection, file verification</td></tr>
-        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan)">DataEncryptor</td><td style="padding:8px 12px">AES-256-GCM encryption at rest for sensitive data</td></tr>
-        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan)">AccessAuditLog</td><td style="padding:8px 12px">Append-only SQLite audit trail of all actions</td></tr>
-        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan)">ExecutionGraph</td><td style="padding:8px 12px">DAG-based operation tracking across pipeline stages</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan)">Integrity metadata</td><td style="padding:8px 12px">Content hashing, tamper detection, file verification, and local trust-state vocabulary</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan)">Private encryption</td><td style="padding:8px 12px">Enterprise/private capability; not shipped as a public Core implementation</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan)">Private audit trail</td><td style="padding:8px 12px">Enterprise/private capability; public Core may expose audit-shaped metadata without shipping the private ledger</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan)">Execution lineage graph</td><td style="padding:8px 12px">Public Core can understand lineage; private execution graph implementations remain external</td></tr>
       </tbody>
     </table>
     </div>

@@ -4,7 +4,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SRT-1 for Developers — AI That Understands Your Entire Codebase</title>
-  <meta name="description" content="SRT-1 indexes every file, tags every function with role and risk, builds a cryptographic trust chain, and produces a signed Code Manifest. Zero dependencies.">
+  <meta name="description" content="SRT-1 Core indexes local repositories, builds FileCells and WorkCells, tracks seed continuity, verifies outcomes, and prepares trust-aware context for AI coding assistants.">
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
     *{margin:0;padding:0;box-sizing:border-box}
@@ -16,6 +16,11 @@
       --green:#3fb950;--amber:#d29922;--red:#f85149;--purple:#bc8cff;
     }
     body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);line-height:1.6;overflow-x:hidden}
+    *{scrollbar-width:thin;scrollbar-color:var(--border-light) transparent}
+    *::-webkit-scrollbar{width:8px;height:8px}
+    *::-webkit-scrollbar-track{background:transparent}
+    *::-webkit-scrollbar-thumb{background:var(--border-light);border-radius:999px}
+    *::-webkit-scrollbar-thumb:hover{background:var(--text3)}
     a{color:var(--blue);text-decoration:none}
     a:hover{text-decoration:underline}
     code,pre{font-family:'JetBrains Mono',monospace}
@@ -213,7 +218,6 @@
     <a href="#pricing">Pricing</a>
     <a href="comparison.html">Compare</a>
     <a href="documentation.html">Documentation</a>
-    <a href="documentation.html" style="color:var(--cyan);">Docs</a>
   </div>
 </header>
 
@@ -221,19 +225,16 @@
 <section class="hero">
   <div class="hero-badge">SCIA v4.0 — 7-Stage Intelligence Pipeline</div>
   <h1>Your AI finally understands<br><span>your entire codebase.</span></h1>
-  <p class="hero-sub">AI memory is not enough. SRT-1 gives you local repo intelligence, continuity, workcell boundaries, verification, and trust-aware context for AI coding assistants. Start by registering the repository SRT-1 should manage; then Core builds FileCells, WorkCells, recall context, and the dashboard cockpit around that local project.</p>
+  <p class="hero-sub">AI memory is not enough. SRT-1 gives you local repo intelligence, continuity, workcell boundaries, verification, and trust-aware context for AI coding assistants. Start by registering the repository SRT-1 should manage; then Core builds FileCells, WorkCells, recall context, and the SRT-1 Code Admin Dashboard around that local project.</p>
   <div class="hero-install" id="install">
     <code>pip install srt1-core</code>
     <div style="display:flex; gap:8px;">
       <button class="copy-btn" onclick="navigator.clipboard.writeText('pip install srt1-core');this.textContent='Copied!';setTimeout(()=>this.textContent='Copy',1500)">Copy</button>
-      <a href="/download/srt1-core.zip" class="copy-btn" style="text-decoration:none; display:flex; align-items:center; gap:4px;">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-        Download ZIP
-      </a>
+      <a href="https://pypi.org/project/srt1-core/" target="_blank" class="copy-btn" style="text-decoration:none; display:flex; align-items:center; gap:4px;">View PyPI</a>
     </div>
   </div>
   <div class="hero-btns">
-    <a href="auth.html?mode=signup&type=developer&next=dashboard.html" class="btn btn-blue">Start Free — Register Repository</a>
+    <a href="documentation.html#quickstart" class="btn btn-blue">Start Local Core</a>
     <a href="#demo-video" class="btn btn-outline" style="border-color:var(--cyan);color:var(--cyan);">▶ Watch Demo</a>
     <a href="documentation.html" class="btn btn-outline">Read the Docs →</a>
   </div>
@@ -244,7 +245,7 @@
   <div class="section-inner" style="max-width:1100px;">
     <div class="eyebrow">First Run</div>
     <h2 class="section-h2">SRT-1 starts with <span>Repository Activation.</span></h2>
-    <p class="section-p">A new developer should not begin by guessing which task to plant. They first tell SRT-1 which local repository to manage. SRT-1 then understands the repo once, creates FileCells and WorkCells, and makes the dashboard the operating cockpit for that project.</p>
+    <p class="section-p">A new developer should not begin by guessing which task to plant. They first tell SRT-1 which local repository to manage. SRT-1 then understands the repo once, creates FileCells and WorkCells, and makes the Code Admin Dashboard the operating cockpit for that project.</p>
     <div class="features-grid" style="margin-top:28px;">
       <div class="fcard"><div class="fcard-icon">1</div><h3>Sign up or continue locally</h3><p>Create a developer workspace or use local Core directly. Core remains local-first; private signing and cloud services are optional external integrations.</p></div>
       <div class="fcard"><div class="fcard-icon">2</div><h3>Register Repository</h3><p>Choose a local folder or paste a path. SRT-1 records the project and prepares it for repo understanding.</p></div>
@@ -252,7 +253,7 @@
       <div class="fcard"><div class="fcard-icon">4</div><h3>Plant Seeds in WorkCells</h3><p>After the repository is ready, select a WorkCell, plant a seed, hand the package to an assistant, and verify completion.</p></div>
     </div>
     <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:28px;">
-      <a href="auth.html?mode=signup&type=developer&next=dashboard.html" class="btn btn-blue btn-sm">Begin Repository Activation</a>
+      <a href="dashboard.html" class="btn btn-blue btn-sm">Open SRT-1 Code Admin Dashboard</a>
       <a href="documentation.html#quickstart" class="btn btn-outline btn-sm">Read Quickstart</a>
     </div>
   </div>
@@ -272,7 +273,7 @@
     <div style="text-align:center;margin-bottom:36px;">
       <div class="eyebrow">See It In Action</div>
       <h2 class="section-h2">Watch SRT-1 <span>index your codebase</span> in real time.</h2>
-      <p class="section-p" style="margin:12px auto 0;text-align:center;">One command. 7 pipeline stages. A signed manifest that proves your AI was working from ground truth.</p>
+      <p class="section-p" style="margin:12px auto 0;text-align:center;">One command. 7 pipeline stages. A trust-aware manifest that shows your AI was working from local repository ground truth.</p>
     </div>
 
     <div class="demo-player" id="demoPlayer">
@@ -405,7 +406,7 @@
               <div class="ds-dash-file"><span style="color:var(--green)">✓</span> CLAUDE.md <span style="color:var(--text3);font-size:10px;">— auto-generated</span></div>
               <div class="ds-dash-file"><span style="color:var(--green)">✓</span> .cursorrules <span style="color:var(--text3);font-size:10px;">— auto-generated</span></div>
               <div class="ds-dash-file"><span style="color:var(--green)">✓</span> copilot-instructions.md <span style="color:var(--text3);font-size:10px;">— auto-generated</span></div>
-              <div class="ds-dash-file"><span style="color:var(--green)">✓</span> srt1_code_manifest.json <span style="color:var(--text3);font-size:10px;">— signed manifest</span></div>
+              <div class="ds-dash-file"><span style="color:var(--green)">✓</span> srt1_code_manifest.json <span style="color:var(--text3);font-size:10px;">— trust-aware manifest</span></div>
             </div>
             <div class="ds-dash-note">Every AI tool now reads the same ground truth. Cursor, Claude, Copilot — all aligned.</div>
           </div>
@@ -509,7 +510,7 @@
   <div class="section-inner">
     <div class="eyebrow">Features</div>
     <h2 class="section-h2">Everything your AI needs to know.</h2>
-    <p class="section-p">One command. One signed manifest. Every AI tool aligned.</p>
+    <p class="section-p">One command. One trust-aware manifest. Every AI tool aligned.</p>
     <div class="features-grid">
       <div class="fcard">
         <div class="fcard-icon">🔍</div>
@@ -528,8 +529,8 @@
       </div>
       <div class="fcard">
         <div class="fcard-icon">✍️</div>
-        <h3>Provenance Stamps</h3>
-        <p>Every artifact carries a cryptographic SCIA provenance signature. Detect tampering before trusting any AI output.</p>
+        <h3>Seed Signature Ready</h3>
+        <p>Core prepares the artifact trail for external signing without shipping private keys, private signing services, or private audit chains.</p>
       </div>
       <div class="fcard">
         <div class="fcard-icon">⚡</div>
@@ -586,7 +587,7 @@
     <!-- Language support -->
     <div style="margin-top:64px">
       <div class="eyebrow">Language Support</div>
-      <h3 style="font-size:20px;font-weight:700;margin-bottom:8px">Works with every language your team uses.</h3>
+      <h3 style="font-size:20px;font-weight:700;margin-bottom:8px">Works across common application source formats.</h3>
       <p style="font-size:14px;color:var(--text3);margin-bottom:0">Full AST parsing for Python. Regex + structure extraction for everything else.</p>
       <div class="lang-grid">
         <div class="lang-pill">🐍 Python</div>
@@ -597,6 +598,9 @@
         <div class="lang-pill">☕ Java</div>
         <div class="lang-pill">🔵 C#</div>
         <div class="lang-pill">⚙️ C / C++</div>
+        <div class="lang-pill">HTML</div>
+        <div class="lang-pill">CSS / SCSS</div>
+        <div class="lang-pill">JSON</div>
         <div class="lang-pill">📝 Markdown</div>
         <div class="lang-pill">🔧 YAML</div>
       </div>
@@ -608,7 +612,7 @@
 <section class="pipeline">
   <div style="text-align:center;max-width:1100px;margin:0 auto">
     <div class="eyebrow">Pipeline</div>
-    <h2 class="section-h2" style="text-align:center">7 stages. One signed manifest.</h2>
+    <h2 class="section-h2" style="text-align:center">7 stages. One trust-aware manifest.</h2>
   </div>
   <div class="pipeline-steps" style="max-width:1100px;margin:48px auto 0">
     <div class="step"><div class="step-num">1</div><div class="step-name">Scan</div><div class="step-desc">Walk directory tree, hash every file</div></div>
@@ -616,7 +620,7 @@
     <div class="step"><div class="step-num">3</div><div class="step-name">Curate</div><div class="step-desc">Detect duplicates &amp; overlaps</div></div>
     <div class="step"><div class="step-num">4</div><div class="step-name">Reflect</div><div class="step-desc">Tag role &amp; risk per symbol</div></div>
     <div class="step"><div class="step-num">5</div><div class="step-name">Trust</div><div class="step-desc">Build SHA-256 chain</div></div>
-    <div class="step"><div class="step-num">6</div><div class="step-name">Manifest</div><div class="step-desc">Sign &amp; write JSON</div></div>
+    <div class="step"><div class="step-num">6</div><div class="step-name">Manifest</div><div class="step-desc">Write JSON and trust metadata</div></div>
     <div class="step"><div class="step-num">7</div><div class="step-name">Report</div><div class="step-desc">Print integrity report</div></div>
   </div>
 </section>
@@ -625,9 +629,9 @@
 <section class="cc-section">
   <div class="cc-inner">
     <div class="cc-copy">
-      <div class="eyebrow">Command Center</div>
-      <h2>Your entire codebase,<br><span>live in your browser.</span></h2>
-      <p>Launch SRT-1, register the local repository, then open the dashboard cockpit. The Command Center shows real-time data from your active repo — repository readiness, file counts, WorkCells, reflection guardrails, seeds, and assistant handoff status.</p>
+      <div class="eyebrow">SRT-1 Code Admin Dashboard</div>
+      <h2>Your entire codebase,<br><span>managed from one cockpit.</span></h2>
+      <p>Launch SRT-1, register the local repository, then open the Code Admin Dashboard. This Core cockpit shows real-time data from your active repo — repository readiness, file counts, WorkCells, reflection guardrails, seeds, assistant handoff status, and runtime controls.</p>
       <ul class="cc-bullets">
         <li>Repository Manager: register, launch, stop, and switch local SRT-1 runtimes</li>
         <li>Repo Intelligence: file map, symbols, roles, dependencies, and manifest freshness</li>
@@ -638,7 +642,7 @@
       </ul>
       <div class="cc-btns">
         <a href="auth.html?mode=signup&type=developer&next=dashboard.html" class="btn btn-blue btn-sm">Start Repository Activation</a>
-        <a href="dashboard.html" class="btn btn-outline btn-sm">Open Local Dashboard</a>
+        <a href="dashboard.html" class="btn btn-outline btn-sm">Open Code Admin Dashboard</a>
       </div>
     </div>
     <div>
@@ -679,7 +683,7 @@
                 <div class="cc-seed"><div class="cc-seed-dot" style="background:var(--green)"></div>Add SCIA v4.0 signatures</div>
                 <div class="cc-seed"><div class="cc-seed-dot" style="background:var(--cyan)"></div>Wire dashboard route</div>
                 <div class="cc-seed"><div class="cc-seed-dot" style="background:var(--amber)"></div>GitHub Pages deploy</div>
-                <div class="cc-seed"><div class="cc-seed-dot" style="background:var(--text3)"></div>Lemon Squeezy setup</div>
+                <div class="cc-seed"><div class="cc-seed-dot" style="background:var(--text3)"></div>PayPal setup</div>
               </div>
             </div>
             <div class="cc-panel">
@@ -735,7 +739,7 @@
   .pwa-installed{display:inline-flex;align-items:center;gap:4px;background:rgba(63,185,80,.12);border:1px solid rgba(63,185,80,.25);
                  color:var(--green);font-size:9px;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:auto}
 </style>
-<section class="section" style="border-top:1px solid var(--border)">
+<section class="section" id="mobile" style="border-top:1px solid var(--border)">
   <div class="section-inner">
     <div class="cc-inner">
       <div class="cc-copy">
@@ -753,8 +757,8 @@
           <li>Install as a PWA — runs like a native app, no app store required</li>
         </ul>
         <div class="cc-btns">
-          <a href="auth.html?mode=signup&type=developer&next=dashboard.html" class="btn btn-blue btn-sm">Start Free →</a>
-          <a href="#mobile" class="btn btn-outline btn-sm">PWA setup guide →</a>
+          <a href="documentation.html#quickstart" class="btn btn-blue btn-sm">Start Local Core →</a>
+          <a href="documentation.html#mobile" class="btn btn-outline btn-sm">PWA setup guide →</a>
         </div>
       </div>
       <div style="display:flex;justify-content:center;align-items:center">
@@ -895,8 +899,8 @@ manifest = indexer.<span class="fn">index_repository</span>()
     <!-- PRO -->
     <div class="pcard featured">
       <div class="pcard-tier">Pro</div>
-      <div class="pcard-price">$9<sub>/month</sub></div>
-      <div class="pcard-desc">Multi-module orchestration. Mobile access. Advanced intelligence.</div>
+      <div class="pcard-price">$19<sub>/month</sub></div>
+      <div class="pcard-desc">Founder-friendly individual plan for multi-module orchestration, mobile access, and advanced intelligence.</div>
       <ul class="pcard-features">
         <li>Everything in Free</li>
         <li>Workspace connector — link up to 15 module folders</li>
@@ -908,21 +912,21 @@ manifest = indexer.<span class="fn">index_repository</span>()
         <li>PDF &amp; Markdown compliance exports</li>
         <li>Priority engine updates</li>
         <li class="dim">Organization integrations (cross-developer)</li>
-        <li class="dim">CTO admin dashboard</li>
+        <li class="dim">Team admin dashboard</li>
         <li class="dim">Knowledge Graph</li>
       </ul>
-      <button class="pcard-btn primary" onclick="handleCheckout('pro')">Upgrade to Pro</button>
+      <button class="pcard-btn primary" onclick="handleCheckout('pro')">Get Pro with PayPal</button>
     </div>
 
     <!-- ENTERPRISE -->
     <div class="pcard">
       <div class="pcard-tier">Managed</div>
       <div class="pcard-price">$49<sub>/seat/month</sub></div>
-      <div class="pcard-desc">Team-wide AI governance. Full knowledge infrastructure. Volume pricing available.</div>
+      <div class="pcard-desc">Team-managed SRT-1 with governance, integrations, and volume pricing available.</div>
       <ul class="pcard-features">
         <li>Everything in Pro</li>
         <li>Team folder sync — connect developers across machines</li>
-        <li>Admin observability dashboard</li>
+        <li>Team admin observability dashboard</li>
         <li>Knowledge graph and semantic retrieval integrations</li>
         <li>External memory/security integrations</li>
         <li>Recall system — historical context retrieval</li>
@@ -930,7 +934,7 @@ manifest = indexer.<span class="fn">index_repository</span>()
         <li>External audit/signing exports when configured</li>
         <li>SLA support &amp; dedicated onboarding</li>
       </ul>
-      <a href="contact.html" class="pcard-btn" id="btn-enterprise-contact">Contact Sales — Custom Volume Pricing</a>
+      <a href="contact.html?plan=managed" class="pcard-btn" id="btn-enterprise-contact">Contact Sales — Managed Seats</a>
     </div>
 
   </div>
@@ -955,9 +959,9 @@ manifest = indexer.<span class="fn">index_repository</span>()
 <div class="consumer-bridge">
   <div class="consumer-bridge-inner">
     <div style="display:inline-block;background:var(--green-dim,rgba(63,185,80,.1));border:1px solid rgba(63,185,80,.25);color:var(--green);font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:5px 14px;border-radius:20px;margin-bottom:18px">Also for everyone</div>
-    <h2 style="font-size:clamp(22px,3vw,34px);font-weight:900;letter-spacing:-1px;margin-bottom:12px">Also use SRT-1 to recover your personal AI conversations.</h2>
-    <p style="font-size:15px;color:var(--text2);max-width:520px;margin:0 auto 24px;line-height:1.65">Upload a ChatGPT JSON export. Paste a Claude conversation. Get every abandoned idea back, prioritized and ready to pick up — no setup required.</p>
-    <a href="https://seeds.srt1.io" class="btn btn-outline" style="border-color:var(--green);color:var(--green)">Try Conversation Recovery →</a>
+    <h2 style="font-size:clamp(22px,3vw,34px);font-weight:900;letter-spacing:-1px;margin-bottom:12px">Seed Reflections is the separate consumer product.</h2>
+    <p style="font-size:15px;color:var(--text2);max-width:520px;margin:0 auto 24px;line-height:1.65">Use SRT-1 Core for developer repo continuity, WorkCells, assistant handoff, and verification. Use Seed Reflections to recover personal AI conversations, abandoned ideas, and conversation continuity outside the codebase product.</p>
+    <a href="https://seedreflections.netlify.app/" class="btn btn-outline" style="border-color:var(--green);color:var(--green)">Open Seed Reflections →</a>
   </div>
 </div>
 
@@ -968,7 +972,7 @@ manifest = indexer.<span class="fn">index_repository</span>()
   <div class="footer-links">
     <a href="srt1-core.html">Home</a>
     <a href="documentation.html">Docs</a>
-    <a href="https://seeds.srt1.io">Seed Reflection</a>
+    <a href="https://seedreflections.netlify.app/">Seed Reflections</a>
     <a href="auth.html">Sign Up</a>
     <a href="contact.html">Managed Contact</a>
     <a href="https://github.com/SeedClassIntelligence/SRT1-CORE">GitHub</a>
@@ -977,31 +981,28 @@ manifest = indexer.<span class="fn">index_repository</span>()
 </footer>
 
 <script src="js/platform.js"></script>
-<script src="https://app.lemonsqueezy.com/js/lemon.js" defer></script>
 <script>
 (async function() {
   const el = document.getElementById('nav-auth');
   const user = await SRT1Platform.getUser().catch(() => null);
   if (user) {
-    el.innerHTML = `<a href="dashboard.html" class="btn-nav-ghost">Dashboard</a>
+    el.innerHTML = `<a href="dashboard.html" class="btn-nav-ghost">Code Admin</a>
       <button class="btn-nav-ghost" onclick="SRT1Platform.logout().then(()=>location.reload())">Log out</button>`;
   }
 })();
 
-// Checkout — Lemon Squeezy overlay (stays on page)
+// Checkout — PayPal-first. Replace these placeholders with live PayPal plan URLs.
 const CHECKOUT_URLS = {
-  pro:        'https://srt-1.lemonsqueezy.com/checkout/buy/3c7b5b89-fe57-4f36-a664-59d7b69aa04f',
-  governance: 'https://srt-1.lemonsqueezy.com/checkout/buy/2c0e9081-c536-41c5-8a25-80b4e5e9f210',
+  pro: '',
+  managed: '',
 };
 function handleCheckout(plan) {
   const url = CHECKOUT_URLS[plan];
-  if (!url) return;
-  // Try overlay first, fall back to redirect
-  if (window.LemonSqueezy) {
-    window.LemonSqueezy.Url.Open(url);
-  } else {
+  if (url) {
     window.open(url, '_blank');
+    return;
   }
+  window.location.href = `contact.html?plan=${encodeURIComponent(plan)}&payment=paypal`;
 }
 </script>
 
