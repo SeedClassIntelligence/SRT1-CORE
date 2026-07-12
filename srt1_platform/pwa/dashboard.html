@@ -579,10 +579,10 @@ body.theme-light .file-intel-popover{box-shadow:0 18px 40px rgba(15,23,42,0.18);
 <!-- INSTRUCTIONAL POPUP -->
 <div class="modal-overlay" id="introModal">
   <div class="modal-content">
-    <div class="modal-header">Welcome to SRT-1 Dashboard</div>
+    <div class="modal-header">Welcome to SRT-1 Active Work</div>
     <div class="modal-body">
-      <p><strong>SRT-1 Core</strong> is a local repo-continuity and alignment cockpit for AI coding assistants.</p>
-      <p style="margin-top: 12px;">It helps you understand the repository, preserve seed continuity, review recall and reinjection context, monitor workcell boundaries, and verify changes without shipping private signing, private execution runtimes, or proprietary backend services in Core.</p>
+      <p><strong>SRT-1 Core</strong> turns an idea into a living work environment that can be understood, guided, verified, and completed.</p>
+      <p style="margin-top: 12px;">Start with a seed. SRT-1 understands the project, creates the right WorkCell, keeps the conversation attached, lets an assistant work inside the boundary, and gives you a review path before completion.</p>
       <p style="margin-top: 12px; padding: 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px;">
         Run <code>pip install srt1-core</code> to install the public local Core toolset.
       </p>
@@ -656,8 +656,8 @@ body.theme-light .file-intel-popover{box-shadow:0 18px 40px rgba(15,23,42,0.18);
 
   <div class="page-header" style="display:flex; justify-content:space-between; align-items:flex-start;">
     <div>
-      <h1 id="mainDashboardTitle">Dashboard</h1>
-      <p id="mainDashboardSubtitle">Repo continuity, alignment, recall, reinjection, verification, and human review cockpit</p>
+      <h1 id="mainDashboardTitle">Active Work</h1>
+      <p id="mainDashboardSubtitle">Plant ideas, guide WorkCells, verify progress, and approve completion</p>
     </div>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end;">
       <button type="button" id="themeToggle" onclick="toggleDashboardTheme()" class="theme-toggle">Light Mode</button>
@@ -673,7 +673,7 @@ body.theme-light .file-intel-popover{box-shadow:0 18px 40px rgba(15,23,42,0.18);
     <div class="repo-manager-head">
       <div>
         <div class="repo-manager-title">Repository Manager</div>
-        <div class="repo-manager-sub" id="repositoryManagerSubtitle">Choose the repository SRT-1 should manage before selecting WorkCells or planting Seeds.</div>
+        <div class="repo-manager-sub" id="repositoryManagerSubtitle">Choose the project SRT-1 should understand before planting a seed or opening active work.</div>
       </div>
       <div class="repo-manager-status" id="repositoryManagerStatus">checking</div>
     </div>
@@ -964,7 +964,7 @@ body.theme-light .file-intel-popover{box-shadow:0 18px 40px rgba(15,23,42,0.18);
         <div class="panel-badge info">v2.3.0</div>
       </div>
       <div style="font-size:13px;color:var(--text2);margin-bottom:16px;">
-        SRT-1 Core is a local repo-continuity and alignment cockpit. Core understands trust states such as signed/unsigned, verified/unverified, and lineage present/missing. Seed Signature can sign artifacts when the external signing authority is configured; private keys and signing services do not ship in public Core.
+        SRT-1 Core is a local Active Work environment for turning seeds into guided, verified completion. Core understands trust states such as signed/unsigned, verified/unverified, and lineage present/missing. Seed Signature can sign artifacts when the external signing authority is configured; private keys and signing services do not ship in public Core.
       </div>
       <div class="download-list">
         <div class="download-item">
@@ -2070,8 +2070,8 @@ async function loadManifest(options = {}) {
     
     // Dynamically update the main dashboard title to show the current project
     if (repoName !== 'Unknown') {
-      document.getElementById('mainDashboardTitle').textContent = repoName + " Dashboard";
-      document.getElementById('mainDashboardSubtitle').textContent = "Repo continuity, code intelligence, assistant alignment, and human review";
+      document.getElementById('mainDashboardTitle').textContent = repoName + " Active Work";
+      document.getElementById('mainDashboardSubtitle').textContent = "Plant ideas, guide WorkCells, verify progress, and approve completion";
     }
 
     // Fetch the holistic project synopsis directly from the local engine
@@ -2197,8 +2197,8 @@ async function loadDashboardSummary() {
 
     document.getElementById('repoName').textContent = repoName;
     if (repoName !== 'Unknown') {
-      document.getElementById('mainDashboardTitle').textContent = repoName + " Dashboard";
-      document.getElementById('mainDashboardSubtitle').textContent = "Repo continuity, code intelligence, assistant alignment, and human review";
+      document.getElementById('mainDashboardTitle').textContent = repoName + " Active Work";
+      document.getElementById('mainDashboardSubtitle').textContent = "Plant ideas, guide WorkCells, verify progress, and approve completion";
     }
 
     document.getElementById('statFiles').textContent = files.toLocaleString();
