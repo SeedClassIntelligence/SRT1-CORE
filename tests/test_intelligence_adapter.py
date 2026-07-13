@@ -13,6 +13,9 @@ class IntelligenceAdapterTests(unittest.TestCase):
             if key not in {
                 "GROQ_API_KEY",
                 "TOGETHER_API_KEY",
+                "ANOTHER_API_KEY",
+                "ANOTHER_BASE_URL",
+                "ANOTHER_MODEL",
                 "GOOGLE_API_KEY",
                 "OPENAI_API_KEY",
                 "ANTHROPIC_API_KEY",
@@ -57,6 +60,22 @@ class IntelligenceAdapterTests(unittest.TestCase):
 
         for method_name in ("generate_code", "plan_steps", "execute", "transform"):
             self.assertFalse(hasattr(adapter, method_name), method_name)
+
+    def test_another_provider_uses_env_configuration(self):
+        env = {
+            "ANOTHER_API_KEY": "test-another-key",
+            "ANOTHER_BASE_URL": "https://api.example-another.test",
+            "ANOTHER_MODEL": "another-test-model",
+            "DISABLE_OLLAMA": "1",
+        }
+
+        with patch.dict(os.environ, env, clear=True):
+            adapter = IntelligenceAdapter()
+
+        self.assertEqual(adapter.get_available_providers(), ["another"])
+        provider = adapter._router._providers["another"]
+        self.assertEqual(provider.base_url, "https://api.example-another.test")
+        self.assertEqual(provider.model, "another-test-model")
 
 
 if __name__ == "__main__":

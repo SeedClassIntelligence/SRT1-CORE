@@ -317,7 +317,20 @@ class LLMProviderRouter:
             src = "BYOK" if ck.get("together") else "server"
             logger.info(f"LLM Provider: Together.ai initialized ({src})")
 
-        # 3. Gemini (BYOK)
+        # 3. Another.ai (OpenAI-compatible, endpoint configurable)
+        another_key = ck.get("another", "") or os.getenv("ANOTHER_API_KEY", "")
+        if another_key:
+            another_base_url = os.getenv("ANOTHER_BASE_URL", "https://api.another.ai")
+            another_model = os.getenv("ANOTHER_MODEL", "another-default")
+            self._providers["another"] = OpenAICompatibleProvider(
+                name="another", base_url=another_base_url,
+                api_key=another_key, model=another_model,
+            )
+            self._provider_order.append("another")
+            src = "BYOK" if ck.get("another") else "server"
+            logger.info(f"LLM Provider: Another.ai initialized ({src})")
+
+        # 4. Gemini (BYOK)
         gemini_key = ck.get("google", "") or os.getenv("GOOGLE_API_KEY", "")
         if gemini_key:
             self._providers["gemini"] = GeminiProvider(api_key=gemini_key)
@@ -325,7 +338,7 @@ class LLMProviderRouter:
             src = "BYOK" if ck.get("google") else "server"
             logger.info(f"LLM Provider: Gemini initialized ({src})")
 
-        # 4. OpenAI (BYOK)
+        # 5. OpenAI (BYOK)
         openai_key = ck.get("openai", "") or os.getenv("OPENAI_API_KEY", "")
         if openai_key:
             self._providers["openai"] = OpenAICompatibleProvider(
@@ -336,7 +349,7 @@ class LLMProviderRouter:
             src = "BYOK" if ck.get("openai") else "server"
             logger.info(f"LLM Provider: OpenAI initialized ({src})")
 
-        # 5. Anthropic (BYOK)
+        # 6. Anthropic (BYOK)
         anthropic_key = ck.get("anthropic", "") or os.getenv("ANTHROPIC_API_KEY", "")
         if anthropic_key:
             self._providers["anthropic"] = OpenAICompatibleProvider(

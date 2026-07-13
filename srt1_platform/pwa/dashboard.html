@@ -1154,6 +1154,26 @@ body.theme-light .file-intel-popover{box-shadow:0 18px 40px rgba(15,23,42,0.18);
         </div>
       </div>
 
+      <!-- Another.ai -->
+      <div class="api-key-row" id="keyRow-another">
+        <div class="api-key-provider">
+          <div class="provider-logo" style="background:rgba(78,225,160,0.12);border:1px solid rgba(78,225,160,0.25);">A</div>
+          <div>
+            <div class="provider-name">Another.ai</div>
+            <div class="provider-models">OpenAI-compatible runtime configured by environment</div>
+          </div>
+        </div>
+        <div class="api-key-input-wrap">
+          <input type="password" class="api-key-input" id="key-another" placeholder="another provider key" oninput="markDirty('another')" autocomplete="off" spellcheck="false">
+          <button class="key-toggle-btn" id="toggle-another" onclick="toggleKeyVisibility('another')" title="Show/hide">o</button>
+        </div>
+        <div class="api-key-actions">
+          <span class="key-status-badge" id="status-another">not set</span>
+          <button class="key-save-btn" id="save-another" onclick="saveKey('another')" disabled>Use this session</button>
+          <button class="key-clear-btn" id="clear-another" onclick="clearKey('another')">x</button>
+        </div>
+      </div>
+
       <!-- Custom OpenAI-compatible -->
       <div class="api-key-row" id="keyRow-custom">
         <div class="api-key-provider">
@@ -1294,6 +1314,7 @@ body.theme-light .file-intel-popover{box-shadow:0 18px 40px rgba(15,23,42,0.18);
           <option value="grok">grok</option>
           <option value="groq">groq</option>
           <option value="together">together</option>
+          <option value="another">another</option>
           <option value="custom">custom</option>
         </select>
         <input type="text" id="adapterProviderEndpoint" placeholder="https://api.openai.com/v1/chat/completions" style="width:100%;margin-top:8px;padding:8px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:11px;">
@@ -3967,7 +3988,7 @@ async function loadWorkCells() {
   }
 }
 
-const AI_KEY_PROVIDERS = ['openai','anthropic','gemini','grok','groq','together','custom'];
+const AI_KEY_PROVIDERS = ['openai','anthropic','gemini','grok','groq','together','another','custom'];
 const sessionProviderKeys = {};
 let credentialMode = 'session';
 
