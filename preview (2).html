@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SRT-1 Intelligent Workspace — Refined</title>
+<style>
+:root{
+  --bg:#090b10;--panel:#11151d;--panel2:#161b24;--panel3:#1b2230;
+  --text:#f4f7fb;--muted:#9aa4b2;--line:#27303d;
+  --brand:#4ee1a0;--brand2:#36b6ff;--warn:#ffb454;--success:#57d48b;
+  --shadow:0 28px 70px rgba(0,0,0,.35)
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;
+  color:var(--text);
+  background:
+    radial-gradient(circle at 10% 0%,rgba(78,225,160,.07),transparent 26%),
+    radial-gradient(circle at 90% 0%,rgba(54,182,255,.06),transparent 24%),
+    var(--bg);
+  overflow:hidden
+}
+button,input,textarea{font:inherit}
+button{cursor:pointer}
+.shell{height:100%;display:grid;grid-template-rows:64px 1fr}
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 22px;border-bottom:1px solid var(--line);
+  background:rgba(9,11,16,.9);backdrop-filter:blur(16px);z-index:10
+}
+.brand{display:flex;align-items:center;gap:11px}
+.brand-mark{
+  width:36px;height:36px;border-radius:12px;display:grid;place-items:center;
+  color:#07110c;font-weight:900;background:linear-gradient(135deg,var(--brand),#8cf2c6)
+}
+.brand-copy strong{display:block;font-size:15px}
+.brand-copy span{display:block;color:var(--muted);font-size:11px;margin-top:2px}
+.project-trigger{
+  display:flex;align-items:center;gap:8px;padding:8px 11px;border-radius:12px;
+  border:1px solid var(--line);background:var(--panel);color:var(--text);margin-left:10px
+}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--brand)}
+.top-actions{display:flex;align-items:center;gap:8px}
+.ghost{
+  border:1px solid var(--line);background:transparent;color:var(--muted);
+  padding:8px 11px;border-radius:11px
+}
+.ghost:hover{color:var(--text)}
+.avatar{
+  width:34px;height:34px;border-radius:50%;display:grid;place-items:center;
+  background:var(--panel3);border:1px solid var(--line);font-weight:700;font-size:12px
+}
+.workspace{display:grid;place-items:center;overflow:hidden}
+.conversation{
+  width:min(920px,calc(100vw - 28px));
+  height:calc(100vh - 86px);
+  display:grid;grid-template-rows:auto 1fr auto;gap:12px
+}
+
+/* Minimal mission strip */
+.mission-strip{
+  display:flex;align-items:center;gap:14px;
+  padding:10px 13px;
+  border:1px solid var(--line);
+  border-radius:14px;
+  background:rgba(17,21,29,.94)
+}
+.mission-copy{min-width:0;flex:1}
+.mission-copy .label{
+  font-size:10px;letter-spacing:.11em;text-transform:uppercase;
+  font-weight:800;color:var(--brand);margin-bottom:3px
+}
+.mission-copy .title{
+  font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis
+}
+.path{
+  display:flex;align-items:center;gap:6px;min-width:215px;justify-content:flex-end
+}
+.node{
+  width:8px;height:8px;border-radius:50%;background:#495362;position:relative
+}
+.node.done{background:var(--brand)}
+.node.active{
+  width:10px;height:10px;background:var(--warn);
+  box-shadow:0 0 0 4px rgba(255,180,84,.10)
+}
+.line{width:26px;height:1px;background:#3a4452}
+.path-label{font-size:11px;color:var(--muted);margin-left:4px}
+
+/* First-screen thread */
+.thread{
+  overflow:auto;padding:4px 3px 10px;
+  scrollbar-width:thin;scrollbar-color:#303949 transparent
+}
+.message{display:flex;margin:0 0 12px;gap:10px;align-items:flex-start}
+.message.user{justify-content:flex-end}
+.message.user .speaker{display:none}
+.speaker{
+  width:30px;height:30px;border-radius:10px;display:grid;place-items:center;
+  background:var(--panel3);border:1px solid var(--line);
+  color:var(--brand);font-weight:900;font-size:11px;flex:0 0 auto
+}
+.bubble{
+  max-width:76%;padding:11px 14px;border-radius:15px;line-height:1.52;font-size:13px;
+  background:var(--panel);border:1px solid var(--line)
+}
+.message.user .bubble{
+  background:linear-gradient(135deg,#17342b,#153547);
+  border-color:#2d5d4b;border-bottom-right-radius:5px
+}
+.message.ai .bubble{border-bottom-left-radius:5px}
+
+/* Attention brief */
+.attention{
+  margin:0 0 12px 40px;
+  background:linear-gradient(145deg,#141a23,#10141b);
+  border:1px solid #344054;border-radius:17px;padding:14px
+}
+.attention-head{
+  display:flex;align-items:center;gap:9px;margin-bottom:8px
+}
+.attention-icon{
+  width:30px;height:30px;border-radius:10px;display:grid;place-items:center;
+  background:rgba(255,180,84,.10);color:var(--warn)
+}
+.attention h3{margin:0;font-size:14px}
+.attention .meta{margin-left:auto;color:var(--muted);font-size:10px}
+.attention p{margin:0 0 11px;color:#d8e0eb;font-size:12px;line-height:1.5}
+.attention-actions{display:flex;gap:7px;flex-wrap:wrap}
+.card-btn{
+  padding:8px 11px;border-radius:10px;border:1px solid var(--line);
+  background:var(--panel2);color:var(--text);font-weight:650;font-size:11px
+}
+.card-btn.primary{background:var(--brand);color:#07110c;border-color:transparent}
+
+/* Compact status row */
+.status-row{
+  margin:0 0 12px 40px;
+  display:grid;grid-template-columns:repeat(3,1fr);gap:8px
+}
+.status-item{
+  background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px 11px
+}
+.status-item strong{display:block;font-size:12px}
+.status-item span{display:block;color:var(--muted);font-size:10px;margin-top:3px}
+.status-item.review strong{color:var(--warn)}
+.status-item.done strong{color:var(--success)}
+
+.insight{
+  margin:0 0 12px 40px;background:#101821;border:1px solid #26384d;
+  border-radius:14px;padding:11px 13px;font-size:12px;line-height:1.5;color:#d8e1ec
+}
+.insight b{color:var(--brand2)}
+
+.composer{
+  background:rgba(17,21,29,.98);border:1px solid var(--line);
+  border-radius:17px;padding:8px;box-shadow:var(--shadow)
+}
+.composer textarea{
+  width:100%;min-height:58px;max-height:140px;resize:vertical;
+  background:transparent;border:0;outline:0;color:var(--text);
+  padding:8px 10px;line-height:1.45;font-size:13px
+}
+.composer textarea::placeholder{color:#687487}
+.composer-footer{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;padding:3px 3px 0
+}
+.composer-tools{display:flex;gap:6px}
+.tool{
+  width:31px;height:31px;border-radius:10px;border:1px solid var(--line);
+  background:var(--panel2);color:var(--muted)
+}
+.send{
+  border:0;border-radius:11px;padding:9px 14px;font-weight:800;
+  color:#07110c;background:linear-gradient(135deg,var(--brand),#7af0bd)
+}
+
+.project-menu{
+  position:fixed;top:56px;left:84px;width:276px;background:#11161f;
+  border:1px solid var(--line);border-radius:15px;padding:9px;box-shadow:var(--shadow);
+  display:none;z-index:30
+}
+.project-menu.open{display:block}
+.project-option{
+  padding:10px 11px;border-radius:10px;display:flex;align-items:center;gap:9px;
+  color:#dce3ed;font-size:12px
+}
+.project-option:hover{background:var(--panel2)}
+.project-option small{margin-left:auto;color:var(--muted)}
+.menu-label{
+  color:#6f7b8d;font-size:9px;font-weight:800;letter-spacing:.12em;
+  text-transform:uppercase;padding:5px 9px 6px
+}
+.overlay{
+  position:fixed;inset:0;background:rgba(4,6,9,.72);display:none;
+  align-items:center;justify-content:center;z-index:40;padding:24px
+}
+.overlay.open{display:flex}
+.control-card{
+  width:min(760px,100%);background:#11161f;border:1px solid var(--line);
+  border-radius:20px;padding:22px;box-shadow:var(--shadow)
+}
+.control-card h2{margin:0 0 8px}
+.control-card p{color:var(--muted);margin:0 0 16px}
+.control-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:11px}
+.control-tile{padding:14px;border-radius:14px;background:var(--panel2);border:1px solid var(--line)}
+.control-tile strong{display:block;font-size:12px}
+.control-tile span{display:block;color:var(--muted);font-size:10px;margin-top:4px}
+.close{
+  float:right;border:1px solid var(--line);background:var(--panel2);
+  color:var(--text);width:32px;height:32px;border-radius:10px
+}
+@media(max-width:700px){
+  .brand-copy span{display:none}
+  .mission-strip{align-items:flex-start;flex-direction:column;gap:8px}
+  .path{justify-content:flex-start;min-width:0}
+  .bubble{max-width:88%}
+  .attention,.status-row,.insight{margin-left:0}
+  .status-row,.control-grid{grid-template-columns:1fr}
+  .conversation{height:calc(100vh - 78px)}
+  .topbar{padding:0 13px}
+  .top-actions .ghost:first-child{display:none}
+}
+</style>
+</head>
+<body>
+<div class="shell">
+<header class="topbar">
+  <div class="brand">
+    <div class="brand-mark">S1</div>
+    <div class="brand-copy"><strong>SRT-1</strong><span>Intelligent Workspace</span></div>
+    <button class="project-trigger" id="projectTrigger">
+      <span class="dot"></span><span id="projectName">SRT-1 Core</span><span>▼</span>
+    </button>
+  </div>
+  <div class="top-actions">
+    <button class="ghost" id="briefBtn">Brief me</button>
+    <button class="ghost" id="controlBtn">Control Room</button>
+    <div class="avatar">DJ</div>
+  </div>
+</header>
+
+<main class="workspace">
+<section class="conversation">
+
+  <div class="mission-strip">
+    <div class="mission-copy">
+      <div class="label">Active mission</div>
+      <div class="title">Refine SRT-1 into a conversation-first project completion platform</div>
+    </div>
+    <div class="path" title="Idea → Planning → Execution → Review → Complete">
+      <span class="node done"></span><span class="line"></span>
+      <span class="node done"></span><span class="line"></span>
+      <span class="node active"></span><span class="line"></span>
+      <span class="node"></span><span class="line"></span>
+      <span class="node"></span>
+      <span class="path-label">Execution</span>
+    </div>
+  </div>
+
+  <div class="thread" id="thread">
+    <div class="message ai">
+      <div class="speaker">S1</div>
+      <div class="bubble">Welcome back, Darnell. I restored where we left off and checked the project before opening this workspace.</div>
+    </div>
+
+    <div class="attention" id="attentionCard">
+      <div class="attention-head">
+        <div class="attention-icon">!</div>
+        <h3>One thing needs your attention</h3>
+        <span class="meta">Front Experience</span>
+      </div>
+      <p>The new conversational workspace is ready for review. The Control Room remains intact and no technical capability was removed.</p>
+      <div class="attention-actions">
+        <button class="card-btn primary" onclick="approveReview()">Approve</button>
+        <button class="card-btn" onclick="sendBack()">Send back</button>
+        <button class="card-btn" onclick="addSystemMessage('I opened the exact implementation details for this review.')">Inspect</button>
+        <button class="card-btn" onclick="addSystemMessage('Here is the plain-language explanation of what changed.')">Explain</button>
+      </div>
+    </div>
+
+    <div class="status-row">
+      <div class="status-item done"><strong>Authentication</strong><span>Completed and verified</span></div>
+      <div class="status-item review"><strong>Front Experience</strong><span>Waiting for your decision</span></div>
+      <div class="status-item"><strong>Documentation</strong><span>Paused safely</span></div>
+    </div>
+
+    <div class="message user"><div class="bubble">What changed in the front experience?</div></div>
+
+    <div class="message ai">
+      <div class="speaker">S1</div>
+      <div class="bubble">The permanent technical panels were removed from the default workspace. Reviews, project intelligence, progress, and decisions now appear only when relevant inside this conversation.</div>
+    </div>
+
+    <div class="insight">
+      <b>SRT-1 noticed:</b> the onboarding flow still uses a more technical layout. I can align it with this same conversational experience.
+    </div>
+
+    <div class="message ai">
+      <div class="speaker">S1</div>
+      <div class="bubble">What would you like me to do next?</div>
+    </div>
+  </div>
+
+  <div class="composer">
+    <textarea id="composer" placeholder="Tell SRT-1 what you want to plan, build, inspect, continue, pause, or review..."></textarea>
+    <div class="composer-footer">
+      <div class="composer-tools">
+        <button class="tool" title="Attach">＋</button>
+        <button class="tool" title="Voice">◉</button>
+        <button class="tool" title="Actions">⋯</button>
+      </div>
+      <button class="send" id="sendBtn">Send ↑</button>
+    </div>
+  </div>
+
+</section>
+</main>
+</div>
+
+<div class="project-menu" id="projectMenu">
+  <div class="menu-label">Projects</div>
+  <div class="project-option" data-project="SRT-1 Core"><span class="dot"></span>SRT-1 Core<small>Active</small></div>
+  <div class="project-option" data-project="SCI Runtime"><span class="dot" style="background:#36b6ff"></span>SCI Runtime<small>2 reviews</small></div>
+  <div class="project-option" data-project="SoulSonus"><span class="dot" style="background:#ffb454"></span>SoulSonus<small>Paused</small></div>
+  <div class="project-option" data-project="Housing"><span class="dot" style="background:#9b8cff"></span>Housing<small>Ready</small></div>
+  <div class="menu-label" style="margin-top:6px">Actions</div>
+  <div class="project-option"><span>＋</span>Add project</div>
+</div>
+
+<div class="overlay" id="controlOverlay">
+  <div class="control-card">
+    <button class="close" id="closeControl">×</button>
+    <h2>Control Room</h2>
+    <p>This technical surface remains available without becoming the default experience.</p>
+    <div class="control-grid">
+      <div class="control-tile"><strong>Repository Intelligence</strong><span>Files, symbols, dependencies, health</span></div>
+      <div class="control-tile"><strong>WorkCells</strong><span>Boundaries, active runtimes, ports</span></div>
+      <div class="control-tile"><strong>Verification</strong><span>Checks, test evidence, scope validation</span></div>
+      <div class="control-tile"><strong>Continuity</strong><span>Seeds, state, previous work</span></div>
+      <div class="control-tile"><strong>Constellation</strong><span>All active work across projects</span></div>
+      <div class="control-tile"><strong>Trust & Lineage</strong><span>Verification and provenance status</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const thread=document.getElementById('thread');
+const composer=document.getElementById('composer');
+const sendBtn=document.getElementById('sendBtn');
+const projectTrigger=document.getElementById('projectTrigger');
+const projectMenu=document.getElementById('projectMenu');
+const projectName=document.getElementById('projectName');
+const controlOverlay=document.getElementById('controlOverlay');
+
+function esc(s){return s.replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
+function addUserMessage(text){
+  thread.insertAdjacentHTML('beforeend',`<div class="message user"><div class="bubble">${esc(text)}</div></div>`);
+  thread.scrollTop=thread.scrollHeight;
+}
+function addSystemMessage(text){
+  thread.insertAdjacentHTML('beforeend',`<div class="message ai"><div class="speaker">S1</div><div class="bubble">${esc(text)}</div></div>`);
+  thread.scrollTop=thread.scrollHeight;
+}
+function routeIntent(text){
+  const l=text.toLowerCase();
+  if(l.includes('pause'))return'I paused the active work safely. Its current state, conversation, files, and checks are preserved.';
+  if(l.includes('resume')||l.includes('continue'))return'I restored the active work, checked the project state, and resumed from the last verified point.';
+  if(l.includes('review'))return'I found one item waiting for your decision and brought it into this workspace.';
+  if(l.includes('file')||l.includes('code'))return'I located the relevant files and kept the inspection inside the active workspace.';
+  if(l.includes('build')||l.includes('start'))return'I’m treating that as new work and preparing the right project context before execution begins.';
+  return'I understand. I’ll coordinate the correct platform actions behind the scenes and report back here with only what you need.';
+}
+function sendMessage(){
+  const v=composer.value.trim();
+  if(!v)return;
+  addUserMessage(v);
+  composer.value='';
+  setTimeout(()=>addSystemMessage(routeIntent(v)),420);
+}
+sendBtn.addEventListener('click',sendMessage);
+composer.addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage()}
+});
+
+projectTrigger.addEventListener('click',e=>{
+  e.stopPropagation();
+  projectMenu.classList.toggle('open');
+});
+document.querySelectorAll('.project-option[data-project]').forEach(el=>{
+  el.addEventListener('click',()=>{
+    projectName.textContent=el.dataset.project;
+    projectMenu.classList.remove('open');
+    addSystemMessage(`I switched the workspace to ${el.dataset.project} and restored its current context.`);
+  });
+});
+document.addEventListener('click',()=>projectMenu.classList.remove('open'));
+
+document.getElementById('controlBtn').addEventListener('click',()=>controlOverlay.classList.add('open'));
+document.getElementById('closeControl').addEventListener('click',()=>controlOverlay.classList.remove('open'));
+controlOverlay.addEventListener('click',e=>{if(e.target===controlOverlay)controlOverlay.classList.remove('open')});
+
+document.getElementById('briefBtn').addEventListener('click',()=>{
+  document.getElementById('attentionCard').scrollIntoView({behavior:'smooth',block:'center'})
+});
+function approveReview(){addSystemMessage('Approved. I marked the work complete and preserved the verified state.')}
+function sendBack(){addSystemMessage('I returned the work for revision and preserved your decision with the active project history.')}
+</script>
+</body>
+</html>

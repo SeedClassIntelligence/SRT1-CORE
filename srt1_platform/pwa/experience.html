@@ -1,1010 +1,1593 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SRT-1 Experience</title>
-  <style>
-    :root {
-      --bg: #0b0d10;
-      --surface: #141820;
-      --surface-2: #1b202a;
-      --line: #2b3442;
-      --text: #f5f7fa;
-      --muted: #9da8b5;
-      --soft: #cbd3dd;
-      --blue: #68a7ff;
-      --teal: #4fd4c8;
-      --green: #57c878;
-      --amber: #e0ad45;
-      --red: #ff6b64;
-    }
-
-    * { box-sizing: border-box; }
-
-    body {
-      margin: 0;
-      min-height: 100vh;
-      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      color: var(--text);
-      background: var(--bg);
-    }
-
-    button, input, textarea { font: inherit; }
-    a { color: inherit; }
-
-    .shell {
-      width: min(1520px, calc(100% - 32px));
-      min-height: 100vh;
-      margin: 0 auto;
-      padding: 28px 0 48px;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .topbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-    }
-
-    .brand {
-      display: inline-flex;
-      align-items: center;
-      gap: 12px;
-      text-decoration: none;
-    }
-
-    .mark {
-      width: 38px;
-      height: 38px;
-      display: grid;
-      place-items: center;
-      border-radius: 8px;
-      border: 1px solid rgba(79, 212, 200, .48);
-      color: var(--teal);
-      background: rgba(79, 212, 200, .08);
-      font-weight: 900;
-    }
-
-    .brand-title { font-size: 15px; font-weight: 850; }
-    .brand-sub { margin-top: 2px; font-size: 12px; color: var(--muted); }
-
-    .nav {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-
-    .nav a, .quiet-button {
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      padding: 9px 12px;
-      background: rgba(255, 255, 255, .02);
-      color: var(--soft);
-      text-decoration: none;
-      font-size: 13px;
-      font-weight: 750;
-      cursor: pointer;
-    }
-
-    .nav a:hover, .quiet-button:hover {
-      border-color: rgba(104, 167, 255, .56);
-      color: var(--text);
-    }
-
-    .view {
-      display: none;
-      flex: 1;
-      padding: 52px 0 0;
-    }
-
-    .view.active {
-      display: block;
-    }
-
-    .front-door {
-      min-height: calc(100vh - 150px);
-      display: grid;
-      place-items: center;
-    }
-
-    .front-inner {
-      width: min(1420px, 100%);
-      text-align: center;
-    }
-
-    .kicker {
-      margin: 0 0 14px;
-      color: var(--teal);
-      font-size: 12px;
-      font-weight: 900;
-      letter-spacing: .12em;
-      text-transform: uppercase;
-    }
-
-    h1 {
-      margin: 0;
-      font-size: clamp(36px, 6vw, 68px);
-      line-height: 1.05;
-      font-weight: 900;
-    }
-
-    .prompt {
-      margin: 18px 0 0;
-      color: var(--soft);
-      font-size: clamp(20px, 3vw, 30px);
-      font-weight: 650;
-    }
-
-    .choice-grid {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 14px;
-      margin-top: 44px;
-    }
-
-    .choice {
-      min-height: 168px;
-      padding: 22px;
-      text-align: left;
-      color: var(--text);
-      background: var(--surface);
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      cursor: pointer;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-    }
-
-    .choice:hover {
-      border-color: rgba(79, 212, 200, .6);
-      background: var(--surface-2);
-    }
-
-    .choice-code {
-      width: 36px;
-      height: 36px;
-      display: grid;
-      place-items: center;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      color: var(--teal);
-      font-weight: 900;
-      background: rgba(255, 255, 255, .03);
-    }
-
-    .choice-title {
-      display: block;
-      margin-top: 28px;
-      font-size: 20px;
-      font-weight: 850;
-    }
-
-    .home-console {
-      width: min(780px, 100%);
-      margin: 36px auto 0;
-      text-align: left;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: var(--surface);
-      padding: 18px;
-    }
-
-    .home-messages {
-      display: grid;
-      gap: 10px;
-      margin-bottom: 14px;
-    }
-
-    .command-box {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) auto;
-      gap: 10px;
-      align-items: stretch;
-    }
-
-    .command-box textarea {
-      min-height: 66px;
-      resize: vertical;
-    }
-
-    .shortcut-row {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      margin-top: 12px;
-    }
-
-    .shortcut {
-      border: 1px solid var(--line);
-      border-radius: 999px;
-      background: rgba(255, 255, 255, .025);
-      color: var(--soft);
-      padding: 8px 11px;
-      font-size: 12px;
-      font-weight: 800;
-      cursor: pointer;
-    }
-
-    .shortcut:hover {
-      border-color: rgba(79, 212, 200, .58);
-      color: var(--text);
-    }
-
-    .status-strip {
-      display: grid;
-      grid-template-columns: repeat(5, minmax(0, 1fr));
-      gap: 10px;
-      margin: 28px 0 18px;
-      text-align: left;
-    }
-
-    .stat {
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: rgba(255, 255, 255, .025);
-      padding: 12px;
-      min-height: 76px;
-    }
-
-    .stat-label {
-      color: var(--muted);
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: .09em;
-      font-weight: 900;
-      margin-bottom: 8px;
-    }
-
-    .stat-value {
-      color: var(--text);
-      font-size: 18px;
-      font-weight: 900;
-      line-height: 1.2;
-    }
-
-    .control-grid {
-      display: grid;
-      grid-template-columns: minmax(240px, .72fr) minmax(520px, 1.65fr) minmax(280px, .86fr);
-      gap: 18px;
-      align-items: start;
-      text-align: left;
-    }
-
-    .rail, .intelligence, .conversation-surface {
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: var(--surface);
-      padding: 18px;
-    }
-
-    .rail, .intelligence {
-      max-height: 72vh;
-      overflow: auto;
-    }
-
-    .conversation-surface {
-      min-height: 520px;
-      display: grid;
-      align-content: start;
-      gap: 14px;
-    }
-
-    .rail-title {
-      color: var(--muted);
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: .1em;
-      font-weight: 900;
-      margin-bottom: 12px;
-    }
-
-    .nav-list {
-      display: grid;
-      gap: 8px;
-      margin-bottom: 18px;
-    }
-
-    .nav-item {
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: rgba(255, 255, 255, .025);
-      color: var(--soft);
-      padding: 11px 12px;
-      text-align: left;
-      cursor: pointer;
-      font-weight: 800;
-    }
-
-    .nav-item.active {
-      border-color: rgba(79, 212, 200, .5);
-      background: rgba(79, 212, 200, .08);
-      color: var(--text);
-    }
-
-    .timeline {
-      display: grid;
-      gap: 10px;
-    }
-
-    .timeline-item {
-      border-left: 2px solid rgba(79, 212, 200, .45);
-      padding-left: 12px;
-      color: var(--soft);
-      font-size: 13px;
-      line-height: 1.45;
-    }
-
-    .insight-list {
-      display: grid;
-      gap: 10px;
-    }
-
-    .insight {
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: rgba(255, 255, 255, .025);
-      padding: 12px;
-    }
-
-    .insight strong {
-      display: block;
-      color: var(--text);
-      margin-bottom: 5px;
-    }
-
-    .screen {
-      width: min(940px, 100%);
-      margin: 0 auto;
-    }
-
-    .screen.wide {
-      width: min(1420px, 100%);
-    }
-
-    .screen-head {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 18px;
-      margin-bottom: 24px;
-    }
-
-    .screen-title {
-      margin: 0;
-      font-size: clamp(30px, 5vw, 52px);
-      line-height: 1.08;
-      font-weight: 900;
-    }
-
-    .screen-copy {
-      margin: 12px 0 0;
-      color: var(--soft);
-      font-size: 17px;
-      line-height: 1.6;
-      max-width: 700px;
-    }
-
-    .panel {
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: var(--surface);
-      padding: 20px;
-    }
-
-    .stack { display: grid; gap: 14px; }
-    .two-col { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
-    .three-col { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
-
-    .input, textarea {
-      width: 100%;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: rgba(0, 0, 0, .18);
-      color: var(--text);
-      padding: 12px 13px;
-      outline: none;
-    }
-
-    textarea {
-      min-height: 170px;
-      resize: vertical;
-      line-height: 1.55;
-    }
-
-    .button-row {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-
-    .button {
-      border: 0;
-      border-radius: 8px;
-      padding: 11px 14px;
-      color: #061014;
-      background: linear-gradient(135deg, var(--green), var(--teal));
-      font-weight: 850;
-      cursor: pointer;
-    }
-
-    .button.secondary {
-      color: var(--soft);
-      background: var(--surface-2);
-      border: 1px solid var(--line);
-    }
-
-    .button:disabled {
-      cursor: not-allowed;
-      opacity: .58;
-    }
-
-    .option {
-      min-height: 128px;
-      text-align: left;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: var(--surface);
-      color: var(--text);
-      padding: 18px;
-      cursor: pointer;
-    }
-
-    .option:hover {
-      border-color: rgba(104, 167, 255, .58);
-      background: var(--surface-2);
-    }
-
-    .option-title {
-      display: block;
-      font-size: 17px;
-      font-weight: 850;
-      margin-bottom: 9px;
-    }
-
-    .option-copy, .muted {
-      color: var(--muted);
-      font-size: 13px;
-      line-height: 1.55;
-    }
-
-    .status-pill {
-      display: inline-flex;
-      align-items: center;
-      min-height: 28px;
-      padding: 4px 9px;
-      border-radius: 999px;
-      border: 1px solid rgba(224, 173, 69, .38);
-      color: var(--amber);
-      background: rgba(224, 173, 69, .08);
-      font-size: 12px;
-      font-weight: 850;
-    }
-
-    .status-pill.ready {
-      border-color: rgba(87, 200, 120, .4);
-      color: var(--green);
-      background: rgba(87, 200, 120, .08);
-    }
-
-    .prep-list {
-      list-style: none;
-      margin: 0;
-      padding: 0;
-      display: grid;
-      gap: 10px;
-    }
-
-    .prep-list li {
-      color: var(--soft);
-      font-size: 15px;
-      line-height: 1.45;
-    }
-
-    .prep-list li::before {
-      content: "";
-      display: inline-block;
-      width: 8px;
-      height: 8px;
-      margin-right: 10px;
-      border-radius: 999px;
-      background: var(--green);
-    }
-
-    .list {
-      display: grid;
-      gap: 10px;
-    }
-
-    .compact-list {
-      max-height: 520px;
-      overflow: auto;
-      padding-right: 4px;
-    }
-
-    .work-item {
-      width: 100%;
-      display: grid;
-      grid-template-columns: minmax(0, 1fr);
-      gap: 8px;
-      align-items: start;
-      text-align: left;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: var(--surface);
-      color: var(--text);
-      padding: 12px;
-      cursor: pointer;
-    }
-
-    .work-item:hover {
-      border-color: rgba(79, 212, 200, .58);
-      background: var(--surface-2);
-    }
-
-    .work-name {
-      font-weight: 850;
-      margin-bottom: 5px;
-      display: -webkit-box;
-      -webkit-line-clamp: 3;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-      word-break: break-word;
-    }
-
-    .work-state {
-      justify-self: start;
-      color: var(--teal);
-      font-size: 12px;
-      font-weight: 850;
-      white-space: nowrap;
-    }
-
-    .message {
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: rgba(255, 255, 255, .03);
-      padding: 13px;
-      color: var(--soft);
-      font-size: 14px;
-      line-height: 1.55;
-    }
-
-    .message strong { color: var(--text); }
-
-    .hidden { display: none !important; }
-
-    @media (max-width: 840px) {
-      .choice-grid, .two-col, .three-col, .status-strip, .control-grid { grid-template-columns: 1fr; }
-      .command-box { grid-template-columns: 1fr; }
-      .topbar, .screen-head { flex-direction: column; }
-      .view { padding-top: 32px; }
-      .choice { min-height: 132px; }
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SRT-1 Standard Experience</title>
+<style>
+:root {
+  --bg: #090b10;
+  --surface: #11151d;
+  --surface-2: #161b24;
+  --surface-3: #1b2230;
+  --text: #f4f7fb;
+  --soft: #d8e0eb;
+  --muted: #9aa4b2;
+  --quiet: #687487;
+  --line: #27303d;
+  --brand: #4ee1a0;
+  --blue: #36b6ff;
+  --warn: #ffb454;
+  --success: #57d48b;
+  --danger: #ff7575;
+  --shadow: 0 28px 70px rgba(0, 0, 0, .35);
+  --lane: 920px;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: var(--text);
+  background:
+    radial-gradient(circle at 8% 0%, rgba(78, 225, 160, .07), transparent 25%),
+    radial-gradient(circle at 92% 0%, rgba(54, 182, 255, .06), transparent 24%),
+    var(--bg);
+  overflow: hidden;
+}
+
+button, textarea, input { font: inherit; }
+button { cursor: pointer; }
+a { color: inherit; }
+
+.shell {
+  height: 100%;
+  width: 100vw;
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: 64px 1fr;
+}
+
+.topbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 18px;
+  padding: 0 max(22px, calc((100vw - var(--lane)) / 2));
+  border-bottom: 1px solid var(--line);
+  background: rgba(9, 11, 16, .92);
+  backdrop-filter: blur(16px);
+  z-index: 10;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+}
+
+.brand-mark {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  color: #07110c;
+  font-weight: 900;
+  background: linear-gradient(135deg, var(--brand), #8cf2c6);
+  flex: 0 0 auto;
+}
+
+.brand-copy {
+  min-width: 0;
+}
+
+.brand-copy strong,
+.brand-copy span {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.brand-copy strong { font-size: 15px; }
+.brand-copy span { color: var(--muted); font-size: 11px; margin-top: 2px; }
+
+.project-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 11px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--text);
+  margin-left: 4px;
+  max-width: min(38vw, 320px);
+}
+
+.project-trigger span:nth-child(2) {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--brand);
+  flex: 0 0 auto;
+}
+
+.top-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ghost,
+.card-btn,
+.tool {
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  border-radius: 11px;
+}
+
+.ghost {
+  padding: 8px 11px;
+  text-decoration: none;
+  font-size: 13px;
+}
+
+.ghost:hover,
+.card-btn:hover,
+.tool:hover {
+  color: var(--text);
+  border-color: rgba(78, 225, 160, .45);
+}
+
+.avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--surface-3);
+  border: 1px solid var(--line);
+  font-weight: 800;
+  font-size: 12px;
+}
+
+.workspace {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  min-width: 0;
+  padding: 10px 14px 12px;
+}
+
+.conversation {
+  position: absolute;
+  left: 50%;
+  top: 10px;
+  bottom: 12px;
+  transform: translateX(-50%);
+  width: min(var(--lane), calc(100vw - 28px));
+  max-width: calc(100vw - 28px);
+  min-width: 0;
+  height: auto;
+  margin: 0;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 12px;
+}
+
+.thread {
+  min-width: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 4px 3px 10px;
+  scrollbar-width: thin;
+  scrollbar-color: #303949 transparent;
+}
+
+.message {
+  display: flex;
+  margin: 0 0 12px;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.message.user {
+  justify-content: flex-end;
+}
+
+.message.user .speaker {
+  display: none;
+}
+
+.speaker {
+  display: none;
+}
+
+.bubble {
+  max-width: 76%;
+  padding: 11px 14px;
+  border-radius: 15px;
+  line-height: 1.52;
+  font-size: 13px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  color: var(--soft);
+  white-space: pre-line;
+}
+
+.message.user .bubble {
+  background: linear-gradient(135deg, #17342b, #153547);
+  border-color: #2d5d4b;
+  border-bottom-right-radius: 5px;
+  color: var(--text);
+}
+
+.message.ai .bubble {
+  border-bottom-left-radius: 5px;
+}
+
+.context-card {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  margin: 0 0 12px;
+  background: linear-gradient(145deg, #141a23, #10141b);
+  border: 1px solid #344054;
+  border-radius: 17px;
+  padding: 14px;
+}
+
+.context-card.ready {
+  border-color: rgba(87, 212, 139, .48);
+}
+
+.context-card.warn {
+  border-color: rgba(255, 180, 84, .45);
+}
+
+.context-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 8px;
+}
+
+.context-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 180, 84, .10);
+  color: var(--warn);
+  font-weight: 900;
+}
+
+.context-card.ready .context-icon {
+  background: rgba(87, 212, 139, .10);
+  color: var(--success);
+}
+
+.context-head h3 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.context-head .meta {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 10px;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.context-card p {
+  overflow-wrap: anywhere;
+  margin: 0 0 11px;
+  color: #d8e0eb;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.context-facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 10px 0 12px;
+}
+
+.context-fact {
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px 11px;
+}
+
+.context-fact strong {
+  display: block;
+  font-size: 12px;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.context-fact span {
+  display: block;
+  color: var(--muted);
+  font-size: 10px;
+  margin-top: 3px;
+}
+
+.context-actions {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+.card-btn {
+  padding: 8px 11px;
+  background: var(--surface-2);
+  color: var(--text);
+  font-weight: 700;
+  font-size: 11px;
+}
+
+.card-btn.primary {
+  background: var(--brand);
+  color: #07110c;
+  border-color: transparent;
+}
+
+.card-btn.danger {
+  color: var(--danger);
+}
+
+.insight {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  margin: 0 0 12px;
+  background: #101821;
+  border: 1px solid #26384d;
+  border-radius: 14px;
+  padding: 11px 13px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #d8e1ec;
+}
+
+.insight b {
+  color: var(--blue);
+}
+
+.composer {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  background: rgba(17, 21, 29, .98);
+  border: 1px solid var(--line);
+  border-radius: 17px;
+  padding: 8px;
+  box-shadow: var(--shadow);
+}
+
+.composer textarea {
+  width: 100%;
+  min-height: 58px;
+  max-height: 140px;
+  resize: vertical;
+  background: transparent;
+  border: 0;
+  outline: 0;
+  color: var(--text);
+  padding: 8px 10px;
+  line-height: 1.45;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.composer textarea::placeholder {
+  color: var(--quiet);
+}
+
+.composer-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 3px 3px 0;
+}
+
+.composer-tools {
+  display: flex;
+  gap: 6px;
+}
+
+.tool {
+  width: 31px;
+  height: 31px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  font-weight: 850;
+}
+
+.send {
+  border: 0;
+  border-radius: 11px;
+  padding: 9px 14px;
+  font-weight: 850;
+  color: #07110c;
+  background: linear-gradient(135deg, var(--brand), #7af0bd);
+}
+
+.project-menu {
+  position: fixed;
+  top: 56px;
+  left: 84px;
+  width: min(336px, calc(100vw - 28px));
+  background: #11161f;
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  padding: 9px;
+  box-shadow: var(--shadow);
+  display: none;
+  z-index: 30;
+}
+
+.project-menu.open {
+  display: block;
+}
+
+.project-option {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  padding: 10px 11px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: #dce3ed;
+  font-size: 12px;
+  text-align: left;
+}
+
+.project-option:hover {
+  background: var(--surface-2);
+}
+
+.project-option small {
+  margin-left: auto;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.menu-label {
+  color: #6f7b8d;
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  padding: 5px 9px 6px;
+}
+
+.path-entry {
+  display: none;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 7px;
+  padding: 8px;
+}
+
+.path-entry.open {
+  display: grid;
+}
+
+.path-entry input {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text);
+  padding: 8px 10px;
+  outline: 0;
+}
+
+.hidden {
+  display: none !important;
+}
+
+@media (max-width: 700px) {
+  .brand-copy span,
+  .top-actions .ghost:first-child {
+    display: none;
+  }
+  .topbar {
+    padding: 0 13px;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .project-trigger {
+    max-width: 40vw;
+    margin-left: 0;
+  }
+  .bubble {
+    max-width: 88%;
+  }
+  .context-facts {
+    grid-template-columns: 1fr;
+  }
+  .conversation {
+    width: calc(100vw - 26px);
+    max-width: calc(100vw - 26px);
+  }
+}
+</style>
 </head>
 <body>
-  <main class="shell">
-    <header class="topbar">
-      <a class="brand" href="experience.html" aria-label="SRT-1 home">
-        <div class="mark">S1</div>
-        <div>
-          <div class="brand-title">SRT-1</div>
-          <div class="brand-sub">Standard Experience</div>
-        </div>
-      </a>
-      <nav class="nav" aria-label="SRT-1 navigation">
-        <a href="dashboard.html">Advanced</a>
-        <a href="srt1-core.html">Public Site</a>
-      </nav>
-    </header>
+<div class="shell">
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark">S1</div>
+      <div class="brand-copy">
+        <strong>SRT-1</strong>
+        <span>Bring the idea once. SRT-1 keeps the assistant on task and carries the work to completion.</span>
+      </div>
+      <button class="project-trigger" id="projectTrigger" type="button" aria-label="Switch project">
+        <span class="dot"></span><span id="projectName">SRT-1 Core</span><span>v</span>
+      </button>
+    </div>
+    <div class="top-actions">
+      <button class="ghost" id="briefBtn" type="button">Brief me</button>
+      <a class="ghost" href="dashboard.html">Control Room</a>
+      <div class="avatar">DJ</div>
+    </div>
+  </header>
 
-    <section id="projectView" class="view" aria-labelledby="projectTitle">
-      <div class="screen">
-        <div class="screen-head">
-          <div>
-            <h2 id="projectTitle" class="screen-title">Open Existing Project</h2>
-            <p class="screen-copy">Give SRT-1 the project so the rest of the experience can talk to the actual work instead of asking you to manage the machinery.</p>
-          </div>
-          <button class="quiet-button" onclick="showView('workspace')">Back</button>
-        </div>
-
-        <div class="three-col">
-          <button class="option" onclick="browseFolder()">
-            <span class="option-title">Choose Folder</span>
-            <span class="option-copy">Open a local project from this computer.</span>
-          </button>
-          <button class="option" onclick="showPathEntry()">
-            <span class="option-title">Paste Local Path</span>
-            <span class="option-copy">Use a folder path you already know.</span>
-          </button>
-          <button class="option" onclick="showGitHubPending()">
-            <span class="option-title">Import GitHub</span>
-            <span class="option-copy">Bring in a repository when connected.</span>
-          </button>
-        </div>
-
-        <div id="pathEntry" class="panel stack hidden" style="margin-top:18px;">
-          <input id="projectPath" class="input" placeholder="C:\Users\SEEDN\Downloads\SRT1 CODING">
-          <div class="button-row">
-            <button class="button" onclick="registerPath()">Open This Folder</button>
-            <button class="button secondary" onclick="registerCurrent()">Use Current Folder</button>
-          </div>
-        </div>
-
-        <div class="panel stack" style="margin-top:18px;">
-          <div class="screen-head" style="margin-bottom:0;">
-            <div>
-              <strong>Recent Projects</strong>
-              <div class="muted">Projects will appear here after SRT-1 has opened them.</div>
-            </div>
-            <button class="quiet-button" onclick="openContinueView()">Refresh</button>
-          </div>
-          <div id="recentProjects" class="list">
-            <div class="message">No recent projects loaded yet.</div>
-          </div>
+  <main class="workspace">
+    <section class="conversation" aria-label="SRT-1 Standard Experience">
+      <div class="thread" id="thread">
+        <div class="message ai">
+          <div class="bubble">Welcome back. I am checking the active project before I brief you.</div>
         </div>
       </div>
-    </section>
 
-    <section id="preparingView" class="view" aria-labelledby="preparingTitle">
-      <div class="screen">
-        <div class="screen-head">
-          <div>
-            <h2 id="preparingTitle" class="screen-title">SRT-1 is preparing your project.</h2>
-            <p class="screen-copy">SRT-1 is getting the project ready so you can guide the work from one simple conversation.</p>
+      <div class="composer">
+        <textarea id="composer" placeholder="Tell SRT-1 what you want to create, connect, understand, plan, execute, observe, review, inspect, collaborate, learn, manage, or search..."></textarea>
+        <div class="composer-footer">
+          <div class="composer-tools">
+            <button class="tool" type="button" title="Add project or file" id="attachBtn">+</button>
+            <button class="tool" type="button" title="Use current workspace" id="currentBtn">↻</button>
+            <button class="tool" type="button" title="More actions" id="actionsBtn">...</button>
           </div>
-          <span id="prepareStatus" class="status-pill">preparing</span>
-        </div>
-
-        <div class="panel">
-          <ul class="prep-list">
-            <li>Connecting to your project</li>
-            <li>Getting the conversation ready</li>
-            <li>Setting up project controls</li>
-            <li>Preparing a place to review progress</li>
-          </ul>
-        </div>
-      </div>
-    </section>
-
-    <section id="continueView" class="view" aria-labelledby="continueTitle">
-      <div class="screen">
-        <div class="screen-head">
-          <div>
-            <h2 id="continueTitle" class="screen-title">Continue Previous Work</h2>
-            <p class="screen-copy">Choose a project or active piece of work to reopen.</p>
-          </div>
-          <button class="quiet-button" onclick="showView('workspace')">Back</button>
-        </div>
-
-        <div id="previousWorkList" class="list">
-          <div class="message">Loading previous work...</div>
-        </div>
-      </div>
-    </section>
-
-    <section id="workspaceView" class="view active" aria-labelledby="workspaceTitle">
-      <div class="screen wide">
-        <div class="screen-head">
-          <div>
-            <h2 id="workspaceTitle" class="screen-title">Project Controller</h2>
-            <p class="screen-copy" id="workspaceSubtitle">Bring the idea once. SRT-1 keeps the assistant on task and carries the work to completion.</p>
-          </div>
-          <button class="quiet-button" onclick="openContinueView()">Back to Work</button>
-        </div>
-
-        <div class="status-strip" aria-label="Project status">
-          <div class="stat">
-            <div class="stat-label">Project</div>
-            <div class="stat-value" id="workspaceProjectName">Not Connected</div>
-          </div>
-          <div class="stat">
-            <div class="stat-label">Open Seeds</div>
-            <div class="stat-value" id="workspaceSeedCount">Loading</div>
-          </div>
-          <div class="stat">
-            <div class="stat-label">Reviews</div>
-            <div class="stat-value" id="workspaceReviewCount">Checking</div>
-          </div>
-          <div class="stat">
-            <div class="stat-label">Last Check</div>
-            <div class="stat-value" id="workspaceLastCheck">Now</div>
-          </div>
-          <div class="stat">
-            <div class="stat-label">Assistant</div>
-            <div class="stat-value">Codex Ready</div>
-          </div>
-        </div>
-
-        <div class="control-grid">
-          <aside class="rail">
-            <div class="rail-title">Projects</div>
-            <div class="nav-list">
-              <button class="nav-item active" onclick="showView('project')">Connect Project</button>
-              <button class="nav-item" onclick="loadActiveWork()">Current Project</button>
-              <button class="nav-item" onclick="openContinueView()">Previous Work</button>
-              <button class="nav-item" onclick="location.href='dashboard.html#workcells'">Control Room</button>
-            </div>
-            <div class="rail-title">Current Work</div>
-            <div id="activeWorkList" class="list compact-list">
-              <div class="message">No active work loaded yet.</div>
-            </div>
-          </aside>
-
-          <section class="conversation-surface">
-            <div class="screen-head" style="margin-bottom:14px;">
-              <strong>Project Conversation</strong>
-              <span id="conversationStatus" class="status-pill">ready</span>
-            </div>
-            <div id="conversationMessages" class="stack">
-              <div class="message"><strong>SRT-1:</strong> Tell me what you want to complete, or connect your first project so I can keep the assistant on task, preserve continuity, and bring the work back for review.</div>
-            </div>
-            <textarea id="workspaceMessage" placeholder="Talk to the project. Ask SRT-1 to check a file, plant a seed, pause work, resume work, or review progress."></textarea>
-            <div class="button-row">
-              <button class="button" onclick="sendToActiveWork()">Send</button>
-              <button class="button secondary" onclick="plantWorkspaceSeed()">Plant Seed</button>
-              <button class="button secondary" onclick="showView('project')">Choose Folder</button>
-              <button class="button secondary" onclick="quickCommand('Check another file')">Check File</button>
-              <button class="button secondary" onclick="quickCommand('Pause current work')">Pause</button>
-              <button class="button secondary" onclick="quickCommand('Resume current work')">Resume</button>
-              <button class="button secondary" onclick="location.href='dashboard.html#workcells'">Control Room</button>
-            </div>
-          </section>
-
-          <aside class="intelligence">
-            <div class="rail-title">Project Intelligence</div>
-            <div class="insight-list">
-              <div class="insight"><strong>Needs Review</strong><span class="muted" id="reviewInsight">SRT-1 will surface work that is ready for your decision.</span></div>
-              <div class="insight"><strong>Project Lineage</strong><span class="muted">Idea -> Seed -> Work session -> Verification -> Review -> Completed work.</span></div>
-              <div class="insight"><strong>Important Files</strong><span class="muted">Ask SRT-1 to inspect a file, compare changes, or explain what matters.</span></div>
-              <div class="insight"><strong>Suggested Next Action</strong><span class="muted" id="nextActionInsight">Connect the project runtime, then ask what should happen next.</span></div>
-            </div>
-          </aside>
+          <button class="send" id="sendBtn" type="button">Send</button>
         </div>
       </div>
     </section>
   </main>
+</div>
 
-  <script>
-    const API = localStorage.getItem('srt1_api_base') || 'http://127.0.0.1:7484';
-    let latestWorkCells = null;
-    let activeQueueSeedId = '';
+<div class="project-menu" id="projectMenu">
+  <div class="menu-label">Projects</div>
+  <div id="projectList">
+    <button class="project-option" type="button"><span class="dot"></span>Loading projects<small>...</small></button>
+  </div>
+  <div class="menu-label" style="margin-top:6px">Connect</div>
+  <button class="project-option" id="chooseFolderBtn" type="button"><span>+</span>Choose folder<small>Local</small></button>
+  <button class="project-option" id="pastePathBtn" type="button"><span>+</span>Paste local path<small>Manual</small></button>
+  <button class="project-option" id="useCurrentBtn" type="button"><span class="dot"></span>Use current workspace<small>Now</small></button>
+  <button class="project-option" id="githubBtn" type="button"><span>G</span>Connect GitHub<small>Local clone</small></button>
+  <div class="path-entry" id="pathEntry">
+    <input id="projectPath" placeholder="C:\path\to\project" />
+    <button class="card-btn primary" id="openPathBtn" type="button">Open</button>
+  </div>
+</div>
 
-    function showView(name) {
-      document.querySelectorAll('.view').forEach(view => view.classList.remove('active'));
-      document.getElementById(name + 'View')?.classList.add('active');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+<input class="hidden" id="fileInput" type="file" />
+
+<script>
+const API = window.location.origin && window.location.origin !== 'null' ? window.location.origin : 'http://127.0.0.1:7484';
+const thread = document.getElementById('thread');
+const composer = document.getElementById('composer');
+const sendBtn = document.getElementById('sendBtn');
+const projectTrigger = document.getElementById('projectTrigger');
+const projectMenu = document.getElementById('projectMenu');
+const projectName = document.getElementById('projectName');
+const projectList = document.getElementById('projectList');
+const pathEntry = document.getElementById('pathEntry');
+const projectPath = document.getElementById('projectPath');
+const fileInput = document.getElementById('fileInput');
+
+let activeQueueSeedId = null;
+let latestSummary = {};
+let latestWork = {};
+let latestRepositories = [];
+
+function esc(value) {
+  return String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function scrollThread() {
+  thread.scrollTop = thread.scrollHeight;
+}
+
+function addUserMessage(text) {
+  thread.insertAdjacentHTML('beforeend', `<div class="message user"><div class="bubble">${esc(text)}</div></div>`);
+  scrollThread();
+}
+
+function addSystemMessage(text) {
+  thread.insertAdjacentHTML('beforeend', `<div class="message ai"><div class="bubble">${esc(text)}</div></div>`);
+  scrollThread();
+}
+
+function addInsight(text) {
+  thread.insertAdjacentHTML('beforeend', `<div class="insight"><b>SRT-1 noticed:</b> ${esc(text)}</div>`);
+  scrollThread();
+}
+
+function factMarkup(facts = []) {
+  if (!facts.length) return '';
+  return `<div class="context-facts">${facts.map(fact => `
+    <div class="context-fact"><strong>${esc(fact.value)}</strong><span>${esc(fact.label)}</span></div>
+  `).join('')}</div>`;
+}
+
+function actionMarkup(actions = []) {
+  if (!actions.length) return '';
+  return `<div class="context-actions">${actions.map(action => {
+    const data = { ...(action.data || {}) };
+    if (action.command) data.command = action.command;
+    const attrs = Object.entries(data).map(([key, value]) => {
+      const attr = String(key).replace(/[A-Z]/g, c => '-' + c.toLowerCase());
+      return ` data-${esc(attr)}="${esc(value)}"`;
+    }).join('');
+    const kind = action.kind ? ` data-action-kind="${esc(action.kind)}"` : '';
+    const primary = action.primary ? ' primary' : '';
+    const danger = action.danger ? ' danger' : '';
+    return `<button class="card-btn${primary}${danger}" type="button"${kind}${attrs}>${esc(action.label)}</button>`;
+  }).join('')}</div>`;
+}
+
+function addContextCard({ title, meta = '', body, facts = [], actions = [], tone = '' }) {
+  thread.insertAdjacentHTML('beforeend', `
+    <div class="context-card ${esc(tone)}">
+      <div class="context-head">
+        <div class="context-icon">${tone === 'ready' ? 'OK' : '!'}</div>
+        <h3>${esc(title)}</h3>
+        ${meta ? `<span class="meta">${esc(meta)}</span>` : ''}
+      </div>
+      <p>${esc(body)}</p>
+      ${factMarkup(facts)}
+      ${actionMarkup(actions)}
+    </div>
+  `);
+  bindContextActions();
+  scrollThread();
+}
+
+function runtimeUrl(port, page = 'experience.html') {
+  if (!port) return '';
+  return `http://127.0.0.1:${port}/${page}`;
+}
+
+async function getJson(path) {
+  const response = await fetch(API + path);
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error || data.message || 'Request failed');
+  return data;
+}
+
+async function postJson(path, body = {}) {
+  const response = await fetch(API + path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error || data.message || 'Request failed');
+  return data;
+}
+
+function projectDisplayName(summary = latestSummary) {
+  const active = summary.repository_activation?.active_repository || {};
+  return active.name || summary.repo || 'SRT-1 Core';
+}
+
+function chooseActiveWork(work = latestWork) {
+  const executions = work.executions || [];
+  return executions.find(ex => String(ex.status || '').toLowerCase() === 'awaiting_review')
+    || executions.find(ex => ['running', 'dispatched', 'ready'].includes(String(ex.status || '').toLowerCase()))
+    || executions[0]
+    || null;
+}
+
+function stageForExecution(execution) {
+  const status = String(execution?.status || '').toLowerCase();
+  if (status === 'completed') return 'Done';
+  if (status === 'awaiting_review' || status === 'returned') return 'Review';
+  if (['running', 'dispatched', 'ready', 'pause_requested'].includes(status)) return 'Execution';
+  return 'Planning';
+}
+
+function syncMission(summary, work) {
+  const repo = projectDisplayName(summary);
+  const active = chooseActiveWork(work);
+  projectName.textContent = repo;
+  activeQueueSeedId = active?.queue_seed_id || null;
+}
+
+function renderProjectMenu(summary = latestSummary) {
+  const activation = summary.repository_activation || {};
+  latestRepositories = activation.repositories || [];
+  const activeId = activation.active_repository?.repo_id;
+  if (!latestRepositories.length) {
+    projectList.innerHTML = '<button class="project-option" type="button"><span class="dot"></span>No projects registered<small>Start</small></button>';
+    return;
+  }
+  projectList.innerHTML = latestRepositories.map(repo => `
+    <button class="project-option" type="button" data-project-id="${esc(repo.repo_id)}" data-runtime-port="${esc(repo.runtime_port || '')}">
+      <span class="dot" style="background:${repo.repo_id === activeId ? 'var(--brand)' : '#495362'}"></span>
+      ${esc(repo.name || 'Project')}
+      <small>${repo.repo_id === activeId ? 'Active' : (repo.runtime_port ? `:${repo.runtime_port}` : 'Registered')}</small>
+    </button>
+  `).join('');
+  projectList.querySelectorAll('[data-project-id]').forEach(button => {
+    button.addEventListener('click', () => switchProject(button.dataset.projectId, button.dataset.runtimePort));
+  });
+}
+
+function renderSessionBrief(summary = latestSummary, work = latestWork) {
+  const executions = work.executions || [];
+  const active = chooseActiveWork(work);
+  const waiting = executions.filter(ex => String(ex.status || '').toLowerCase() === 'awaiting_review').length;
+  const running = executions.filter(ex => ['running', 'dispatched', 'ready'].includes(String(ex.status || '').toLowerCase())).length;
+  const repo = projectDisplayName(summary);
+
+  thread.innerHTML = '';
+  addSystemMessage(`Welcome back. I checked ${repo} and restored the Standard Experience around the active conversation.`);
+
+  if (waiting) {
+    addContextCard({
+      title: waiting === 1 ? 'One thing needs your attention' : `${waiting} things need your attention`,
+      meta: active?.objective || repo,
+      body: active?.objective
+        ? `${active.objective} is waiting for your decision.`
+        : 'SRT-1 found work waiting for your decision.',
+      tone: 'warn',
+      facts: [
+        { label: 'Reviews waiting', value: String(waiting) },
+        { label: 'Active work', value: running ? String(running) : 'None' },
+        { label: 'Stage', value: stageForExecution(active) }
+      ],
+      actions: [
+        { label: 'Review', primary: true, kind: 'review' },
+        { label: 'Explain', kind: 'explain' },
+        { label: 'Approve', kind: 'workcell-action', data: { workcellAction: 'approve' } },
+        { label: 'Send back', kind: 'workcell-action', data: { workcellAction: 'reject' } },
+        { label: 'Inspect technical details', kind: 'control-room' }
+      ]
+    });
+  } else if (active) {
+    addContextCard({
+      title: 'Current work restored',
+      meta: repo,
+      body: `${active.objective || 'Active work'} is available in this conversation. Tell SRT-1 the outcome you want next.`,
+      tone: 'ready',
+      facts: [
+        { label: 'Stage', value: stageForExecution(active) },
+        { label: 'Status', value: active.status || 'ready' },
+        { label: 'Verification', value: active.verification_state || 'not reported' }
+      ],
+      actions: [
+        { label: 'Continue', primary: true, kind: 'quick', command: 'Continue the active work.' },
+        { label: 'Show progress', kind: 'quick', command: 'Show progress.' },
+        { label: 'Pause', kind: 'workcell-action', data: { workcellAction: 'pause' } }
+      ]
+    });
+  } else {
+    addContextCard({
+      title: 'Start with the project outcome',
+      meta: repo,
+      body: 'Tell SRT-1 what you want to build, understand, plan, or review. SRT-1 will create or find the right work path behind the conversation.',
+      tone: 'ready',
+      facts: [
+        { label: 'Project', value: repo },
+        { label: 'Work waiting', value: 'None' },
+        { label: 'Next step', value: 'Ask SRT-1' }
+      ],
+      actions: [
+        { label: 'Explain this project', kind: 'quick', command: 'Explain this project.' },
+        { label: 'Create a plan', kind: 'quick', command: 'Create a plan for this project.' },
+        { label: 'Add project', kind: 'add-project' }
+      ]
+    });
+  }
+
+  addInsight('Reviews, verification, project intelligence, and assistant activity will appear here only when they matter to the current conversation.');
+  addSystemMessage('What would you like me to do next?');
+}
+
+async function loadWorkspace({ preserveThread = false } = {}) {
+  try {
+    const [summary, work] = await Promise.all([
+      getJson('/dashboard-summary'),
+      getJson('/api/v1/workcells')
+    ]);
+    latestSummary = summary;
+    latestWork = work;
+    syncMission(summary, work);
+    renderProjectMenu(summary);
+    if (!preserveThread) renderSessionBrief(summary, work);
+  } catch (error) {
+    addSystemMessage(`SRT-1 runtime is not reachable at ${API}. Start the local runtime, then refresh this workspace.`);
+  }
+}
+
+async function loadConversation() {
+  if (!activeQueueSeedId) {
+    addSystemMessage('There is no active WorkCell conversation yet. Tell me the mission outcome and I will create or route the work behind the scenes.');
+    return;
+  }
+  try {
+    const data = await getJson('/api/v1/workcells/' + encodeURIComponent(activeQueueSeedId) + '/messages?limit=30');
+    const messages = (data.messages || []).slice().reverse();
+    if (!messages.length) {
+      addSystemMessage('This work is ready for conversation, but no prior messages were recorded.');
+      return;
     }
+    thread.innerHTML = '';
+    messages.forEach(message => {
+      const role = String(message.role || '').toLowerCase();
+      if (role === 'user') addUserMessage(message.content || '');
+      else addSystemMessage(message.content || '');
+    });
+  } catch (error) {
+    addSystemMessage(error.message || 'Could not load that conversation.');
+  }
+}
 
-    function setStatus(id, text, ready = false) {
-      const el = document.getElementById(id);
-      if (!el) return;
-      el.textContent = text;
-      el.classList.toggle('ready', ready);
-    }
+function activeExecution() {
+  return chooseActiveWork(latestWork);
+}
 
-    function setText(id, text) {
-      const el = document.getElementById(id);
-      if (el) el.textContent = text;
-    }
+const OWNER_INTENTS = {
+  create: [
+    'i have an idea', 'help me think', 'create a new project', 'build a roadmap',
+    'generate an architecture', 'design a database', 'start a mobile app',
+    'start a website', 'create documentation', 'brainstorm'
+  ],
+  connect: [
+    'open this project', 'upload my folder', 'choose folder', 'connect github',
+    'use my current workspace', 'connect vs code', 'connect slack',
+    'connect google drive', 'open the last project'
+  ],
+  understand: [
+    'explain my project', 'show me the architecture', 'what does this module do',
+    'explain this file', 'explain this function', 'where should i start',
+    'what still needs work', 'what changed', 'what is broken', "what's broken",
+    'show dependencies'
+  ],
+  plan: [
+    "let's plan", 'plan this feature', 'break this into tasks', 'estimate the work',
+    'prioritize', "what's next", 'what is next', 'create milestones',
+    'create workcells', 'merge these ideas'
+  ],
+  execute: [
+    'continue', 'build it', 'implement', 'fix this bug', 'refactor',
+    'update documentation', 'write tests', 'clean this file', 'finish this feature'
+  ],
+  observe: [
+    'what is working right now', 'what is codex doing', 'what is claude doing',
+    'show active work', 'show progress', 'show blocked work',
+    'show waiting reviews', 'show completed work'
+  ],
+  review: [
+    'show me what changed', 'explain this implementation', 'compare before and after',
+    'why did the assistant', 'review this code', 'show the tests',
+    'is this safe', 'approve', 'reject', 'send it back'
+  ],
+  inspect: [
+    'open the control room', 'show the workcell', 'show verification',
+    'show the manifest', 'show repository intelligence', 'show constellation',
+    'show the logs'
+  ],
+  collaborate: [
+    'give this to codex', 'assign claude', 'have gemini review',
+    'switch assistants', 'bring another engineer', 'continue tomorrow',
+    'share with my team', 'send to slack'
+  ],
+  learn: [
+    'what have we learned', 'what mistakes keep happening', 'what patterns do you see',
+    'remember this', 'turn this into a methodology', 'save this as reusable knowledge'
+  ],
+  manage: [
+    'pause this', 'resume', 'archive', 'duplicate', 'rename', 'delete',
+    'move to another project', 'merge projects', 'reopen'
+  ],
+  search: [
+    'find that conversation', 'find authentication', 'show every seed',
+    'search documentation', 'search code', 'search decisions', 'search reviews'
+  ]
+};
 
-    function escapeHtml(value) {
-      return String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-    }
+function classifyOwnerIntent(text) {
+  const l = text.toLowerCase();
+  for (const [intent, phrases] of Object.entries(OWNER_INTENTS)) {
+    if (phrases.some(phrase => l.includes(phrase))) return intent;
+  }
+  if (['build', 'start', 'create', 'generate', 'brainstorm'].some(term => l.includes(term))) return 'create';
+  if (['open', 'connect', 'upload', 'folder', 'workspace', 'github'].some(term => l.includes(term))) return 'connect';
+  if (['explain', 'architecture', 'module', 'file', 'function', 'dependencies', 'broken'].some(term => l.includes(term))) return 'understand';
+  if (['plan', 'tasks', 'estimate', 'prioritize', 'milestone'].some(term => l.includes(term))) return 'plan';
+  if (['continue', 'implement', 'fix', 'refactor', 'tests', 'finish', 'clean'].some(term => l.includes(term))) return 'execute';
+  if (['progress', 'active work', 'blocked', 'completed', 'working'].some(term => l.includes(term))) return 'observe';
+  if (['review', 'approve', 'reject', 'safe', 'changed'].some(term => l.includes(term))) return 'review';
+  if (['control room', 'workcell', 'manifest', 'logs', 'verification', 'constellation'].some(term => l.includes(term))) return 'inspect';
+  if (['codex', 'claude', 'gemini', 'assistant', 'slack', 'team'].some(term => l.includes(term))) return 'collaborate';
+  if (['learned', 'mistakes', 'patterns', 'remember', 'methodology', 'knowledge'].some(term => l.includes(term))) return 'learn';
+  if (['pause', 'resume', 'archive', 'duplicate', 'rename', 'delete', 'move', 'reopen'].some(term => l.includes(term))) return 'manage';
+  if (['find', 'search'].some(term => l.includes(term))) return 'search';
+  return 'conversation';
+}
 
-    async function postJson(path, body = {}) {
-      const response = await fetch(API + path, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
+function humanIntentName(intent) {
+  return intent.charAt(0).toUpperCase() + intent.slice(1);
+}
+
+function showProjectBrief() {
+  const repo = projectDisplayName(latestSummary);
+  const executions = latestWork.executions || [];
+  const waiting = executions.filter(ex => String(ex.status || '').toLowerCase() === 'awaiting_review').length;
+  const running = executions.filter(ex => ['running', 'dispatched', 'ready'].includes(String(ex.status || '').toLowerCase())).length;
+  const active = activeExecution();
+  addContextCard({
+    title: 'Project brief',
+    meta: repo,
+    body: active
+      ? `${active.objective || 'Active work'} is the current work SRT-1 is tracking.`
+      : 'SRT-1 did not find active WorkCell work waiting in this project.',
+    tone: 'ready',
+    facts: [
+      { label: 'Project', value: repo },
+      { label: 'Active work', value: running ? String(running) : 'None' },
+      { label: 'Reviews waiting', value: waiting ? String(waiting) : 'None' },
+      { label: 'Current stage', value: stageForExecution(active) }
+    ],
+    actions: [
+      { label: 'Review waiting work', kind: 'review' },
+      { label: 'Continue active work', primary: true, kind: 'quick', command: 'Continue the active work.' },
+      { label: 'Open Control Room', kind: 'control-room' }
+    ]
+  });
+}
+
+function showReviewContext() {
+  const executions = latestWork.executions || [];
+  const waiting = executions.filter(ex => String(ex.status || '').toLowerCase() === 'awaiting_review');
+  const target = waiting[0] || activeExecution();
+  if (target?.queue_seed_id) activeQueueSeedId = target.queue_seed_id;
+  if (!target) {
+    addSystemMessage('I checked live WorkCell state. Nothing is waiting for review right now.');
+    return;
+  }
+  addContextCard({
+    title: waiting.length ? 'Review waiting' : 'No formal review waiting',
+    meta: target.objective || projectDisplayName(),
+    body: waiting.length
+      ? `${target.objective || 'This work'} needs your decision.`
+      : `${target.objective || 'The active work'} is not marked as awaiting review, but I can still show the current state.`,
+    tone: waiting.length ? 'warn' : 'ready',
+    facts: [
+      { label: 'Status', value: target.status || 'unknown' },
+      { label: 'Verification', value: target.verification_state || 'not reported' },
+      { label: 'WorkCell', value: target.queue_seed_id || 'none' }
+    ],
+    actions: [
+      { label: 'Load conversation', primary: true, kind: 'review' },
+      { label: 'Approve', kind: 'workcell-action', data: { workcellAction: 'approve' } },
+      { label: 'Send back', kind: 'workcell-action', data: { workcellAction: 'reject' } },
+      { label: 'Inspect technical details', kind: 'control-room' }
+    ]
+  });
+}
+
+async function createWorkFromIntent(text) {
+  addSystemMessage('I am creating a real SRT-1 work path for that request.');
+  try {
+    const result = await postJson('/task', {
+      task: text,
+      source: 'standard_experience',
+      priority: 5,
+      auto_dispatch: true
+    });
+    activeQueueSeedId = result.queue_seed_id || result.seed_id || activeQueueSeedId;
+    addContextCard({
+      title: 'Work created',
+      meta: result.queue_seed_id || result.seed_id || projectDisplayName(),
+      body: result.message || 'SRT-1 planted the seed and prepared the WorkCell path.',
+      tone: 'ready',
+      facts: [
+        { label: 'Seed', value: result.queue_seed_id || result.seed_id || 'created' },
+        { label: 'Dispatch', value: result.dispatched ? 'Started' : 'Prepared' },
+        { label: 'Project', value: projectDisplayName() }
+      ],
+      actions: [
+        { label: 'Open conversation', primary: true, kind: 'review' },
+        { label: 'Show progress', kind: 'quick', command: 'Show progress.' },
+        { label: 'Open Control Room', kind: 'control-room' }
+      ]
+    });
+    await loadWorkspace({ preserveThread: true });
+  } catch (error) {
+    addSystemMessage(error.message || 'I could not create the SRT-1 work path.');
+  }
+}
+
+async function continueActiveWork() {
+  const active = activeExecution();
+  if (!active) {
+    addSystemMessage('I do not see active work to continue. Tell me the outcome and I will create the right SRT-1 work path.');
+    return;
+  }
+  activeQueueSeedId = active.queue_seed_id || activeQueueSeedId;
+  const status = String(active.status || '').toLowerCase();
+  if (['paused', 'pause_requested'].includes(status)) {
+    await controlActiveWork('resume');
+    return;
+  }
+  addContextCard({
+    title: 'Continuing active work',
+    meta: active.objective || projectDisplayName(),
+    body: 'I restored the active WorkCell state and kept this in the Standard Experience conversation.',
+    tone: 'ready',
+    facts: [
+      { label: 'Status', value: active.status || 'ready' },
+      { label: 'Verification', value: active.verification_state || 'not reported' },
+      { label: 'Stage', value: stageForExecution(active) }
+    ],
+    actions: [
+      { label: 'Open conversation', primary: true, kind: 'review' },
+      { label: 'Pause', kind: 'workcell-action', data: { workcellAction: 'pause' } },
+      { label: 'Open Control Room', kind: 'control-room' }
+    ]
+  });
+}
+
+function showConnectorStatus(text) {
+  const l = text.toLowerCase();
+  if (l.includes('github')) {
+    addContextCard({
+      title: 'Connect GitHub',
+      body: 'GitHub import is not a live connector in this local Core runtime yet. Clone the repository locally, then choose the folder here so SRT-1 can open its runtime.',
+      actions: [
+        { label: 'Choose folder', primary: true, kind: 'choose-folder' },
+        { label: 'Paste local path', kind: 'paste-path' }
+      ]
+    });
+    return;
+  }
+  if (l.includes('slack') || l.includes('google drive') || l.includes('vs code')) {
+    addContextCard({
+      title: 'Connector not active in this runtime',
+      body: 'This Standard Experience can discuss the connector intent, but this local Core runtime does not have that external connector attached yet.',
+      facts: [
+        { label: 'Live now', value: 'Local folder' },
+        { label: 'Live now', value: 'Current workspace' },
+        { label: 'Live now', value: 'WorkCell conversation' }
+      ],
+      actions: [
+        { label: 'Choose folder', primary: true, kind: 'choose-folder' },
+        { label: 'Use current workspace', kind: 'use-current' }
+      ]
+    });
+    return;
+  }
+  openAttachmentChoices();
+}
+
+function searchConversationAndState(text) {
+  const query = text.replace(/^(find|search|show every seed about)\s+/i, '').trim() || text;
+  const executions = latestWork.executions || [];
+  const matches = executions.filter(ex => JSON.stringify(ex).toLowerCase().includes(query.toLowerCase())).slice(0, 5);
+  addContextCard({
+    title: 'Search results',
+    meta: query,
+    body: matches.length
+      ? 'I searched the live WorkCell state available to this Standard Experience.'
+      : 'I searched the live WorkCell state available here and did not find a direct match. Use Control Room for full repository-level search.',
+    facts: [
+      { label: 'Matches', value: String(matches.length) },
+      { label: 'Scope', value: 'Live WorkCells' },
+      { label: 'Query', value: query }
+    ],
+    actions: [
+      { label: 'Open Control Room search', kind: 'control-room' },
+      ...(matches[0]?.queue_seed_id ? [{ label: 'Open first match', primary: true, kind: 'review' }] : [])
+    ]
+  });
+}
+
+function showCollaborationStatus(text) {
+  addContextCard({
+    title: 'Assistant coordination',
+    body: 'SRT-1 can preserve the request in the active WorkCell conversation. Live external assistant assignment depends on configured assistant adapters in Control Room.',
+    facts: [
+      { label: 'Codex/Claude/Gemini', value: 'Adapter dependent' },
+      { label: 'Team sharing', value: 'Connector dependent' },
+      { label: 'Continuity', value: 'Available here' }
+    ],
+    actions: [
+      { label: 'Record this for the active work', primary: true, kind: 'quick', command: text },
+      { label: 'Open Control Room', kind: 'control-room' }
+    ]
+  });
+}
+
+function saveLearningIntent(text) {
+  addContextCard({
+    title: 'Learning captured',
+    body: 'I can preserve this as conversation context now. Turning it into durable reusable knowledge requires the SRT-1 knowledge/recall path to be connected from the backend.',
+    tone: 'ready',
+    facts: [
+      { label: 'Captured here', value: 'Conversation' },
+      { label: 'Durable knowledge', value: 'Backend recall path' },
+      { label: 'Next', value: 'Create methodology work' }
+    ],
+    actions: [
+      { label: 'Turn into methodology', primary: true, kind: 'quick', command: `Turn this into a methodology: ${text}` },
+      { label: 'Open Control Room', kind: 'control-room' }
+    ]
+  });
+}
+
+async function handleIntent(text) {
+  const intent = classifyOwnerIntent(text);
+  const l = text.toLowerCase();
+  await loadWorkspace({ preserveThread: true });
+  if (intent === 'inspect') {
+    addContextCard({
+      title: 'Control Room is ready',
+      body: 'Open the technical surface when you want the machinery. This Standard Experience stays focused on conversation.',
+      actions: [{ label: 'Open Control Room', primary: true, kind: 'control-room' }]
+    });
+    return;
+  }
+  if (intent === 'connect') {
+    showConnectorStatus(text);
+    return;
+  }
+  if (intent === 'review' && l.includes('approve')) {
+    await controlActiveWork('approve');
+    return;
+  }
+  if (intent === 'review' && (l.includes('send back') || l.includes('reject') || l.includes('return'))) {
+    await controlActiveWork('reject');
+    return;
+  }
+  if (intent === 'manage' && l.includes('pause')) {
+    await controlActiveWork('pause');
+    return;
+  }
+  if ((intent === 'manage' && l.includes('resume')) || (intent === 'execute' && l.includes('continue'))) {
+    await continueActiveWork();
+    return;
+  }
+  if (intent === 'review') {
+    showReviewContext();
+    return;
+  }
+  if (['create', 'plan', 'execute'].includes(intent)) {
+    await createWorkFromIntent(text);
+    return;
+  }
+  if (['understand', 'observe'].includes(intent)) {
+    showProjectBrief();
+    return;
+  }
+  if (intent === 'collaborate') {
+    showCollaborationStatus(text);
+    return;
+  }
+  if (intent === 'learn') {
+    saveLearningIntent(text);
+    return;
+  }
+  if (intent === 'search') {
+    searchConversationAndState(text);
+    return;
+  }
+  if (intent === 'manage') {
+    addContextCard({
+      title: 'Project management request',
+      body: 'Pause and resume are live for active WorkCells. Archive, duplicate, rename, delete, move, merge, and reopen need project lifecycle backend routes before I can safely execute them here.',
+      facts: [
+        { label: 'Live now', value: 'Pause/resume work' },
+        { label: 'Needs route', value: 'Project lifecycle' },
+        { label: 'Safety', value: 'No fake mutation' }
+      ],
+      actions: [
+        { label: 'Pause active work', kind: 'workcell-action', data: { workcellAction: 'pause' } },
+        { label: 'Resume active work', kind: 'workcell-action', data: { workcellAction: 'resume' } },
+        { label: 'Open Control Room', kind: 'control-room' }
+      ]
+    });
+    return;
+  }
+  addSystemMessage('I recorded that in this conversation. If you want execution, say build, fix, plan, continue, pause, review, approve, or send back.');
+}
+
+async function sendMessage() {
+  const text = composer.value.trim();
+  if (!text) return;
+  addUserMessage(text);
+  composer.value = '';
+  if (activeQueueSeedId) {
+    try {
+      await postJson('/api/v1/workcells/' + encodeURIComponent(activeQueueSeedId) + '/chat', {
+        role: 'user',
+        content: text,
+        channel: 'standard_experience',
+        actor: 'standard_experience_user'
       });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.error || data.message || 'Request failed');
-      return data;
+    } catch (error) {
+      addSystemMessage(error.message || 'I could not attach that message to the active WorkCell.');
+      return;
     }
+  }
+  await handleIntent(text);
+}
 
-    function showPathEntry() {
-      document.getElementById('pathEntry')?.classList.remove('hidden');
-      document.getElementById('projectPath')?.focus();
-    }
-
-    function showGitHubPending() {
-      const list = document.getElementById('recentProjects');
-      list.innerHTML = '<div class="message">GitHub import will use the same project-opening flow when the connector is available. For now, choose the local folder after cloning.</div>';
-    }
-
-    async function registerPath() {
-      const path = document.getElementById('projectPath')?.value.trim();
-      if (!path) {
-        showPathEntry();
-        return;
+function bindContextActions() {
+  thread.querySelectorAll('[data-action-kind]').forEach(button => {
+    if (button.dataset.bound) return;
+    button.dataset.bound = 'true';
+    button.addEventListener('click', () => {
+      const kind = button.dataset.actionKind;
+      if (kind === 'quick') {
+        composer.value = button.dataset.command || button.textContent;
+        sendMessage();
+      } else if (kind === 'review') {
+        loadConversation();
+      } else if (kind === 'explain') {
+        addSystemMessage('This item needs your decision because SRT-1 has work in a reviewable state. I can explain the change, show verification, or send it back.');
+      } else if (kind === 'control-room') {
+        window.location.href = 'dashboard.html';
+      } else if (kind === 'open-url') {
+        const url = button.dataset.url;
+        if (url) window.location.href = url;
+      } else if (kind === 'add-project') {
+        projectMenu.classList.add('open');
+      } else if (kind === 'choose-folder') {
+        chooseFolder();
+      } else if (kind === 'paste-path') {
+        projectMenu.classList.add('open');
+        pathEntry.classList.add('open');
+        projectPath.focus();
+      } else if (kind === 'attach-file') {
+        fileInput.click();
+      } else if (kind === 'use-current') {
+        registerCurrent();
+      } else if (kind === 'workcell-action') {
+        controlActiveWork(button.dataset.workcellAction || 'pause');
       }
-      showView('preparing');
-      try {
-        await postJson('/api/v1/repositories/register-path', { path });
-        await openWorkspace('Project ready');
-      } catch (error) {
-        setStatus('prepareStatus', 'needs attention');
-        addWorkspaceMessage('SRT-1', error.message || 'Project registration failed.');
-        showView('workspace');
-      }
-    }
+    });
+  });
+}
 
-    async function browseFolder() {
-      showView('preparing');
-      try {
-        await postJson('/api/v1/repositories/browse-folder', {});
-        await openWorkspace('Project ready');
-      } catch (error) {
-        setStatus('prepareStatus', 'needs path');
-        showView('project');
-        showPathEntry();
-        document.getElementById('recentProjects').innerHTML = `<div class="message">${escapeHtml(error.message || 'Folder chooser is unavailable. Paste the folder path instead.')}</div>`;
-      }
-    }
+async function controlActiveWork(action) {
+  if (!activeQueueSeedId) {
+    addSystemMessage('There is no active work item to control yet.');
+    return;
+  }
+  addUserMessage(action === 'reject' ? 'Send it back' : action.charAt(0).toUpperCase() + action.slice(1));
+  try {
+    const result = await postJson('/api/v1/workcells/' + encodeURIComponent(activeQueueSeedId) + '/action', {
+      action,
+      actor: 'standard_experience_user',
+      reason: 'Decision from Standard Experience conversation.'
+    });
+    addSystemMessage(result.error || result.message || `SRT-1 recorded ${action} for the active work.`);
+    await loadWorkspace({ preserveThread: true });
+  } catch (error) {
+    addSystemMessage(error.message || `Could not ${action} the active work.`);
+  }
+}
 
-    async function registerCurrent() {
-      showView('preparing');
-      try {
-        await postJson('/api/v1/repositories/register-current', {});
-        await openWorkspace('Project ready');
-      } catch (error) {
-        setStatus('prepareStatus', 'needs attention');
-        addWorkspaceMessage('SRT-1', error.message || 'Current project registration failed.');
-        showView('workspace');
-      }
-    }
+async function switchProject(repoId, runtimePort) {
+  projectMenu.classList.remove('open');
+  const repo = latestRepositories.find(item => item.repo_id === repoId);
+  if (!repo) return;
+  addUserMessage(`Open ${repo.name}`);
+  if (repo.active) {
+    addSystemMessage(`You are already in ${repo.name}. I restored its current conversation.`);
+    await loadWorkspace();
+    return;
+  }
+  if (runtimePort) {
+    addSystemMessage(`${repo.name} already has a runtime on port ${runtimePort}. Open that runtime to restore its conversation from its own state.`);
+    addContextCard({
+      title: 'Project runtime available',
+      meta: repo.name,
+      body: 'This project is registered outside the current SRT-1 Core engine. Its own runtime should own the conversation.',
+      actions: [
+        { label: 'Open project workspace', primary: true, kind: 'open-url', data: { url: runtimeUrl(runtimePort) } },
+        { label: 'Open project Control Room', kind: 'open-url', data: { url: runtimeUrl(runtimePort, 'dashboard.html') } }
+      ]
+    });
+    return;
+  }
+  try {
+    const result = await postJson('/api/v1/repositories/launch', { repo_id: repoId });
+    addContextCard({
+      title: result.status === 'ready' ? 'Project already open' : 'Project runtime launching',
+      meta: repo.name,
+      body: result.message || 'SRT-1 started the runtime responsible for that project. Once it is online, that workspace can brief you from its own state.',
+      facts: [
+        { label: 'Runtime', value: result.runtime_port || 'Starting' },
+        { label: 'Project', value: repo.name }
+      ],
+      actions: result.runtime_port
+        ? [
+            { label: 'Open project workspace', primary: true, kind: 'open-url', data: { url: runtimeUrl(result.runtime_port) } },
+            { label: 'Open project Control Room', kind: 'open-url', data: { url: runtimeUrl(result.runtime_port, 'dashboard.html') } }
+          ]
+        : [{ label: 'Open Control Room', kind: 'control-room' }]
+    });
+  } catch (error) {
+    addSystemMessage(error.message || 'Could not launch that project runtime.');
+  }
+}
 
-    function plainStatus(execution) {
-      const status = String(execution?.status || '').toLowerCase();
-      const verification = String(execution?.verification_state || '').toLowerCase();
-      if (status === 'completed') return 'Completed';
-      if (status === 'returned') return 'Needs changes';
-      if (status === 'awaiting_review') return 'Waiting for review';
-      if (verification === 'verified') return 'Checks passed';
-      if (['running', 'dispatched', 'ready'].includes(status)) return 'Working';
-      return status ? status.replace(/_/g, ' ') : 'Ready';
-    }
+async function registerCurrent() {
+  projectMenu.classList.remove('open');
+  addUserMessage('Use the current workspace');
+  try {
+    await postJson('/api/v1/repositories/register-current', {});
+    addSystemMessage('I connected the current workspace and restored its Standard Experience.');
+    await loadWorkspace();
+  } catch (error) {
+    addSystemMessage(error.message || 'Current workspace registration failed.');
+  }
+}
 
-    async function openContinueView() {
-      showView('continue');
-      await loadActiveWork('previousWorkList');
-    }
+function openAttachmentChoices() {
+  addContextCard({
+    title: 'Connect or attach',
+    meta: 'Conversation intake',
+    body: 'Choose what SRT-1 should receive. Projects go through the local repository runtime. Files are read locally and added to this conversation as context.',
+    facts: [
+      { label: 'Folder', value: 'Project runtime' },
+      { label: 'File', value: 'Conversation context' },
+      { label: 'Current', value: 'This workspace' }
+    ],
+    actions: [
+      { label: 'Choose folder', primary: true, kind: 'choose-folder' },
+      { label: 'Paste local path', kind: 'paste-path' },
+      { label: 'Attach file', kind: 'attach-file' },
+      { label: 'Use current workspace', kind: 'use-current' }
+    ]
+  });
+}
 
-    async function openWorkspace(label = 'Ready for project work') {
-      setStatus('prepareStatus', 'ready', true);
-      document.getElementById('workspaceSubtitle').textContent = label;
-      showView('workspace');
-      await loadActiveWork('activeWorkList');
-    }
+function openActionChoices() {
+  addContextCard({
+    title: 'What do you want SRT-1 to do?',
+    meta: 'Intent shortcuts',
+    body: 'These are conversation starters. SRT-1 will translate the intent into the right backend path instead of making you operate the machinery.',
+    actions: [
+      { label: 'Create', kind: 'quick', command: 'I have an idea. Help me think through this.' },
+      { label: 'Connect', kind: 'quick', command: 'Open this project.' },
+      { label: 'Understand', kind: 'quick', command: 'Explain my project.' },
+      { label: 'Plan', kind: 'quick', command: 'Let us plan this feature.' },
+      { label: 'Execute', primary: true, kind: 'quick', command: 'Continue the active work.' },
+      { label: 'Observe', kind: 'quick', command: 'Show active work.' },
+      { label: 'Review', kind: 'quick', command: 'Show me what changed.' },
+      { label: 'Inspect', kind: 'control-room' },
+      { label: 'Search', kind: 'quick', command: 'Search code.' },
+      { label: 'Explain this project', kind: 'quick', command: 'Explain this project.' },
+      { label: 'Show what needs review', kind: 'quick', command: 'Show what needs my approval.' },
+      { label: 'Open Control Room', kind: 'control-room' }
+    ]
+  });
+}
 
-    async function loadActiveWork(targetId = 'activeWorkList') {
-      const list = document.getElementById(targetId);
-      if (list) list.innerHTML = '<div class="message">Loading work...</div>';
-      try {
-        const [summaryResponse, workResponse] = await Promise.allSettled([
-          fetch(API + '/dashboard-summary').then(r => r.json()),
-          fetch(API + '/api/v1/workcells').then(r => r.json())
-        ]);
-        const summary = summaryResponse.status === 'fulfilled' ? summaryResponse.value : {};
-        latestWorkCells = workResponse.status === 'fulfilled' ? workResponse.value : {};
-        const executions = latestWorkCells.executions || [];
-        const repo = summary.repo || summary.repository_activation?.active_repository?.name || 'Current project';
-        const waitingForReview = executions.filter(ex => String(ex?.status || '').toLowerCase() === 'awaiting_review').length;
-        const visibleExecutions = targetId === 'activeWorkList' ? executions.slice(0, 6) : executions.slice(0, 18);
-        setText('workspaceProjectName', repo);
-        setText('workspaceSeedCount', String(executions.length));
-        setText('workspaceReviewCount', waitingForReview ? String(waitingForReview) : 'None');
-        setText('workspaceLastCheck', 'Just now');
-        setText('reviewInsight', waitingForReview ? `${waitingForReview} item${waitingForReview === 1 ? '' : 's'} waiting for your decision.` : 'No review decisions waiting right now.');
-        setText('nextActionInsight', executions.length ? 'Open current work or ask SRT-1 what should happen next.' : 'Plant a seed or ask SRT-1 to inspect the project.');
-
-        if (!executions.length) {
-          list.innerHTML = `<div class="message"><strong>${escapeHtml(repo)}</strong><br>No active work found yet.</div>`;
-          return;
+async function handleFileAttachment(file) {
+  if (!file) return;
+  addUserMessage(`Attach file: ${file.name}`);
+  let preview = '';
+  try {
+    const text = await file.text();
+    preview = text.slice(0, 1800);
+  } catch (error) {
+    preview = '[Binary file or unreadable text payload]';
+  }
+  const context = [
+    `Attached file: ${file.name}`,
+    `Size: ${Math.max(1, Math.round(file.size / 1024))} KB`,
+    `Type: ${file.type || 'unknown'}`,
+    '',
+    preview
+  ].join('\n');
+  if (activeQueueSeedId) {
+    try {
+      await postJson('/api/v1/workcells/' + encodeURIComponent(activeQueueSeedId) + '/chat', {
+        role: 'user',
+        content: context,
+        channel: 'standard_experience_attachment',
+        actor: 'standard_experience_user',
+        metadata: {
+          filename: file.name,
+          size: file.size,
+          type: file.type || 'unknown'
         }
-
-        const remainder = targetId === 'activeWorkList' && executions.length > visibleExecutions.length
-          ? `<button class="work-item" onclick="openContinueView()"><span><span class="work-name">${executions.length - visibleExecutions.length} more work item${executions.length - visibleExecutions.length === 1 ? '' : 's'}</span><span class="muted">Open the full previous work view.</span></span><span class="work-state">View all</span></button>`
-          : '';
-
-        list.innerHTML = visibleExecutions.map(ex => `
-          <button class="work-item" onclick="openConversation('${escapeHtml(ex.queue_seed_id || '')}', '${escapeHtml(ex.objective || 'Active work')}')">
-            <span>
-              <span class="work-name">${escapeHtml(ex.objective || ex.queue_seed_id || 'Active work')}</span>
-              <span class="muted">${escapeHtml(repo)} / ${escapeHtml(ex.updated_at || ex.created_at || 'recent')}</span>
-            </span>
-            <span class="work-state">${escapeHtml(plainStatus(ex))}</span>
-          </button>
-        `).join('') + remainder;
-      } catch (error) {
-        if (list) list.innerHTML = `<div class="message">SRT-1 runtime is not reachable at ${escapeHtml(API)}.</div>`;
-        setText('workspaceSeedCount', 'Offline');
-        setText('workspaceReviewCount', 'Offline');
-        setText('workspaceLastCheck', 'Unavailable');
-        setText('nextActionInsight', 'Start the local SRT-1 runtime, then ask again from this surface.');
-      }
+      });
+    } catch (error) {
+      addSystemMessage(error.message || 'I could not attach that file to the active WorkCell conversation.');
+      return;
     }
+  }
+  addContextCard({
+    title: 'File added to the conversation',
+    meta: file.name,
+    body: activeQueueSeedId
+      ? 'I recorded this file as context on the active WorkCell conversation.'
+      : 'I read this file locally and added it to the current conversation. Start or choose active work when you want it routed to a WorkCell.',
+    tone: 'ready',
+    facts: [
+      { label: 'File', value: file.name },
+      { label: 'Size', value: `${Math.max(1, Math.round(file.size / 1024))} KB` },
+      { label: 'Route', value: activeQueueSeedId ? 'Active WorkCell' : 'Conversation only' }
+    ],
+    actions: [
+      { label: 'Explain this file', primary: true, kind: 'quick', command: `Explain the attached file ${file.name}.` },
+      { label: 'Use it for planning', kind: 'quick', command: `Use ${file.name} to plan the next work.` }
+    ]
+  });
+}
 
-    function addWorkspaceMessage(author, text) {
-      const box = document.getElementById('conversationMessages');
-      if (!box) return;
-      box.insertAdjacentHTML('beforeend', `<div class="message"><strong>${escapeHtml(author)}:</strong> ${escapeHtml(text)}</div>`);
-    }
+async function registerPath() {
+  const path = projectPath.value.trim();
+  if (!path) {
+    pathEntry.classList.add('open');
+    projectPath.focus();
+    return;
+  }
+  projectMenu.classList.remove('open');
+  addUserMessage(`Open ${path}`);
+  try {
+    const result = await postJson('/api/v1/repositories/register-path', { path });
+    const registered = result.registered_repository || result.active_repository || {};
+    addContextCard({
+      title: result.status === 'ready' ? 'Project ready' : 'Project registered',
+      meta: registered.name || 'Project',
+      body: result.status === 'ready'
+        ? 'SRT-1 opened this project in the active conversation.'
+        : 'SRT-1 registered that folder. If it belongs to a different project, launch its runtime before asking SRT-1 to reason from its files.',
+      facts: [
+        { label: 'Project', value: registered.name || 'Project' },
+        { label: 'State', value: result.status || 'registered' },
+        { label: 'Runtime', value: registered.runtime_port || 'Not open yet' }
+      ],
+      actions: registered.repo_id ? [{ label: 'Launch project runtime', primary: true, kind: 'launch', data: { repoId: registered.repo_id } }] : []
+    });
+    await loadWorkspace({ preserveThread: true });
+  } catch (error) {
+    addSystemMessage(error.message || 'Project registration failed.');
+  }
+}
 
-    async function openConversation(queueSeedId, title = 'Project Workspace') {
-      if (!queueSeedId) return;
-      activeQueueSeedId = queueSeedId;
-      document.getElementById('workspaceTitle').textContent = title;
-      showView('workspace');
-      setStatus('conversationStatus', 'loading');
-      try {
-        const response = await fetch(API + '/api/v1/workcells/' + encodeURIComponent(queueSeedId) + '/messages?limit=20');
-        const data = await response.json();
-        const messages = data.messages || [];
-        const box = document.getElementById('conversationMessages');
-        box.innerHTML = messages.length
-          ? messages.slice().reverse().map(msg => `<div class="message"><strong>${escapeHtml(msg.role || 'message')}:</strong> ${escapeHtml(msg.content || '')}</div>`).join('')
-          : '<div class="message"><strong>SRT-1:</strong> This work is ready for conversation.</div>';
-        setStatus('conversationStatus', 'connected', true);
-        await loadActiveWork('activeWorkList');
-      } catch (error) {
-        addWorkspaceMessage('SRT-1', error.message || 'Could not load this conversation.');
-        setStatus('conversationStatus', 'unavailable');
-      }
+async function chooseFolder() {
+  projectMenu.classList.remove('open');
+  addUserMessage('Choose a project folder');
+  addSystemMessage('I am opening the folder connector. When the folder is selected, I will keep the next step in this conversation.');
+  try {
+    const result = await postJson('/api/v1/repositories/browse-folder', {});
+    if (result.status === 'cancelled') {
+      addSystemMessage('No folder was selected. We stayed in this workspace.');
+      return;
     }
+    await loadWorkspace({ preserveThread: true });
+    const registered = result.registered_repository || result.active_repository || {};
+    addContextCard({
+      title: result.status === 'ready' ? 'Project ready' : 'Project registered',
+      meta: registered.name || 'Project',
+      body: result.status === 'ready'
+        ? 'SRT-1 opened the selected project and can continue from this workspace.'
+        : 'SRT-1 registered the selected folder. Launch the project runtime before expecting project-specific understanding.',
+      actions: registered.repo_id ? [{ label: 'Launch project runtime', primary: true, kind: 'launch', data: { repoId: registered.repo_id } }] : []
+    });
+  } catch (error) {
+    addSystemMessage(error.message || 'Folder chooser is unavailable. Paste the folder path instead.');
+    pathEntry.classList.add('open');
+  }
+}
 
-    function quickCommand(text) {
-      const input = document.getElementById('workspaceMessage');
-      if (!input) return;
-      input.value = text;
-      sendToActiveWork();
-    }
+async function launchProject(repoId) {
+  if (!repoId) return;
+  addUserMessage('Launch project runtime');
+  try {
+    const result = await postJson('/api/v1/repositories/launch', { repo_id: repoId });
+    addContextCard({
+      title: result.status === 'ready' ? 'Project already open' : 'Project runtime launching',
+      meta: result.registered_repository?.name || 'Project',
+      body: result.message || 'SRT-1 started the runtime responsible for that project.',
+      facts: [
+        { label: 'Runtime', value: result.runtime_port || 'Starting' },
+        { label: 'State', value: result.status || 'launching' }
+      ],
+      actions: result.runtime_port
+        ? [
+            { label: 'Open project workspace', primary: true, kind: 'open-url', data: { url: runtimeUrl(result.runtime_port) } },
+            { label: 'Open project Control Room', kind: 'open-url', data: { url: runtimeUrl(result.runtime_port, 'dashboard.html') } }
+          ]
+        : [{ label: 'Open Control Room', kind: 'control-room' }]
+    });
+  } catch (error) {
+    addSystemMessage(error.message || 'Project runtime launch failed.');
+  }
+}
 
-    function plantWorkspaceSeed() {
-      const input = document.getElementById('workspaceMessage');
-      const text = input?.value.trim();
-      if (!text) {
-        addWorkspaceMessage('SRT-1', 'Tell me the seed you want to plant in this project.');
-        input?.focus();
-        return;
-      }
-      addWorkspaceMessage('You', text);
-      addWorkspaceMessage('SRT-1', 'Seed captured for this project conversation. I will route it through the active work path when the project runtime is connected.');
-      input.value = '';
-    }
+document.addEventListener('click', event => {
+  const launchButton = event.target.closest('[data-action-kind="launch"]');
+  if (launchButton) {
+    launchProject(launchButton.dataset.repoId);
+    return;
+  }
+});
 
-    async function sendToActiveWork() {
-      const text = document.getElementById('workspaceMessage')?.value.trim();
-      if (!text) return;
-      if (!activeQueueSeedId) {
-        addWorkspaceMessage('You', text);
-        addWorkspaceMessage('SRT-1', 'Message saved in this project conversation. Select active work to route it to a specific WorkCell.');
-        document.getElementById('workspaceMessage').value = '';
-        return;
-      }
-      setStatus('conversationStatus', 'sending');
-      try {
-        await postJson('/api/v1/workcells/' + encodeURIComponent(activeQueueSeedId) + '/chat', {
-          role: 'user',
-          content: text,
-          channel: 'front_facing_experience',
-          actor: 'standard_user',
-          metadata: { source: 'experience_html' }
-        });
-        addWorkspaceMessage('You', text);
-        document.getElementById('workspaceMessage').value = '';
-        setStatus('conversationStatus', 'connected', true);
-      } catch (error) {
-        addWorkspaceMessage('SRT-1', error.message || 'Message could not be sent to active work.');
-        setStatus('conversationStatus', 'unavailable');
-      }
-    }
-  </script>
+sendBtn.addEventListener('click', sendMessage);
+composer.addEventListener('keydown', event => {
+  if (event.key === 'Enter' && !event.shiftKey) {
+    event.preventDefault();
+    sendMessage();
+  }
+});
+
+projectTrigger.addEventListener('click', event => {
+  event.stopPropagation();
+  projectMenu.classList.toggle('open');
+});
+
+projectMenu.addEventListener('click', event => event.stopPropagation());
+document.addEventListener('click', () => projectMenu.classList.remove('open'));
+
+document.getElementById('briefBtn').addEventListener('click', () => renderSessionBrief(latestSummary, latestWork));
+document.getElementById('attachBtn').addEventListener('click', openAttachmentChoices);
+document.getElementById('actionsBtn').addEventListener('click', openActionChoices);
+document.getElementById('currentBtn').addEventListener('click', registerCurrent);
+document.getElementById('useCurrentBtn').addEventListener('click', registerCurrent);
+document.getElementById('chooseFolderBtn').addEventListener('click', chooseFolder);
+document.getElementById('pastePathBtn').addEventListener('click', () => {
+  pathEntry.classList.toggle('open');
+  projectPath.focus();
+});
+document.getElementById('openPathBtn').addEventListener('click', registerPath);
+document.getElementById('githubBtn').addEventListener('click', () => {
+  projectMenu.classList.remove('open');
+  addSystemMessage('GitHub import will use this same conversation flow when the connector is available. For now, clone the repository locally and choose that folder.');
+});
+fileInput.addEventListener('change', () => {
+  const file = fileInput.files && fileInput.files[0];
+  fileInput.value = '';
+  handleFileAttachment(file);
+});
+
+loadWorkspace();
+</script>
 </body>
 </html>
