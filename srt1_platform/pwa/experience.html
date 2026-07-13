@@ -6,217 +6,583 @@
   <title>SRT-1 Experience</title>
   <style>
     :root {
-      --bg: #070a12;
-      --panel: #101622;
-      --panel2: #151d2b;
-      --line: #263142;
-      --text: #f4f7fb;
-      --muted: #9aa7b7;
-      --soft: #c7d1dd;
-      --blue: #58a6ff;
-      --cyan: #39d0d8;
-      --green: #3fb950;
-      --amber: #d29922;
-      --red: #f85149;
+      --bg: #0b0d10;
+      --surface: #141820;
+      --surface-2: #1b202a;
+      --line: #2b3442;
+      --text: #f5f7fa;
+      --muted: #9da8b5;
+      --soft: #cbd3dd;
+      --blue: #68a7ff;
+      --teal: #4fd4c8;
+      --green: #57c878;
+      --amber: #e0ad45;
+      --red: #ff6b64;
     }
+
     * { box-sizing: border-box; }
+
     body {
       margin: 0;
       min-height: 100vh;
       font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       color: var(--text);
-      background:
-        radial-gradient(circle at top left, rgba(57, 208, 216, .14), transparent 34%),
-        radial-gradient(circle at top right, rgba(88, 166, 255, .12), transparent 30%),
-        var(--bg);
+      background: var(--bg);
     }
+
+    button, input, textarea { font: inherit; }
     a { color: inherit; }
-    .shell { width: min(1180px, calc(100% - 40px)); margin: 0 auto; padding: 28px 0 52px; }
-    .topbar { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 42px; }
-    .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; }
-    .mark { width: 38px; height: 38px; display: grid; place-items: center; border: 1px solid rgba(57, 208, 216, .45); border-radius: 9px; background: rgba(57, 208, 216, .1); font-weight: 900; color: var(--cyan); }
-    .brand-title { font-size: 15px; font-weight: 850; letter-spacing: .01em; }
-    .brand-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
-    .nav { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-    .nav a, .ghost-btn {
+
+    .shell {
+      width: min(1120px, calc(100% - 40px));
+      min-height: 100vh;
+      margin: 0 auto;
+      padding: 28px 0 48px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+    }
+
+    .mark {
+      width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      border: 1px solid rgba(79, 212, 200, .48);
+      color: var(--teal);
+      background: rgba(79, 212, 200, .08);
+      font-weight: 900;
+    }
+
+    .brand-title { font-size: 15px; font-weight: 850; }
+    .brand-sub { margin-top: 2px; font-size: 12px; color: var(--muted); }
+
+    .nav {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .nav a, .quiet-button {
       border: 1px solid var(--line);
       border-radius: 8px;
       padding: 9px 12px;
+      background: rgba(255, 255, 255, .02);
       color: var(--soft);
-      background: rgba(255,255,255,.02);
       text-decoration: none;
       font-size: 13px;
-      font-weight: 700;
+      font-weight: 750;
       cursor: pointer;
     }
-    .nav a:hover, .ghost-btn:hover { border-color: rgba(88,166,255,.5); color: var(--text); }
-    .hero { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(320px, .9fr); gap: 24px; align-items: stretch; }
-    .welcome, .panel {
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      background: linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.018));
-      box-shadow: 0 18px 55px rgba(0,0,0,.28);
-    }
-    .welcome { padding: clamp(24px, 5vw, 48px); }
-    .eyebrow { color: var(--cyan); font-size: 12px; text-transform: uppercase; letter-spacing: .12em; font-weight: 900; margin-bottom: 14px; }
-    h1 { font-size: clamp(32px, 5vw, 62px); line-height: 1.04; margin: 0 0 18px; letter-spacing: -1px; }
-    .lead { color: var(--soft); font-size: 17px; line-height: 1.7; max-width: 680px; margin: 0; }
-    .action-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 30px; }
-    .action-card {
-      text-align: left;
-      border: 1px solid var(--line);
-      background: var(--panel);
-      border-radius: 10px;
-      padding: 16px;
+
+    .nav a:hover, .quiet-button:hover {
+      border-color: rgba(104, 167, 255, .56);
       color: var(--text);
-      cursor: pointer;
-      min-height: 116px;
     }
-    .action-card.primary { border-color: rgba(63,185,80,.46); background: linear-gradient(180deg, rgba(63,185,80,.11), rgba(255,255,255,.018)); }
-    .action-title { font-size: 15px; font-weight: 850; margin-bottom: 8px; }
-    .action-copy { color: var(--muted); font-size: 13px; line-height: 1.55; }
-    .panel { padding: 18px; }
-    .panel-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 14px; }
-    .panel-title { font-size: 13px; font-weight: 900; text-transform: uppercase; letter-spacing: .08em; color: var(--soft); }
-    .status { font-size: 11px; color: var(--amber); border: 1px solid rgba(210,153,34,.35); background: rgba(210,153,34,.08); border-radius: 999px; padding: 4px 8px; font-weight: 800; }
-    .status.ready { color: var(--green); border-color: rgba(63,185,80,.35); background: rgba(63,185,80,.08); }
-    .project-form { display: grid; gap: 10px; }
+
+    .view {
+      display: none;
+      flex: 1;
+      padding: 52px 0 0;
+    }
+
+    .view.active {
+      display: block;
+    }
+
+    .front-door {
+      min-height: calc(100vh - 150px);
+      display: grid;
+      place-items: center;
+    }
+
+    .front-inner {
+      width: min(880px, 100%);
+      text-align: center;
+    }
+
+    .kicker {
+      margin: 0 0 14px;
+      color: var(--teal);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(36px, 6vw, 68px);
+      line-height: 1.05;
+      font-weight: 900;
+    }
+
+    .prompt {
+      margin: 18px 0 0;
+      color: var(--soft);
+      font-size: clamp(20px, 3vw, 30px);
+      font-weight: 650;
+    }
+
+    .choice-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 44px;
+    }
+
+    .choice {
+      min-height: 168px;
+      padding: 22px;
+      text-align: left;
+      color: var(--text);
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .choice:hover {
+      border-color: rgba(79, 212, 200, .6);
+      background: var(--surface-2);
+    }
+
+    .choice-code {
+      width: 36px;
+      height: 36px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      color: var(--teal);
+      font-weight: 900;
+      background: rgba(255, 255, 255, .03);
+    }
+
+    .choice-title {
+      display: block;
+      margin-top: 28px;
+      font-size: 20px;
+      font-weight: 850;
+    }
+
+    .screen {
+      width: min(940px, 100%);
+      margin: 0 auto;
+    }
+
+    .screen-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 24px;
+    }
+
+    .screen-title {
+      margin: 0;
+      font-size: clamp(30px, 5vw, 52px);
+      line-height: 1.08;
+      font-weight: 900;
+    }
+
+    .screen-copy {
+      margin: 12px 0 0;
+      color: var(--soft);
+      font-size: 17px;
+      line-height: 1.6;
+      max-width: 700px;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      padding: 20px;
+    }
+
+    .stack { display: grid; gap: 14px; }
+    .two-col { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
+    .three-col { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+
     .input, textarea {
       width: 100%;
       border: 1px solid var(--line);
       border-radius: 8px;
-      background: rgba(0,0,0,.2);
+      background: rgba(0, 0, 0, .18);
       color: var(--text);
-      padding: 11px 12px;
-      font: inherit;
+      padding: 12px 13px;
       outline: none;
     }
-    textarea { min-height: 112px; resize: vertical; line-height: 1.55; }
-    .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
-    .btn {
+
+    textarea {
+      min-height: 170px;
+      resize: vertical;
+      line-height: 1.55;
+    }
+
+    .button-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .button {
       border: 0;
       border-radius: 8px;
-      padding: 10px 13px;
-      color: #041014;
-      background: linear-gradient(135deg, var(--green), var(--cyan));
+      padding: 11px 14px;
+      color: #061014;
+      background: linear-gradient(135deg, var(--green), var(--teal));
       font-weight: 850;
       cursor: pointer;
     }
-    .btn.secondary { color: var(--soft); background: var(--panel2); border: 1px solid var(--line); }
-    .helper { color: var(--muted); font-size: 12px; line-height: 1.55; margin-top: 8px; }
-    .section { margin-top: 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
-    .work-list { display: grid; gap: 10px; }
-    .work-card { border: 1px solid var(--line); background: var(--panel); border-radius: 10px; padding: 14px; display: grid; grid-template-columns: 1fr auto; gap: 10px; }
-    .work-name { font-weight: 850; margin-bottom: 5px; }
-    .work-meta { color: var(--muted); font-size: 12px; line-height: 1.45; }
-    .work-state { color: var(--cyan); font-size: 12px; font-weight: 850; white-space: nowrap; }
-    .chat-box { display: grid; gap: 10px; }
-    .message { border: 1px solid var(--line); border-radius: 10px; background: var(--panel); padding: 12px; color: var(--soft); font-size: 13px; line-height: 1.55; }
+
+    .button.secondary {
+      color: var(--soft);
+      background: var(--surface-2);
+      border: 1px solid var(--line);
+    }
+
+    .button:disabled {
+      cursor: not-allowed;
+      opacity: .58;
+    }
+
+    .option {
+      min-height: 128px;
+      text-align: left;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      color: var(--text);
+      padding: 18px;
+      cursor: pointer;
+    }
+
+    .option:hover {
+      border-color: rgba(104, 167, 255, .58);
+      background: var(--surface-2);
+    }
+
+    .option-title {
+      display: block;
+      font-size: 17px;
+      font-weight: 850;
+      margin-bottom: 9px;
+    }
+
+    .option-copy, .muted {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      padding: 4px 9px;
+      border-radius: 999px;
+      border: 1px solid rgba(224, 173, 69, .38);
+      color: var(--amber);
+      background: rgba(224, 173, 69, .08);
+      font-size: 12px;
+      font-weight: 850;
+    }
+
+    .status-pill.ready {
+      border-color: rgba(87, 200, 120, .4);
+      color: var(--green);
+      background: rgba(87, 200, 120, .08);
+    }
+
+    .prep-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      gap: 10px;
+    }
+
+    .prep-list li {
+      color: var(--soft);
+      font-size: 15px;
+      line-height: 1.45;
+    }
+
+    .prep-list li::before {
+      content: "";
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      margin-right: 10px;
+      border-radius: 999px;
+      background: var(--green);
+    }
+
+    .list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .work-item {
+      width: 100%;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+      text-align: left;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      color: var(--text);
+      padding: 15px;
+      cursor: pointer;
+    }
+
+    .work-item:hover {
+      border-color: rgba(79, 212, 200, .58);
+      background: var(--surface-2);
+    }
+
+    .work-name {
+      font-weight: 850;
+      margin-bottom: 5px;
+    }
+
+    .work-state {
+      color: var(--teal);
+      font-size: 12px;
+      font-weight: 850;
+      white-space: nowrap;
+    }
+
+    .message {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, .03);
+      padding: 13px;
+      color: var(--soft);
+      font-size: 14px;
+      line-height: 1.55;
+    }
+
     .message strong { color: var(--text); }
-    .prep-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
-    .prep-list li { display: flex; gap: 9px; color: var(--soft); font-size: 13px; }
-    .prep-list li::before { content: "✓"; color: var(--green); font-weight: 900; }
+
     .hidden { display: none !important; }
-    @media (max-width: 860px) {
-      .hero, .section { grid-template-columns: 1fr; }
-      .action-grid { grid-template-columns: 1fr; }
-      .topbar { align-items: flex-start; flex-direction: column; }
+
+    @media (max-width: 840px) {
+      .choice-grid, .two-col, .three-col { grid-template-columns: 1fr; }
+      .topbar, .screen-head { flex-direction: column; }
+      .view { padding-top: 32px; }
+      .choice { min-height: 132px; }
     }
   </style>
 </head>
 <body>
   <main class="shell">
     <header class="topbar">
-      <a class="brand" href="srt1-core.html">
+      <a class="brand" href="experience.html" aria-label="SRT-1 home">
         <div class="mark">S1</div>
         <div>
           <div class="brand-title">SRT-1</div>
           <div class="brand-sub">Standard Experience</div>
         </div>
       </a>
-      <nav class="nav" aria-label="Experience navigation">
+      <nav class="nav" aria-label="SRT-1 navigation">
         <a href="dashboard.html">Advanced</a>
-        <a href="documentation.html#quickstart">Quickstart</a>
         <a href="srt1-core.html">Public Site</a>
       </nav>
     </header>
 
-    <section class="hero">
-      <div class="welcome">
-        <div class="eyebrow">Welcome to SRT-1</div>
-        <h1>What would you like to work on?</h1>
-        <p class="lead">Start by adding the project from this computer. Once SRT-1 understands the folder or repository, you can plant ideas, talk with the work, review progress, and open technical details only when you want them.</p>
-        <div class="action-grid">
-          <button class="action-card primary" onclick="focusProjectPath()">
-            <div class="action-title">Add a project</div>
-            <div class="action-copy">Choose a folder, paste a path, or register the current local project so SRT-1 can prepare it.</div>
-          </button>
-          <button class="action-card" onclick="loadActiveWork()">
-            <div class="action-title">Continue previous work</div>
-            <div class="action-copy">Load active work, recent requests, review items, and anything ready to continue.</div>
-          </button>
-          <button class="action-card" onclick="focusIdeaDraft()">
-            <div class="action-title">Capture an idea for later</div>
-            <div class="action-copy">Shape the idea now. It becomes executable after a project is attached.</div>
-          </button>
-          <button class="action-card" onclick="location.href='dashboard.html'">
-            <div class="action-title">Open Advanced</div>
-            <div class="action-copy">Use the existing Operations Console for WorkCells, manifests, runtime state, adapters, and technical controls.</div>
-          </button>
-        </div>
-      </div>
+    <section id="welcomeView" class="view active" aria-labelledby="welcomeTitle">
+      <!-- FRONT DOOR -->
+      <div class="front-door">
+        <div class="front-inner">
+          <p class="kicker">SRT-1</p>
+          <h1 id="welcomeTitle">Good afternoon, Darnell.</h1>
+          <p class="prompt">What would you like to accomplish today?</p>
 
-      <aside class="panel" id="projectPanel">
-        <div class="panel-head">
-          <div class="panel-title">Add Project</div>
-          <div class="status" id="projectStatus">waiting</div>
-        </div>
-        <div class="project-form">
-          <input id="projectPath" class="input" placeholder="Paste a local folder path, for example C:\Users\SEEDN\Downloads\SRT1 CODING">
-          <div class="btn-row">
-            <button class="btn" onclick="registerPath()">Register Path</button>
-            <button class="btn secondary" onclick="browseFolder()">Choose Folder</button>
-            <button class="btn secondary" onclick="registerCurrent()">Use Current</button>
+          <div class="choice-grid">
+            <button class="choice" onclick="showView('idea')">
+              <span class="choice-code">01</span>
+              <span class="choice-title">Start with an Idea</span>
+            </button>
+            <button class="choice" onclick="showView('project')">
+              <span class="choice-code">02</span>
+              <span class="choice-title">Open Existing Project</span>
+            </button>
+            <button class="choice" onclick="openContinueView()">
+              <span class="choice-code">03</span>
+              <span class="choice-title">Continue Previous Work</span>
+            </button>
           </div>
         </div>
-        <p class="helper">SRT-1 will use the existing repository registration and preparation routes. No new backend is required for this first front-facing layer.</p>
-        <ul class="prep-list" style="margin-top:14px;">
-          <li>Reading project files</li>
-          <li>Understanding project structure</li>
-          <li>Preparing project memory</li>
-          <li>Creating focused workspaces</li>
-          <li>Keeping Advanced details available</li>
-        </ul>
-      </aside>
+      </div>
+      <!-- END FRONT DOOR -->
     </section>
 
-    <section class="section">
-      <div class="panel">
-        <div class="panel-head">
-          <div class="panel-title">Active Work</div>
-          <button class="ghost-btn" onclick="loadActiveWork()">Refresh</button>
+    <section id="ideaView" class="view" aria-labelledby="ideaTitle">
+      <div class="screen">
+        <div class="screen-head">
+          <div>
+            <h2 id="ideaTitle" class="screen-title">Tell me about your idea.</h2>
+            <p class="screen-copy">This is the ideation room. Once the idea has enough shape, SRT-1 can turn it into a seed and connect it to a project.</p>
+          </div>
+          <button class="quiet-button" onclick="showView('welcome')">Back</button>
         </div>
-        <div id="activeWorkList" class="work-list">
-          <div class="message">Add or open a project to see work that is running, waiting for review, or ready to continue.</div>
+
+        <div class="panel stack">
+          <div id="ideaMessages" class="stack">
+            <div class="message"><strong>SRT-1:</strong> What are we building, fixing, writing, or organizing?</div>
+          </div>
+          <textarea id="ideaDraft" placeholder="Describe the idea in your own words."></textarea>
+          <div class="button-row">
+            <button class="button" onclick="captureIdea()">Plant Seed</button>
+            <button class="button secondary" onclick="showView('project')">Attach Project</button>
+          </div>
         </div>
       </div>
+    </section>
 
-      <div class="panel">
-        <div class="panel-head">
-          <div class="panel-title">Project Conversation</div>
-          <div class="status" id="conversationStatus">project needed</div>
+    <section id="projectView" class="view" aria-labelledby="projectTitle">
+      <div class="screen">
+        <div class="screen-head">
+          <div>
+            <h2 id="projectTitle" class="screen-title">Open Existing Project</h2>
+            <p class="screen-copy">Choose the folder or repository SRT-1 should work inside.</p>
+          </div>
+          <button class="quiet-button" onclick="showView('welcome')">Back</button>
         </div>
-        <div class="chat-box">
-          <div id="conversationMessages">
-            <div class="message"><strong>SRT-1:</strong> Attach a project first. Then ideas and messages can be connected to the right workspace, review path, and assistant adapter.</div>
+
+        <div class="three-col">
+          <button class="option" onclick="browseFolder()">
+            <span class="option-title">Choose Folder</span>
+            <span class="option-copy">Open a local project from this computer.</span>
+          </button>
+          <button class="option" onclick="showPathEntry()">
+            <span class="option-title">Paste Local Path</span>
+            <span class="option-copy">Use a folder path you already know.</span>
+          </button>
+          <button class="option" onclick="showGitHubPending()">
+            <span class="option-title">Import GitHub</span>
+            <span class="option-copy">Bring in a repository when connected.</span>
+          </button>
+        </div>
+
+        <div id="pathEntry" class="panel stack hidden" style="margin-top:18px;">
+          <input id="projectPath" class="input" placeholder="C:\Users\SEEDN\Downloads\SRT1 CODING">
+          <div class="button-row">
+            <button class="button" onclick="registerPath()">Open This Folder</button>
+            <button class="button secondary" onclick="registerCurrent()">Use Current Folder</button>
           </div>
-          <textarea id="ideaDraft" placeholder="Capture an idea or ask what should happen next. If no project is active, this remains a draft."></textarea>
-          <div class="btn-row">
-            <button class="btn" onclick="captureIdea()">Capture Idea</button>
-            <button class="btn secondary" onclick="sendToActiveWork()">Send To Active Work</button>
-            <button class="btn secondary" onclick="location.href='dashboard.html#workcells'">Show Technical Details</button>
+        </div>
+
+        <div class="panel stack" style="margin-top:18px;">
+          <div class="screen-head" style="margin-bottom:0;">
+            <div>
+              <strong>Recent Projects</strong>
+              <div class="muted">Projects will appear here after SRT-1 has opened them.</div>
+            </div>
+            <button class="quiet-button" onclick="openContinueView()">Refresh</button>
           </div>
-          <p class="helper">Standard language stays simple. The existing Operations Console still owns the technical details.</p>
+          <div id="recentProjects" class="list">
+            <div class="message">No recent projects loaded yet.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="preparingView" class="view" aria-labelledby="preparingTitle">
+      <div class="screen">
+        <div class="screen-head">
+          <div>
+            <h2 id="preparingTitle" class="screen-title">SRT-1 is preparing your project.</h2>
+            <p class="screen-copy">This is where the existing engine reads the folder, understands the repository, and gets the workspace ready.</p>
+          </div>
+          <span id="prepareStatus" class="status-pill">preparing</span>
+        </div>
+
+        <div class="panel">
+          <ul class="prep-list">
+            <li>Reading project files</li>
+            <li>Understanding project structure</li>
+            <li>Preparing project memory</li>
+            <li>Creating focused workspace</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="continueView" class="view" aria-labelledby="continueTitle">
+      <div class="screen">
+        <div class="screen-head">
+          <div>
+            <h2 id="continueTitle" class="screen-title">Continue Previous Work</h2>
+            <p class="screen-copy">Choose a project or active piece of work to reopen.</p>
+          </div>
+          <button class="quiet-button" onclick="showView('welcome')">Back</button>
+        </div>
+
+        <div id="previousWorkList" class="list">
+          <div class="message">Loading previous work...</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="workspaceView" class="view" aria-labelledby="workspaceTitle">
+      <div class="screen">
+        <div class="screen-head">
+          <div>
+            <h2 id="workspaceTitle" class="screen-title">Project Workspace</h2>
+            <p class="screen-copy" id="workspaceSubtitle">Ready for project work.</p>
+          </div>
+          <button class="quiet-button" onclick="openContinueView()">Back to Work</button>
+        </div>
+
+        <div class="two-col">
+          <div class="panel stack">
+            <div class="screen-head" style="margin-bottom:0;">
+              <strong>Active Work</strong>
+              <button class="quiet-button" onclick="loadActiveWork()">Refresh</button>
+            </div>
+            <div id="activeWorkList" class="list">
+              <div class="message">No active work loaded yet.</div>
+            </div>
+          </div>
+
+          <div class="panel stack">
+            <div class="screen-head" style="margin-bottom:0;">
+              <strong>Project Conversation</strong>
+              <span id="conversationStatus" class="status-pill">ready</span>
+            </div>
+            <div id="conversationMessages" class="stack">
+              <div class="message"><strong>SRT-1:</strong> This conversation belongs to the project you opened.</div>
+            </div>
+            <textarea id="workspaceMessage" placeholder="Ask about the work, request a change, or approve what is ready."></textarea>
+            <div class="button-row">
+              <button class="button" onclick="sendToActiveWork()">Send</button>
+              <button class="button secondary" onclick="location.href='dashboard.html#workcells'">Advanced Details</button>
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -225,6 +591,13 @@
   <script>
     const API = localStorage.getItem('srt1_api_base') || 'http://127.0.0.1:7484';
     let latestWorkCells = null;
+    let activeQueueSeedId = '';
+
+    function showView(name) {
+      document.querySelectorAll('.view').forEach(view => view.classList.remove('active'));
+      document.getElementById(name + 'View')?.classList.add('active');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
 
     function setStatus(id, text, ready = false) {
       const el = document.getElementById(id);
@@ -234,17 +607,7 @@
     }
 
     function escapeHtml(value) {
-      return String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-    }
-
-    function focusProjectPath() {
-      document.getElementById('projectPath')?.focus();
-      document.getElementById('projectPanel')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
-
-    function focusIdeaDraft() {
-      document.getElementById('ideaDraft')?.focus();
-      setStatus('conversationStatus', 'draft only');
+      return String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     }
 
     async function postJson(path, body = {}) {
@@ -258,45 +621,55 @@
       return data;
     }
 
+    function showPathEntry() {
+      document.getElementById('pathEntry')?.classList.remove('hidden');
+      document.getElementById('projectPath')?.focus();
+    }
+
+    function showGitHubPending() {
+      const list = document.getElementById('recentProjects');
+      list.innerHTML = '<div class="message">GitHub import will use the same project-opening flow when the connector is available. For now, choose the local folder after cloning.</div>';
+    }
+
     async function registerPath() {
       const path = document.getElementById('projectPath')?.value.trim();
       if (!path) {
-        setStatus('projectStatus', 'path needed');
-        focusProjectPath();
+        showPathEntry();
         return;
       }
-      setStatus('projectStatus', 'preparing');
+      showView('preparing');
       try {
         await postJson('/api/v1/repositories/register-path', { path });
-        setStatus('projectStatus', 'ready', true);
-        await loadActiveWork();
+        await openWorkspace('Project ready');
       } catch (error) {
-        setStatus('projectStatus', 'unavailable');
-        addMessage('SRT-1', error.message || 'Project registration failed.');
+        setStatus('prepareStatus', 'needs attention');
+        addWorkspaceMessage('SRT-1', error.message || 'Project registration failed.');
+        showView('workspace');
       }
     }
 
     async function browseFolder() {
-      setStatus('projectStatus', 'opening chooser');
+      showView('preparing');
       try {
         await postJson('/api/v1/repositories/browse-folder', {});
-        setStatus('projectStatus', 'ready', true);
-        await loadActiveWork();
+        await openWorkspace('Project ready');
       } catch (error) {
-        setStatus('projectStatus', 'unavailable');
-        addMessage('SRT-1', error.message || 'Folder chooser is unavailable. Paste the path instead.');
+        setStatus('prepareStatus', 'needs path');
+        showView('project');
+        showPathEntry();
+        document.getElementById('recentProjects').innerHTML = `<div class="message">${escapeHtml(error.message || 'Folder chooser is unavailable. Paste the folder path instead.')}</div>`;
       }
     }
 
     async function registerCurrent() {
-      setStatus('projectStatus', 'preparing');
+      showView('preparing');
       try {
         await postJson('/api/v1/repositories/register-current', {});
-        setStatus('projectStatus', 'ready', true);
-        await loadActiveWork();
+        await openWorkspace('Project ready');
       } catch (error) {
-        setStatus('projectStatus', 'unavailable');
-        addMessage('SRT-1', error.message || 'Current project registration failed.');
+        setStatus('prepareStatus', 'needs attention');
+        addWorkspaceMessage('SRT-1', error.message || 'Current project registration failed.');
+        showView('workspace');
       }
     }
 
@@ -308,12 +681,24 @@
       if (status === 'awaiting_review') return 'Waiting for review';
       if (verification === 'verified') return 'Checks passed';
       if (['running', 'dispatched', 'ready'].includes(status)) return 'Working';
-      return status ? status.replace(/_/g, ' ') : 'Ready to continue';
+      return status ? status.replace(/_/g, ' ') : 'Ready';
     }
 
-    async function loadActiveWork() {
-      const list = document.getElementById('activeWorkList');
-      if (list) list.innerHTML = '<div class="message">Loading active work...</div>';
+    async function openContinueView() {
+      showView('continue');
+      await loadActiveWork('previousWorkList');
+    }
+
+    async function openWorkspace(label = 'Ready for project work') {
+      setStatus('prepareStatus', 'ready', true);
+      document.getElementById('workspaceSubtitle').textContent = label;
+      showView('workspace');
+      await loadActiveWork('activeWorkList');
+    }
+
+    async function loadActiveWork(targetId = 'activeWorkList') {
+      const list = document.getElementById(targetId);
+      if (list) list.innerHTML = '<div class="message">Loading work...</div>';
       try {
         const [summaryResponse, workResponse] = await Promise.allSettled([
           fetch(API + '/dashboard-summary').then(r => r.json()),
@@ -323,37 +708,50 @@
         latestWorkCells = workResponse.status === 'fulfilled' ? workResponse.value : {};
         const executions = latestWorkCells.executions || [];
         const repo = summary.repo || summary.repository_activation?.active_repository?.name || 'Current project';
-        setStatus('projectStatus', repo && repo !== 'Unknown' ? 'ready' : 'waiting', repo && repo !== 'Unknown');
-        setStatus('conversationStatus', executions.length ? 'connected' : 'ready');
 
         if (!executions.length) {
-          list.innerHTML = `<div class="message"><strong>${escapeHtml(repo)}</strong><br>No active work yet. Plant an idea in this project when you are ready.</div>`;
+          list.innerHTML = `<div class="message"><strong>${escapeHtml(repo)}</strong><br>No active work found yet.</div>`;
           return;
         }
 
-        list.innerHTML = executions.slice(0, 8).map(ex => `
-          <button class="work-card" onclick="openConversation('${escapeHtml(ex.queue_seed_id || '')}')">
-            <div>
-              <div class="work-name">${escapeHtml(ex.objective || ex.queue_seed_id || 'Active work')}</div>
-              <div class="work-meta">${escapeHtml(repo)} / ${escapeHtml(ex.updated_at || ex.created_at || 'recent')}</div>
-            </div>
-            <div class="work-state">${escapeHtml(plainStatus(ex))}</div>
+        list.innerHTML = executions.slice(0, 10).map(ex => `
+          <button class="work-item" onclick="openConversation('${escapeHtml(ex.queue_seed_id || '')}', '${escapeHtml(ex.objective || 'Active work')}')">
+            <span>
+              <span class="work-name">${escapeHtml(ex.objective || ex.queue_seed_id || 'Active work')}</span>
+              <span class="muted">${escapeHtml(repo)} / ${escapeHtml(ex.updated_at || ex.created_at || 'recent')}</span>
+            </span>
+            <span class="work-state">${escapeHtml(plainStatus(ex))}</span>
           </button>
         `).join('');
       } catch (error) {
-        if (list) list.innerHTML = `<div class="message">SRT-1 runtime is not reachable at ${escapeHtml(API)}. You can still open Advanced or start the local engine.</div>`;
-        setStatus('projectStatus', 'offline');
+        if (list) list.innerHTML = `<div class="message">SRT-1 runtime is not reachable at ${escapeHtml(API)}.</div>`;
       }
     }
 
-    function addMessage(author, text) {
+    function addIdeaMessage(author, text) {
+      const box = document.getElementById('ideaMessages');
+      box.insertAdjacentHTML('beforeend', `<div class="message"><strong>${escapeHtml(author)}:</strong> ${escapeHtml(text)}</div>`);
+    }
+
+    function addWorkspaceMessage(author, text) {
       const box = document.getElementById('conversationMessages');
       if (!box) return;
       box.insertAdjacentHTML('beforeend', `<div class="message"><strong>${escapeHtml(author)}:</strong> ${escapeHtml(text)}</div>`);
     }
 
-    async function openConversation(queueSeedId) {
+    function captureIdea() {
+      const text = document.getElementById('ideaDraft')?.value.trim();
+      if (!text) return;
+      addIdeaMessage('You', text);
+      addIdeaMessage('SRT-1', 'Seed captured. Attach a project when you are ready to turn it into active work.');
+      document.getElementById('ideaDraft').value = '';
+    }
+
+    async function openConversation(queueSeedId, title = 'Project Workspace') {
       if (!queueSeedId) return;
+      activeQueueSeedId = queueSeedId;
+      document.getElementById('workspaceTitle').textContent = title;
+      showView('workspace');
       setStatus('conversationStatus', 'loading');
       try {
         const response = await fetch(API + '/api/v1/workcells/' + encodeURIComponent(queueSeedId) + '/messages?limit=20');
@@ -362,50 +760,41 @@
         const box = document.getElementById('conversationMessages');
         box.innerHTML = messages.length
           ? messages.slice().reverse().map(msg => `<div class="message"><strong>${escapeHtml(msg.role || 'message')}:</strong> ${escapeHtml(msg.content || '')}</div>`).join('')
-          : `<div class="message"><strong>SRT-1:</strong> This work is ready for conversation. Ask what changed, what needs review, or what should happen next.</div>`;
-        box.dataset.queueSeedId = queueSeedId;
+          : '<div class="message"><strong>SRT-1:</strong> This work is ready for conversation.</div>';
         setStatus('conversationStatus', 'connected', true);
+        await loadActiveWork('activeWorkList');
       } catch (error) {
-        addMessage('SRT-1', error.message || 'Could not load this conversation.');
+        addWorkspaceMessage('SRT-1', error.message || 'Could not load this conversation.');
         setStatus('conversationStatus', 'unavailable');
       }
     }
 
-    function captureIdea() {
-      const text = document.getElementById('ideaDraft')?.value.trim();
-      if (!text) return;
-      addMessage('You', text);
-        addMessage('SRT-1', 'Idea captured as project-pending. Add or open the project folder when you are ready to turn it into active work.');
-        setStatus('conversationStatus', 'project-pending');
-    }
-
     async function sendToActiveWork() {
-      const text = document.getElementById('ideaDraft')?.value.trim();
-      const queueSeedId = document.getElementById('conversationMessages')?.dataset.queueSeedId;
+      const text = document.getElementById('workspaceMessage')?.value.trim();
       if (!text) return;
-      if (!queueSeedId) {
-        captureIdea();
+      if (!activeQueueSeedId) {
+        addWorkspaceMessage('You', text);
+        addWorkspaceMessage('SRT-1', 'Message saved in this project conversation. Select active work to route it to a specific WorkCell.');
+        document.getElementById('workspaceMessage').value = '';
         return;
       }
       setStatus('conversationStatus', 'sending');
       try {
-        await postJson('/api/v1/workcells/' + encodeURIComponent(queueSeedId) + '/chat', {
+        await postJson('/api/v1/workcells/' + encodeURIComponent(activeQueueSeedId) + '/chat', {
           role: 'user',
           content: text,
           channel: 'front_facing_experience',
           actor: 'standard_user',
           metadata: { source: 'experience_html' }
         });
-        addMessage('You', text);
-        document.getElementById('ideaDraft').value = '';
+        addWorkspaceMessage('You', text);
+        document.getElementById('workspaceMessage').value = '';
         setStatus('conversationStatus', 'connected', true);
       } catch (error) {
-        addMessage('SRT-1', error.message || 'Message could not be sent to active work.');
+        addWorkspaceMessage('SRT-1', error.message || 'Message could not be sent to active work.');
         setStatus('conversationStatus', 'unavailable');
       }
     }
-
-    loadActiveWork();
   </script>
 </body>
 </html>
