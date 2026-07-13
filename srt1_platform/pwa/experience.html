@@ -184,6 +184,57 @@
       font-weight: 850;
     }
 
+    .home-console {
+      width: min(780px, 100%);
+      margin: 36px auto 0;
+      text-align: left;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      padding: 18px;
+    }
+
+    .home-messages {
+      display: grid;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .command-box {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: stretch;
+    }
+
+    .command-box textarea {
+      min-height: 66px;
+      resize: vertical;
+    }
+
+    .shortcut-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+
+    .shortcut {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, .025);
+      color: var(--soft);
+      padding: 8px 11px;
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .shortcut:hover {
+      border-color: rgba(79, 212, 200, .58);
+      color: var(--text);
+    }
+
     .screen {
       width: min(940px, 100%);
       margin: 0 auto;
@@ -391,6 +442,7 @@
 
     @media (max-width: 840px) {
       .choice-grid, .two-col, .three-col { grid-template-columns: 1fr; }
+      .command-box { grid-template-columns: 1fr; }
       .topbar, .screen-head { flex-direction: column; }
       .view { padding-top: 32px; }
       .choice { min-height: 132px; }
@@ -419,21 +471,24 @@
         <div class="front-inner">
           <p class="kicker">SRT-1</p>
           <h1 id="welcomeTitle">Good afternoon, Darnell.</h1>
+          <p class="kicker" style="margin-top:14px;">SCI is active.</p>
           <p class="prompt">What would you like to accomplish today?</p>
 
-          <div class="choice-grid">
-            <button class="choice" onclick="showView('idea')">
-              <span class="choice-code">01</span>
-              <span class="choice-title">Start with an Idea</span>
-            </button>
-            <button class="choice" onclick="showView('project')">
-              <span class="choice-code">02</span>
-              <span class="choice-title">Open Existing Project</span>
-            </button>
-            <button class="choice" onclick="openContinueView()">
-              <span class="choice-code">03</span>
-              <span class="choice-title">Continue Previous Work</span>
-            </button>
+          <div class="home-console">
+            <div id="homeMessages" class="home-messages">
+              <div class="message"><strong>SRT-1:</strong> Tell me what you want to do. I can find the project, plant a seed, continue work, check files, prepare review, or open the Control Room if you ask for details.</div>
+            </div>
+            <div class="command-box">
+              <textarea id="homeCommand" placeholder="Message SRT-1. For example: continue the authentication cleanup, open SCI, check repository health, or plant a seed for the mobile work."></textarea>
+              <button class="button" onclick="sendHomeCommand()">Send</button>
+            </div>
+            <div class="shortcut-row" aria-label="Common SRT-1 actions">
+              <button class="shortcut" onclick="showView('project')">Open Project</button>
+              <button class="shortcut" onclick="openContinueView()">Continue Work</button>
+              <button class="shortcut" onclick="showView('idea')">Plant Seed</button>
+              <button class="shortcut" onclick="homeShortcut('Check repository health')">Check Health</button>
+              <button class="shortcut" onclick="location.href='dashboard.html'">Control Room</button>
+            </div>
           </div>
         </div>
       </div>
@@ -445,7 +500,7 @@
         <div class="screen-head">
           <div>
             <h2 id="ideaTitle" class="screen-title">Tell me about your idea.</h2>
-            <p class="screen-copy">This is the ideation room. Once the idea has enough shape, SRT-1 can turn it into a seed and connect it to a project.</p>
+            <p class="screen-copy">Start like a conversation. When the idea is ready, SRT-1 can connect it to the project that will carry the work.</p>
           </div>
           <button class="quiet-button" onclick="showView('welcome')">Back</button>
         </div>
@@ -468,7 +523,7 @@
         <div class="screen-head">
           <div>
             <h2 id="projectTitle" class="screen-title">Open Existing Project</h2>
-            <p class="screen-copy">Choose the folder or repository SRT-1 should work inside.</p>
+            <p class="screen-copy">Give SRT-1 the project so the rest of the experience can talk to the actual work instead of asking you to manage the machinery.</p>
           </div>
           <button class="quiet-button" onclick="showView('welcome')">Back</button>
         </div>
@@ -516,17 +571,17 @@
         <div class="screen-head">
           <div>
             <h2 id="preparingTitle" class="screen-title">SRT-1 is preparing your project.</h2>
-            <p class="screen-copy">This is where the existing engine reads the folder, understands the repository, and gets the workspace ready.</p>
+            <p class="screen-copy">SRT-1 is getting the project ready so you can guide the work from one simple conversation.</p>
           </div>
           <span id="prepareStatus" class="status-pill">preparing</span>
         </div>
 
         <div class="panel">
           <ul class="prep-list">
-            <li>Reading project files</li>
-            <li>Understanding project structure</li>
-            <li>Preparing project memory</li>
-            <li>Creating focused workspace</li>
+            <li>Connecting to your project</li>
+            <li>Getting the conversation ready</li>
+            <li>Setting up project controls</li>
+            <li>Preparing a place to review progress</li>
           </ul>
         </div>
       </div>
@@ -552,8 +607,8 @@
       <div class="screen">
         <div class="screen-head">
           <div>
-            <h2 id="workspaceTitle" class="screen-title">Project Workspace</h2>
-            <p class="screen-copy" id="workspaceSubtitle">Ready for project work.</p>
+            <h2 id="workspaceTitle" class="screen-title">Project Controller</h2>
+            <p class="screen-copy" id="workspaceSubtitle">Talk to the project, plant seeds, check files, pause work, resume work, and review what is ready.</p>
           </div>
           <button class="quiet-button" onclick="openContinueView()">Back to Work</button>
         </div>
@@ -561,7 +616,7 @@
         <div class="two-col">
           <div class="panel stack">
             <div class="screen-head" style="margin-bottom:0;">
-              <strong>Active Work</strong>
+              <strong>Current Work</strong>
               <button class="quiet-button" onclick="loadActiveWork()">Refresh</button>
             </div>
             <div id="activeWorkList" class="list">
@@ -575,12 +630,16 @@
               <span id="conversationStatus" class="status-pill">ready</span>
             </div>
             <div id="conversationMessages" class="stack">
-              <div class="message"><strong>SRT-1:</strong> This conversation belongs to the project you opened.</div>
+              <div class="message"><strong>SRT-1:</strong> Your project is connected. Tell me what you want to build, change, check, pause, resume, or review.</div>
             </div>
-            <textarea id="workspaceMessage" placeholder="Ask about the work, request a change, or approve what is ready."></textarea>
+            <textarea id="workspaceMessage" placeholder="Talk to the project. Ask SRT-1 to check a file, plant a seed, pause work, resume work, or review progress."></textarea>
             <div class="button-row">
               <button class="button" onclick="sendToActiveWork()">Send</button>
-              <button class="button secondary" onclick="location.href='dashboard.html#workcells'">Advanced Details</button>
+              <button class="button secondary" onclick="plantWorkspaceSeed()">Plant Seed</button>
+              <button class="button secondary" onclick="quickCommand('Check another file')">Check File</button>
+              <button class="button secondary" onclick="quickCommand('Pause current work')">Pause</button>
+              <button class="button secondary" onclick="quickCommand('Resume current work')">Resume</button>
+              <button class="button secondary" onclick="location.href='dashboard.html#workcells'">Control Room</button>
             </div>
           </div>
         </div>
@@ -733,10 +792,55 @@
       box.insertAdjacentHTML('beforeend', `<div class="message"><strong>${escapeHtml(author)}:</strong> ${escapeHtml(text)}</div>`);
     }
 
+    function addHomeMessage(author, text) {
+      const box = document.getElementById('homeMessages');
+      if (!box) return;
+      box.insertAdjacentHTML('beforeend', `<div class="message"><strong>${escapeHtml(author)}:</strong> ${escapeHtml(text)}</div>`);
+    }
+
     function addWorkspaceMessage(author, text) {
       const box = document.getElementById('conversationMessages');
       if (!box) return;
       box.insertAdjacentHTML('beforeend', `<div class="message"><strong>${escapeHtml(author)}:</strong> ${escapeHtml(text)}</div>`);
+    }
+
+    function homeShortcut(text) {
+      const input = document.getElementById('homeCommand');
+      if (input) input.value = text;
+      sendHomeCommand();
+    }
+
+    async function sendHomeCommand() {
+      const input = document.getElementById('homeCommand');
+      const text = input?.value.trim();
+      if (!text) return;
+      addHomeMessage('You', text);
+      input.value = '';
+
+      const lower = text.toLowerCase();
+      if (lower.includes('open') || lower.includes('folder') || lower.includes('project') || lower.includes('repository')) {
+        addHomeMessage('SRT-1', 'I can do that. Choose the project folder or repository, then I will keep the controls behind the conversation.');
+        showView('project');
+        return;
+      }
+      if (lower.includes('continue') || lower.includes('resume') || lower.includes('left off')) {
+        addHomeMessage('SRT-1', 'I will look for previous work and bring you back to the right conversation.');
+        await openContinueView();
+        return;
+      }
+      if (lower.includes('seed') || lower.includes('idea') || lower.includes('build') || lower.includes('fix')) {
+        addHomeMessage('SRT-1', 'Let us shape that into a seed first.');
+        const idea = document.getElementById('ideaDraft');
+        if (idea) idea.value = text;
+        showView('idea');
+        return;
+      }
+      if (lower.includes('health') || lower.includes('check') || lower.includes('verify') || lower.includes('review')) {
+        addHomeMessage('SRT-1', 'I can check that after a project is connected. Open the project first, then ask me again from the project conversation.');
+        showView('project');
+        return;
+      }
+      addHomeMessage('SRT-1', 'I can operate that through the project conversation. Open a project or continue previous work so I know what environment this belongs to.');
     }
 
     function captureIdea() {
@@ -767,6 +871,26 @@
         addWorkspaceMessage('SRT-1', error.message || 'Could not load this conversation.');
         setStatus('conversationStatus', 'unavailable');
       }
+    }
+
+    function quickCommand(text) {
+      const input = document.getElementById('workspaceMessage');
+      if (!input) return;
+      input.value = text;
+      sendToActiveWork();
+    }
+
+    function plantWorkspaceSeed() {
+      const input = document.getElementById('workspaceMessage');
+      const text = input?.value.trim();
+      if (!text) {
+        addWorkspaceMessage('SRT-1', 'Tell me the seed you want to plant in this project.');
+        input?.focus();
+        return;
+      }
+      addWorkspaceMessage('You', text);
+      addWorkspaceMessage('SRT-1', 'Seed captured for this project conversation. I will route it through the active work path when the project runtime is connected.');
+      input.value = '';
     }
 
     async function sendToActiveWork() {
