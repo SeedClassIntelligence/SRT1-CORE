@@ -603,110 +603,6 @@
       </nav>
     </header>
 
-    <section id="welcomeView" class="view active" aria-labelledby="welcomeTitle">
-      <!-- FRONT DOOR -->
-      <div class="front-door">
-        <div class="front-inner">
-          <p class="kicker">SRT-1</p>
-          <h1 id="welcomeTitle">Good afternoon, Darnell.</h1>
-          <p class="kicker" style="margin-top:14px;">SCIA is active.</p>
-          <p class="prompt">Bring the idea once. SRT-1 keeps the assistant on task and carries the work to completion.</p>
-
-          <div class="status-strip" aria-label="SRT-1 status">
-            <div class="stat">
-              <div class="stat-label">Project</div>
-              <div class="stat-value">Not Connected</div>
-            </div>
-            <div class="stat">
-              <div class="stat-label">Open Seeds</div>
-              <div class="stat-value">0</div>
-            </div>
-            <div class="stat">
-              <div class="stat-label">Reviews</div>
-              <div class="stat-value">None Yet</div>
-            </div>
-            <div class="stat">
-              <div class="stat-label">Last Check</div>
-              <div class="stat-value">Waiting</div>
-            </div>
-            <div class="stat">
-              <div class="stat-label">Assistant</div>
-              <div class="stat-value">Ready</div>
-            </div>
-          </div>
-
-          <div class="control-grid">
-            <aside class="rail">
-              <div class="rail-title">Workspace</div>
-              <div class="nav-list">
-                <button class="nav-item active" onclick="showView('project')">Connect Project</button>
-                <button class="nav-item" onclick="openContinueView()">Continue Work</button>
-                <button class="nav-item" onclick="showView('idea')">Plant Seed</button>
-                <button class="nav-item" onclick="location.href='dashboard.html'">Control Room</button>
-              </div>
-              <div class="rail-title">Getting Started</div>
-              <div class="timeline">
-                <div class="timeline-item">Bring the idea, folder, or repository once.</div>
-                <div class="timeline-item">Choose a folder or repository.</div>
-                <div class="timeline-item">SRT-1 prepares a project conversation.</div>
-                <div class="timeline-item">You guide the assistant without re-explaining the mission.</div>
-              </div>
-            </aside>
-
-            <section class="conversation-surface">
-              <div id="homeMessages" class="home-messages">
-                <div class="message"><strong>SRT-1:</strong> Tell me what you want to complete, or connect your first project so I can keep the assistant on task, preserve continuity, and bring the work back for review.</div>
-              </div>
-              <div class="command-box">
-                <textarea id="homeCommand" placeholder="Message SRT-1. For example: open my SRT-1 Core folder, connect GitHub, plant a seed for mobile, or check repository health."></textarea>
-                <button class="button" onclick="sendHomeCommand()">Send</button>
-              </div>
-              <div class="shortcut-row" aria-label="Common SRT-1 actions">
-                <button class="shortcut" onclick="showView('project')">Choose Folder</button>
-                <button class="shortcut" onclick="showGitHubPending(); showView('project')">Connect GitHub</button>
-                <button class="shortcut" onclick="openContinueView()">Continue Existing Project</button>
-                <button class="shortcut" onclick="homeShortcut('Check repository health')">Ask SRT-1 to Check</button>
-              </div>
-            </section>
-
-            <aside class="intelligence">
-              <div class="rail-title">What SRT-1 Will Show</div>
-              <div class="insight-list">
-                <div class="insight"><strong>Current Work</strong><span class="muted">Seeds, reviews, active work, and paused work in plain language.</span></div>
-                <div class="insight"><strong>Project Lineage</strong><span class="muted">How an idea grows into a seed, work session, review, and completed result.</span></div>
-                <div class="insight"><strong>Continuity</strong><span class="muted">What the assistant is doing, why it matters, and what must stay on track.</span></div>
-                <div class="insight"><strong>Suggested Next Actions</strong><span class="muted">What SRT-1 thinks you should inspect, approve, continue, or return.</span></div>
-              </div>
-            </aside>
-          </div>
-        </div>
-      </div>
-      <!-- END FRONT DOOR -->
-    </section>
-
-    <section id="ideaView" class="view" aria-labelledby="ideaTitle">
-      <div class="screen">
-        <div class="screen-head">
-          <div>
-            <h2 id="ideaTitle" class="screen-title">Tell me about your idea.</h2>
-            <p class="screen-copy">Start like a conversation. When the idea is ready, SRT-1 can connect it to the project that will carry the work.</p>
-          </div>
-          <button class="quiet-button" onclick="showView('welcome')">Back</button>
-        </div>
-
-        <div class="panel stack">
-          <div id="ideaMessages" class="stack">
-            <div class="message"><strong>SRT-1:</strong> What are we building, fixing, writing, or organizing?</div>
-          </div>
-          <textarea id="ideaDraft" placeholder="Describe the idea in your own words."></textarea>
-          <div class="button-row">
-            <button class="button" onclick="captureIdea()">Plant Seed</button>
-            <button class="button secondary" onclick="showView('project')">Attach Project</button>
-          </div>
-        </div>
-      </div>
-    </section>
-
     <section id="projectView" class="view" aria-labelledby="projectTitle">
       <div class="screen">
         <div class="screen-head">
@@ -714,7 +610,7 @@
             <h2 id="projectTitle" class="screen-title">Open Existing Project</h2>
             <p class="screen-copy">Give SRT-1 the project so the rest of the experience can talk to the actual work instead of asking you to manage the machinery.</p>
           </div>
-          <button class="quiet-button" onclick="showView('welcome')">Back</button>
+          <button class="quiet-button" onclick="showView('workspace')">Back</button>
         </div>
 
         <div class="three-col">
@@ -783,7 +679,7 @@
             <h2 id="continueTitle" class="screen-title">Continue Previous Work</h2>
             <p class="screen-copy">Choose a project or active piece of work to reopen.</p>
           </div>
-          <button class="quiet-button" onclick="showView('welcome')">Back</button>
+          <button class="quiet-button" onclick="showView('workspace')">Back</button>
         </div>
 
         <div id="previousWorkList" class="list">
@@ -792,12 +688,12 @@
       </div>
     </section>
 
-    <section id="workspaceView" class="view" aria-labelledby="workspaceTitle">
+    <section id="workspaceView" class="view active" aria-labelledby="workspaceTitle">
       <div class="screen wide">
         <div class="screen-head">
           <div>
             <h2 id="workspaceTitle" class="screen-title">Project Controller</h2>
-            <p class="screen-copy" id="workspaceSubtitle">Talk to the project, plant seeds, check files, pause work, resume work, and review what is ready.</p>
+            <p class="screen-copy" id="workspaceSubtitle">Bring the idea once. SRT-1 keeps the assistant on task and carries the work to completion.</p>
           </div>
           <button class="quiet-button" onclick="openContinueView()">Back to Work</button>
         </div>
@@ -805,7 +701,7 @@
         <div class="status-strip" aria-label="Project status">
           <div class="stat">
             <div class="stat-label">Project</div>
-            <div class="stat-value" id="workspaceProjectName">Connected</div>
+            <div class="stat-value" id="workspaceProjectName">Not Connected</div>
           </div>
           <div class="stat">
             <div class="stat-label">Open Seeds</div>
@@ -829,8 +725,8 @@
           <aside class="rail">
             <div class="rail-title">Projects</div>
             <div class="nav-list">
-              <button class="nav-item active" onclick="loadActiveWork()">Current Project</button>
-              <button class="nav-item" onclick="showView('project')">Open Another Project</button>
+              <button class="nav-item active" onclick="showView('project')">Connect Project</button>
+              <button class="nav-item" onclick="loadActiveWork()">Current Project</button>
               <button class="nav-item" onclick="openContinueView()">Previous Work</button>
               <button class="nav-item" onclick="location.href='dashboard.html#workcells'">Control Room</button>
             </div>
@@ -846,12 +742,13 @@
               <span id="conversationStatus" class="status-pill">ready</span>
             </div>
             <div id="conversationMessages" class="stack">
-              <div class="message"><strong>SRT-1:</strong> Your project is connected. Tell me what you want to build, change, check, pause, resume, or review.</div>
+              <div class="message"><strong>SRT-1:</strong> Tell me what you want to complete, or connect your first project so I can keep the assistant on task, preserve continuity, and bring the work back for review.</div>
             </div>
             <textarea id="workspaceMessage" placeholder="Talk to the project. Ask SRT-1 to check a file, plant a seed, pause work, resume work, or review progress."></textarea>
             <div class="button-row">
               <button class="button" onclick="sendToActiveWork()">Send</button>
               <button class="button secondary" onclick="plantWorkspaceSeed()">Plant Seed</button>
+              <button class="button secondary" onclick="showView('project')">Choose Folder</button>
               <button class="button secondary" onclick="quickCommand('Check another file')">Check File</button>
               <button class="button secondary" onclick="quickCommand('Pause current work')">Pause</button>
               <button class="button secondary" onclick="quickCommand('Resume current work')">Resume</button>
@@ -1034,68 +931,10 @@
       }
     }
 
-    function addIdeaMessage(author, text) {
-      const box = document.getElementById('ideaMessages');
-      box.insertAdjacentHTML('beforeend', `<div class="message"><strong>${escapeHtml(author)}:</strong> ${escapeHtml(text)}</div>`);
-    }
-
-    function addHomeMessage(author, text) {
-      const box = document.getElementById('homeMessages');
-      if (!box) return;
-      box.insertAdjacentHTML('beforeend', `<div class="message"><strong>${escapeHtml(author)}:</strong> ${escapeHtml(text)}</div>`);
-    }
-
     function addWorkspaceMessage(author, text) {
       const box = document.getElementById('conversationMessages');
       if (!box) return;
       box.insertAdjacentHTML('beforeend', `<div class="message"><strong>${escapeHtml(author)}:</strong> ${escapeHtml(text)}</div>`);
-    }
-
-    function homeShortcut(text) {
-      const input = document.getElementById('homeCommand');
-      if (input) input.value = text;
-      sendHomeCommand();
-    }
-
-    async function sendHomeCommand() {
-      const input = document.getElementById('homeCommand');
-      const text = input?.value.trim();
-      if (!text) return;
-      addHomeMessage('You', text);
-      input.value = '';
-
-      const lower = text.toLowerCase();
-      if (lower.includes('open') || lower.includes('folder') || lower.includes('project') || lower.includes('repository')) {
-        addHomeMessage('SRT-1', 'I can do that. Choose the project folder or repository, then I will keep the controls behind the conversation.');
-        showView('project');
-        return;
-      }
-      if (lower.includes('continue') || lower.includes('resume') || lower.includes('left off')) {
-        addHomeMessage('SRT-1', 'I will look for previous work and bring you back to the right conversation.');
-        await openContinueView();
-        return;
-      }
-      if (lower.includes('seed') || lower.includes('idea') || lower.includes('build') || lower.includes('fix')) {
-        addHomeMessage('SRT-1', 'Let us shape that into a seed first.');
-        const idea = document.getElementById('ideaDraft');
-        if (idea) idea.value = text;
-        showView('idea');
-        return;
-      }
-      if (lower.includes('health') || lower.includes('check') || lower.includes('verify') || lower.includes('review')) {
-        addHomeMessage('SRT-1', 'I can check that after a project is connected. Open the project first, then ask me again from the project conversation.');
-        showView('project');
-        return;
-      }
-      addHomeMessage('SRT-1', 'I can operate that through the project conversation. Open a project or continue previous work so I know what environment this belongs to.');
-    }
-
-    function captureIdea() {
-      const text = document.getElementById('ideaDraft')?.value.trim();
-      if (!text) return;
-      addIdeaMessage('You', text);
-      addIdeaMessage('SRT-1', 'Seed captured. Attach a project when you are ready to turn it into active work.');
-      document.getElementById('ideaDraft').value = '';
     }
 
     async function openConversation(queueSeedId, title = 'Project Workspace') {
