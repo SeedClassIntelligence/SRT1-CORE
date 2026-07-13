@@ -269,9 +269,9 @@
 
     .control-grid {
       display: grid;
-      grid-template-columns: minmax(220px, .72fr) minmax(420px, 1.45fr) minmax(260px, .9fr);
+      grid-template-columns: minmax(240px, .72fr) minmax(520px, 1.65fr) minmax(280px, .86fr);
       gap: 18px;
-      align-items: stretch;
+      align-items: start;
       text-align: left;
     }
 
@@ -280,6 +280,18 @@
       border-radius: 8px;
       background: var(--surface);
       padding: 18px;
+    }
+
+    .rail, .intelligence {
+      max-height: 72vh;
+      overflow: auto;
+    }
+
+    .conversation-surface {
+      min-height: 520px;
+      display: grid;
+      align-content: start;
+      gap: 14px;
     }
 
     .rail-title {
@@ -508,18 +520,24 @@
       gap: 10px;
     }
 
+    .compact-list {
+      max-height: 520px;
+      overflow: auto;
+      padding-right: 4px;
+    }
+
     .work-item {
       width: 100%;
       display: grid;
-      grid-template-columns: minmax(0, 1fr) auto;
-      gap: 12px;
-      align-items: center;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 8px;
+      align-items: start;
       text-align: left;
       border: 1px solid var(--line);
       border-radius: 8px;
       background: var(--surface);
       color: var(--text);
-      padding: 15px;
+      padding: 12px;
       cursor: pointer;
     }
 
@@ -531,9 +549,15 @@
     .work-name {
       font-weight: 850;
       margin-bottom: 5px;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      word-break: break-word;
     }
 
     .work-state {
+      justify-self: start;
       color: var(--teal);
       font-size: 12px;
       font-weight: 850;
@@ -811,7 +835,7 @@
               <button class="nav-item" onclick="location.href='dashboard.html#workcells'">Control Room</button>
             </div>
             <div class="rail-title">Current Work</div>
-            <div id="activeWorkList" class="list">
+            <div id="activeWorkList" class="list compact-list">
               <div class="message">No active work loaded yet.</div>
             </div>
           </aside>
@@ -865,6 +889,11 @@
       if (!el) return;
       el.textContent = text;
       el.classList.toggle('ready', ready);
+    }
+
+    function setText(id, text) {
+      const el = document.getElementById(id);
+      if (el) el.textContent = text;
     }
 
     function escapeHtml(value) {
@@ -969,13 +998,25 @@
         latestWorkCells = workResponse.status === 'fulfilled' ? workResponse.value : {};
         const executions = latestWorkCells.executions || [];
         const repo = summary.repo || summary.repository_activation?.active_repository?.name || 'Current project';
+        const waitingForReview = executions.filter(ex => String(ex?.status || '').toLowerCase() === 'awaiting_review').length;
+        const visibleExecutions = targetId === 'activeWorkList' ? executions.slice(0, 6) : executions.slice(0, 18);
+        setText('workspaceProjectName', repo);
+        setText('workspaceSeedCount', String(executions.length));
+        setText('workspaceReviewCount', waitingForReview ? String(waitingForReview) : 'None');
+        setText('workspaceLastCheck', 'Just now');
+        setText('reviewInsight', waitingForReview ? `${waitingForReview} item${waitingForReview === 1 ? '' : 's'} waiting for your decision.` : 'No review decisions waiting right now.');
+        setText('nextActionInsight', executions.length ? 'Open current work or ask SRT-1 what should happen next.' : 'Plant a seed or ask SRT-1 to inspect the project.');
 
         if (!executions.length) {
           list.innerHTML = `<div class="message"><strong>${escapeHtml(repo)}</strong><br>No active work found yet.</div>`;
           return;
         }
 
-        list.innerHTML = executions.slice(0, 10).map(ex => `
+        const remainder = targetId === 'activeWorkList' && executions.length > visibleExecutions.length
+          ? `<button class="work-item" onclick="openContinueView()"><span><span class="work-name">${executions.length - visibleExecutions.length} more work item${executions.length - visibleExecutions.length === 1 ? '' : 's'}</span><span class="muted">Open the full previous work view.</span></span><span class="work-state">View all</span></button>`
+          : '';
+
+        list.innerHTML = visibleExecutions.map(ex => `
           <button class="work-item" onclick="openConversation('${escapeHtml(ex.queue_seed_id || '')}', '${escapeHtml(ex.objective || 'Active work')}')">
             <span>
               <span class="work-name">${escapeHtml(ex.objective || ex.queue_seed_id || 'Active work')}</span>
@@ -983,9 +1024,13 @@
             </span>
             <span class="work-state">${escapeHtml(plainStatus(ex))}</span>
           </button>
-        `).join('');
+        `).join('') + remainder;
       } catch (error) {
         if (list) list.innerHTML = `<div class="message">SRT-1 runtime is not reachable at ${escapeHtml(API)}.</div>`;
+        setText('workspaceSeedCount', 'Offline');
+        setText('workspaceReviewCount', 'Offline');
+        setText('workspaceLastCheck', 'Unavailable');
+        setText('nextActionInsight', 'Start the local SRT-1 runtime, then ask again from this surface.');
       }
     }
 
