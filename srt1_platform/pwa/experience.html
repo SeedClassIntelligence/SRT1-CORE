@@ -34,7 +34,7 @@
     a { color: inherit; }
 
     .shell {
-      width: min(1120px, calc(100% - 40px));
+      width: min(1520px, calc(100% - 32px));
       min-height: 100vh;
       margin: 0 auto;
       padding: 28px 0 48px;
@@ -112,7 +112,7 @@
     }
 
     .front-inner {
-      width: min(880px, 100%);
+      width: min(1420px, 100%);
       text-align: center;
     }
 
@@ -235,9 +235,123 @@
       color: var(--text);
     }
 
+    .status-strip {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+      margin: 28px 0 18px;
+      text-align: left;
+    }
+
+    .stat {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, .025);
+      padding: 12px;
+      min-height: 76px;
+    }
+
+    .stat-label {
+      color: var(--muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .09em;
+      font-weight: 900;
+      margin-bottom: 8px;
+    }
+
+    .stat-value {
+      color: var(--text);
+      font-size: 18px;
+      font-weight: 900;
+      line-height: 1.2;
+    }
+
+    .control-grid {
+      display: grid;
+      grid-template-columns: minmax(220px, .72fr) minmax(420px, 1.45fr) minmax(260px, .9fr);
+      gap: 18px;
+      align-items: stretch;
+      text-align: left;
+    }
+
+    .rail, .intelligence, .conversation-surface {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      padding: 18px;
+    }
+
+    .rail-title {
+      color: var(--muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      font-weight: 900;
+      margin-bottom: 12px;
+    }
+
+    .nav-list {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 18px;
+    }
+
+    .nav-item {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, .025);
+      color: var(--soft);
+      padding: 11px 12px;
+      text-align: left;
+      cursor: pointer;
+      font-weight: 800;
+    }
+
+    .nav-item.active {
+      border-color: rgba(79, 212, 200, .5);
+      background: rgba(79, 212, 200, .08);
+      color: var(--text);
+    }
+
+    .timeline {
+      display: grid;
+      gap: 10px;
+    }
+
+    .timeline-item {
+      border-left: 2px solid rgba(79, 212, 200, .45);
+      padding-left: 12px;
+      color: var(--soft);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .insight-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .insight {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, .025);
+      padding: 12px;
+    }
+
+    .insight strong {
+      display: block;
+      color: var(--text);
+      margin-bottom: 5px;
+    }
+
     .screen {
       width: min(940px, 100%);
       margin: 0 auto;
+    }
+
+    .screen.wide {
+      width: min(1420px, 100%);
     }
 
     .screen-head {
@@ -441,7 +555,7 @@
     .hidden { display: none !important; }
 
     @media (max-width: 840px) {
-      .choice-grid, .two-col, .three-col { grid-template-columns: 1fr; }
+      .choice-grid, .two-col, .three-col, .status-strip, .control-grid { grid-template-columns: 1fr; }
       .command-box { grid-template-columns: 1fr; }
       .topbar, .screen-head { flex-direction: column; }
       .view { padding-top: 32px; }
@@ -471,24 +585,75 @@
         <div class="front-inner">
           <p class="kicker">SRT-1</p>
           <h1 id="welcomeTitle">Good afternoon, Darnell.</h1>
-          <p class="kicker" style="margin-top:14px;">SCI is active.</p>
-          <p class="prompt">What would you like to accomplish today?</p>
+          <p class="kicker" style="margin-top:14px;">SCIA is active.</p>
+          <p class="prompt">Bring the idea once. SRT-1 keeps the assistant on task and carries the work to completion.</p>
 
-          <div class="home-console">
-            <div id="homeMessages" class="home-messages">
-              <div class="message"><strong>SRT-1:</strong> Tell me what you want to do. I can find the project, plant a seed, continue work, check files, prepare review, or open the Control Room if you ask for details.</div>
+          <div class="status-strip" aria-label="SRT-1 status">
+            <div class="stat">
+              <div class="stat-label">Project</div>
+              <div class="stat-value">Not Connected</div>
             </div>
-            <div class="command-box">
-              <textarea id="homeCommand" placeholder="Message SRT-1. For example: continue the authentication cleanup, open SCI, check repository health, or plant a seed for the mobile work."></textarea>
-              <button class="button" onclick="sendHomeCommand()">Send</button>
+            <div class="stat">
+              <div class="stat-label">Open Seeds</div>
+              <div class="stat-value">0</div>
             </div>
-            <div class="shortcut-row" aria-label="Common SRT-1 actions">
-              <button class="shortcut" onclick="showView('project')">Open Project</button>
-              <button class="shortcut" onclick="openContinueView()">Continue Work</button>
-              <button class="shortcut" onclick="showView('idea')">Plant Seed</button>
-              <button class="shortcut" onclick="homeShortcut('Check repository health')">Check Health</button>
-              <button class="shortcut" onclick="location.href='dashboard.html'">Control Room</button>
+            <div class="stat">
+              <div class="stat-label">Reviews</div>
+              <div class="stat-value">None Yet</div>
             </div>
+            <div class="stat">
+              <div class="stat-label">Last Check</div>
+              <div class="stat-value">Waiting</div>
+            </div>
+            <div class="stat">
+              <div class="stat-label">Assistant</div>
+              <div class="stat-value">Ready</div>
+            </div>
+          </div>
+
+          <div class="control-grid">
+            <aside class="rail">
+              <div class="rail-title">Workspace</div>
+              <div class="nav-list">
+                <button class="nav-item active" onclick="showView('project')">Connect Project</button>
+                <button class="nav-item" onclick="openContinueView()">Continue Work</button>
+                <button class="nav-item" onclick="showView('idea')">Plant Seed</button>
+                <button class="nav-item" onclick="location.href='dashboard.html'">Control Room</button>
+              </div>
+              <div class="rail-title">Getting Started</div>
+              <div class="timeline">
+                <div class="timeline-item">Bring the idea, folder, or repository once.</div>
+                <div class="timeline-item">Choose a folder or repository.</div>
+                <div class="timeline-item">SRT-1 prepares a project conversation.</div>
+                <div class="timeline-item">You guide the assistant without re-explaining the mission.</div>
+              </div>
+            </aside>
+
+            <section class="conversation-surface">
+              <div id="homeMessages" class="home-messages">
+                <div class="message"><strong>SRT-1:</strong> Tell me what you want to complete, or connect your first project so I can keep the assistant on task, preserve continuity, and bring the work back for review.</div>
+              </div>
+              <div class="command-box">
+                <textarea id="homeCommand" placeholder="Message SRT-1. For example: open my SRT-1 Core folder, connect GitHub, plant a seed for mobile, or check repository health."></textarea>
+                <button class="button" onclick="sendHomeCommand()">Send</button>
+              </div>
+              <div class="shortcut-row" aria-label="Common SRT-1 actions">
+                <button class="shortcut" onclick="showView('project')">Choose Folder</button>
+                <button class="shortcut" onclick="showGitHubPending(); showView('project')">Connect GitHub</button>
+                <button class="shortcut" onclick="openContinueView()">Continue Existing Project</button>
+                <button class="shortcut" onclick="homeShortcut('Check repository health')">Ask SRT-1 to Check</button>
+              </div>
+            </section>
+
+            <aside class="intelligence">
+              <div class="rail-title">What SRT-1 Will Show</div>
+              <div class="insight-list">
+                <div class="insight"><strong>Current Work</strong><span class="muted">Seeds, reviews, active work, and paused work in plain language.</span></div>
+                <div class="insight"><strong>Project Lineage</strong><span class="muted">How an idea grows into a seed, work session, review, and completed result.</span></div>
+                <div class="insight"><strong>Continuity</strong><span class="muted">What the assistant is doing, why it matters, and what must stay on track.</span></div>
+                <div class="insight"><strong>Suggested Next Actions</strong><span class="muted">What SRT-1 thinks you should inspect, approve, continue, or return.</span></div>
+              </div>
+            </aside>
           </div>
         </div>
       </div>
@@ -604,7 +769,7 @@
     </section>
 
     <section id="workspaceView" class="view" aria-labelledby="workspaceTitle">
-      <div class="screen">
+      <div class="screen wide">
         <div class="screen-head">
           <div>
             <h2 id="workspaceTitle" class="screen-title">Project Controller</h2>
@@ -613,19 +778,46 @@
           <button class="quiet-button" onclick="openContinueView()">Back to Work</button>
         </div>
 
-        <div class="two-col">
-          <div class="panel stack">
-            <div class="screen-head" style="margin-bottom:0;">
-              <strong>Current Work</strong>
-              <button class="quiet-button" onclick="loadActiveWork()">Refresh</button>
+        <div class="status-strip" aria-label="Project status">
+          <div class="stat">
+            <div class="stat-label">Project</div>
+            <div class="stat-value" id="workspaceProjectName">Connected</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Open Seeds</div>
+            <div class="stat-value" id="workspaceSeedCount">Loading</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Reviews</div>
+            <div class="stat-value" id="workspaceReviewCount">Checking</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Last Check</div>
+            <div class="stat-value" id="workspaceLastCheck">Now</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Assistant</div>
+            <div class="stat-value">Codex Ready</div>
+          </div>
+        </div>
+
+        <div class="control-grid">
+          <aside class="rail">
+            <div class="rail-title">Projects</div>
+            <div class="nav-list">
+              <button class="nav-item active" onclick="loadActiveWork()">Current Project</button>
+              <button class="nav-item" onclick="showView('project')">Open Another Project</button>
+              <button class="nav-item" onclick="openContinueView()">Previous Work</button>
+              <button class="nav-item" onclick="location.href='dashboard.html#workcells'">Control Room</button>
             </div>
+            <div class="rail-title">Current Work</div>
             <div id="activeWorkList" class="list">
               <div class="message">No active work loaded yet.</div>
             </div>
-          </div>
+          </aside>
 
-          <div class="panel stack">
-            <div class="screen-head" style="margin-bottom:0;">
+          <section class="conversation-surface">
+            <div class="screen-head" style="margin-bottom:14px;">
               <strong>Project Conversation</strong>
               <span id="conversationStatus" class="status-pill">ready</span>
             </div>
@@ -641,7 +833,17 @@
               <button class="button secondary" onclick="quickCommand('Resume current work')">Resume</button>
               <button class="button secondary" onclick="location.href='dashboard.html#workcells'">Control Room</button>
             </div>
-          </div>
+          </section>
+
+          <aside class="intelligence">
+            <div class="rail-title">Project Intelligence</div>
+            <div class="insight-list">
+              <div class="insight"><strong>Needs Review</strong><span class="muted" id="reviewInsight">SRT-1 will surface work that is ready for your decision.</span></div>
+              <div class="insight"><strong>Project Lineage</strong><span class="muted">Idea -> Seed -> Work session -> Verification -> Review -> Completed work.</span></div>
+              <div class="insight"><strong>Important Files</strong><span class="muted">Ask SRT-1 to inspect a file, compare changes, or explain what matters.</span></div>
+              <div class="insight"><strong>Suggested Next Action</strong><span class="muted" id="nextActionInsight">Connect the project runtime, then ask what should happen next.</span></div>
+            </div>
+          </aside>
         </div>
       </div>
     </section>
