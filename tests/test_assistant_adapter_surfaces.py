@@ -283,7 +283,8 @@ class AssistantAdapterSurfaceTests(unittest.TestCase):
         self.assertIn('path.endswith("/verify")', source)
         self.assertIn("_verify_workcell_execution", source)
         self.assertIn("record_verification", source)
-        self.assertIn("manual_core_verification", source)
+        self.assertIn("post_execution_verifier", source)
+        self.assertNotIn('verified=body.get("verified"', source)
 
     def test_engine_exposes_existing_workcell_dispatch_route(self):
         source = (

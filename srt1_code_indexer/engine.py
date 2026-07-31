@@ -2922,22 +2922,60 @@ class SRT1Engine:
     def _verify_workcell_execution(
         self,
         queue_seed_id: Optional[str],
-        verified: bool = True,
         actor: str = "dashboard_human",
         details: Optional[Dict[str, Any]] = None,
+        verified: Optional[bool] = None,
     ) -> Dict[str, Any]:
+        """Record only backend-derived proposal verification evidence."""
         if not queue_seed_id:
             return {"error": "queue_seed_id is required", "status": "error"}
         registry = self._get_workcell_registry()
         if not registry:
             return {"error": "WorkCell registry unavailable", "status": "error"}
-        verification_details = dict(details or {})
-        verification_details.setdefault("source", "dashboard_review_lane")
-        verification_details.setdefault("method", "manual_core_verification")
+        store = self._get_change_proposal_store()
+        evidence = None
+        if store:
+            listed = store.list_proposals(queue_seed_id=queue_seed_id)
+            for summary in listed.get("proposals", []):
+                proposal_id = summary.get("proposal_id")
+                record = store.get_proposal(proposal_id) if proposal_id else {}
+                apply_result = record.get("apply_result") or {}
+                candidate = apply_result.get("verification") or {}
+                if candidate.get("evidence_id"):
+                    evidence = {
+                        **candidate,
+                        "proposal_id": proposal_id,
+                        "proposal_status": record.get("status"),
+                        "applied": bool(record.get("applied")),
+                        "rollback_performed": bool(apply_result.get("rollback_performed")),
+                    }
+                    break
+        evidence = evidence or {
+            "verdict": "FAILED",
+            "evidence_id": "verify_missing_" + hashlib.sha256(queue_seed_id.encode("utf-8")).hexdigest()[:12],
+            "proposal_id": None,
+            "applied": False,
+            "rollback_performed": False,
+            "structural_warnings": ["No backend verification evidence exists for this WorkCell."],
+        }
+        is_verified = (
+            evidence.get("verdict") == "VERIFIED"
+            and evidence.get("applied") is True
+            and not evidence.get("rollback_performed")
+        )
+        verification_details = {
+            "source": "post_execution_verifier",
+            "method": "backend_evidence",
+            "requested_by": actor or "dashboard_human",
+            "request_context": dict(details or {}),
+            "evidence": evidence,
+            "evidence_id": evidence.get("evidence_id"),
+            "verdict": evidence.get("verdict"),
+        }
         return registry.record_verification(
             queue_seed_id,
-            verified=bool(verified),
-            actor=actor or "dashboard_human",
+            verified=is_verified,
+            actor="verification_authority",
             details=verification_details,
         )
 
@@ -5996,7 +6034,6 @@ class SRT1Engine:
                     queue_seed_id = path[len("/api/v1/workcells/"):-len("/verify")].strip("/")
                     result = engine._verify_workcell_execution(
                         queue_seed_id,
-                        verified=body.get("verified", True),
                         actor=body.get("actor") or "dashboard_human",
                         details=body.get("details") if isinstance(body.get("details"), dict) else {},
                     )
@@ -6399,18 +6436,33 @@ class SRT1Engine:
                         summary=summary,
                         files_modified=files_modified,
                     )
-                    if body.get("review_only") or body.get("awaiting_review"):
+                    if body.get("review_only") or body.get("awaiting_review") or not body.get("accept"):
                         self._json({
                             "status": "awaiting_review",
                             "seed": engine.seed_queue.get_seed(queue_seed_id),
-                            "message": "Completion proposed; awaiting review.",
+                            "message": "Completion proposed; backend verification and explicit acceptance are required.",
                         })
                         return
+                    engine._verify_workcell_execution(
+                        queue_seed_id,
+                        actor=body.get("actor", "human"),
+                        details={"request": "completion_acceptance"},
+                    )
+                    registry = engine._get_workcell_registry()
+                    execution = registry.get_execution_for_seed(queue_seed_id) if registry else None
+                    evidence_verified = bool(execution and execution.get("verification_state") == "verified")
                     engine.seed_queue.record_verification_result(
                         queue_seed_id,
-                        verified=body.get("verified", True),
-                        details={"source": "manual_complete_route"},
+                        verified=evidence_verified,
+                        details={"source": "post_execution_verifier"},
                     )
+                    if not evidence_verified:
+                        self._json({
+                            "status": "verification_failed",
+                            "seed": engine.seed_queue.get_seed(queue_seed_id),
+                            "message": "Completion cannot be accepted without backend verification evidence.",
+                        }, 409)
+                        return
                     result = engine.seed_queue.accept_completion(
                         queue_seed_id,
                         summary=summary,

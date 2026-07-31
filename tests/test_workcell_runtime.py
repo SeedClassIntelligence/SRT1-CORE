@@ -1047,6 +1047,7 @@ class WorkCellRuntimeTests(unittest.TestCase):
             other.write_text("other = True\n", encoding="utf-8")
             engine = engine_module.SRT1Engine.__new__(engine_module.SRT1Engine)
             engine.repo_path = repo
+            engine._sign_artifact = Mock(return_value={"status": "signed", "authority_issued": True, "signature_id": "sig_test_apply"})
             engine.workcell_registry = WorkCellRegistry(repo_path=repo)
             engine.workcell_registry.activate_execution(
                 queue_seed_id="seed_apply_guard",
@@ -1083,6 +1084,7 @@ class WorkCellRuntimeTests(unittest.TestCase):
             other.write_text("untouched = True\n", encoding="utf-8")
             engine = engine_module.SRT1Engine.__new__(engine_module.SRT1Engine)
             engine.repo_path = repo
+            engine._sign_artifact = Mock(return_value={"status": "signed", "authority_issued": True, "signature_id": "sig_test_smoke"})
             engine.workcell_registry = WorkCellRegistry(repo_path=repo)
             engine.workcell_registry.activate_execution(
                 queue_seed_id="seed_provider_smoke",
@@ -1114,9 +1116,8 @@ class WorkCellRuntimeTests(unittest.TestCase):
             applied = engine._apply_change_proposal(proposal_id, actor="dashboard_human")
             verified = engine._verify_workcell_execution(
                 "seed_provider_smoke",
-                verified=applied.get("applied") is True,
                 actor="dashboard_human",
-                details={"method": "local_provider_smoke"},
+                details={"request": "run_backend_verification"},
             )
             current = engine.workcell_registry.get_execution_for_seed("seed_provider_smoke")
 
