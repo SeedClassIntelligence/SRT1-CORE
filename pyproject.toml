@@ -56,3 +56,6 @@ exclude = ["srt1_code_indexer_pkg*"]
 [tool.setuptools.package-data]
 srt1_platform = ["pwa/*.html", "pwa/**/*.js", "pwa/**/*.css", "pwa/**/*.json", "pwa/**/*.png", "pwa/**/*.svg", "pwa/**/*.woff2", "mobile/*.html"]
 
+[tool.setuptools.exclude-package-data]
+srt1_platform = ["pwa/preview2.html"]
+

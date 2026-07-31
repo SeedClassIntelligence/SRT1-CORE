@@ -1,56 +1,56 @@
 <main class="docs-main">
     <div class="badge">Documentation</div>
     <h1>SRT-1 Docs</h1>
-    <p>SRT-1 is a 7-stage codebase intelligence pipeline that produces a verified Code Manifest. It gives any AI assistant a ground-truth map of your codebase — with every function tagged by architectural role and risk profile.</p>
+    <p>SRT-1 is a 7-stage codebase intelligence pipeline that produces a verified Code Manifest. It gives any AI assistant a ground-truth map of your codebase â€” with every function tagged by architectural role and risk profile.</p>
     <p>Start with the <a href="#quickstart">Quickstart</a> to get indexed in under a minute, then read the <a href="#architecture">Architecture</a> guide to understand the pipeline stages.</p>
 
     <h2 id="overview">Guides</h2>
     <div class="card-grid">
       <a href="#quickstart" class="doc-card" style="color:inherit">
-        <h3>⚡ Quickstart</h3>
+        <h3>âš¡ Quickstart</h3>
         <p>Install, index your first repo, and verify the manifest.</p>
       </a>
       <a href="#architecture" class="doc-card" style="color:inherit">
-        <h3>🏗️ Architecture</h3>
+        <h3>ðŸ—ï¸ Architecture</h3>
         <p>The 7-stage SCIA pipeline from scan to signed manifest.</p>
       </a>
       <a href="#trust-layer" class="doc-card" style="color:inherit">
-        <h3>🔐 Trust Layer</h3>
+        <h3>ðŸ” Trust Layer</h3>
         <p>Integrity hashing, trust chains, and manifest verification.</p>
       </a>
       <a href="#api-reference" class="doc-card" style="color:inherit">
-        <h3>📖 API Reference</h3>
+        <h3>ðŸ“– API Reference</h3>
         <p>SRT1CodeIndexer class, CLI flags, and manifest schema.</p>
       </a>
       <a href="#mobile" class="doc-card" style="color:inherit">
-        <h3>📱 Mobile PWA</h3>
+        <h3>ðŸ“± Mobile PWA</h3>
         <p>Set up the mobile dashboard and remote auth tokens.</p>
       </a>
       <a href="#context-injection" class="doc-card" style="color:inherit">
-        <h3>🧠 AI Context Injection</h3>
+        <h3>ðŸ§  AI Context Injection</h3>
         <p>How AGENTS.md and CLAUDE.md give AI complete repo comprehension.</p>
       </a>
       <a href="#signing" class="doc-card" style="color:inherit">
-        <h3>🔏 External Signing</h3>
+        <h3>ðŸ” External Signing</h3>
         <p>Core tracks trust states; external signing can add provenance when configured.</p>
       </a>
       <a href="#scia-packages" class="doc-card" style="color:inherit">
-        <h3>📦 SCIA Packages</h3>
+        <h3>ðŸ“¦ SCIA Packages</h3>
         <p>Seed Signature and private memory/security systems are optional external integrations.</p>
       </a>
       <a href="#engine-api" class="doc-card" style="color:inherit">
-        <h3>⚡ Engine API</h3>
+        <h3>âš¡ Engine API</h3>
         <p>HTTP endpoints on port 7483 for dashboard and automation.</p>
       </a>
     </div>
 
-    <!-- ── QUICKSTART ── -->
-    <h2 id="quickstart">⚡ Quickstart</h2>
+    <!-- â”€â”€ QUICKSTART â”€â”€ -->
+    <h2 id="quickstart">âš¡ Quickstart</h2>
     <p>Get your first verified Code Manifest in under 60 seconds.</p>
     <h3>1. Install</h3>
     <pre style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:16px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan);margin-bottom:16px;overflow-x:auto">pip install srt1-core</pre>
-    <h3>2. Index your repository</h3>
-    <pre style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:16px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--text2);margin-bottom:16px;overflow-x:auto">trust_state = {"signature": "unsigned", "verification": "unverified", "lineage": "missing"}`nmanifest["trust_state"] = trust_state</pre>
+    <h3>2. Start local repo understanding</h3>
+    <pre style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:16px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--text2);margin-bottom:16px;overflow-x:auto">srt1-code-indexer --repo_path . --port 7484</pre>
     <h3>What Gets Signed</h3>
     <div style="overflow-x:auto;margin-bottom:24px">
     <table style="width:100%;border-collapse:collapse;font-size:14px;color:var(--text2)">
@@ -71,8 +71,8 @@
     <h3>Signature Envelope</h3>
     <p>Each signed artifact receives a sealed envelope containing a composite SHA-256 hash (content + semantic + timestamp), a unique <code style="color:var(--cyan);background:var(--bg-card);padding:2px 8px;border-radius:4px;font-size:13px">SCIA-[hash]</code> signature ID, and a chain link to the previous signature. The signing authority verifies via a three-pillar model: content integrity, registry presence, and digest validation.</p>
 
-    <!-- ── OPTIONAL PRIVATE INTEGRATIONS ── -->
-    <h2 id="scia-packages">📦 Optional Private Integrations</h2>
+    <!-- â”€â”€ OPTIONAL PRIVATE INTEGRATIONS â”€â”€ -->
+    <h2 id="scia-packages">ðŸ“¦ Optional Private Integrations</h2>
     <p>SRT-1 Core is standalone. Private memory, private security, signing authority, and proprietary backend systems may integrate with Core, but they are not shipped in public Core.</p>
     <h3>Private security/signing authority</h3>
     <p>Optional external services may provide signing, private audit, encryption, and enterprise policy enforcement. Public Core records trust state and fails closed when those services are unavailable.</p>
@@ -116,18 +116,18 @@
         <th style="text-align:left;padding:10px 12px;color:var(--text);font-weight:700">Managed</th>
       </tr></thead>
       <tbody>
-        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">External signing hook</td><td style="padding:8px 12px;color:var(--green)">✓</td><td style="padding:8px 12px;color:var(--green)">✓</td></tr>
-        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">DataEncryptor</td><td style="padding:8px 12px;color:var(--text3)">—</td><td style="padding:8px 12px;color:var(--green)">✓</td></tr>
-        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">AccessAuditLog</td><td style="padding:8px 12px;color:var(--text3)">—</td><td style="padding:8px 12px;color:var(--green)">✓</td></tr>
-        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">IntegrityValidator</td><td style="padding:8px 12px;color:var(--text3)">—</td><td style="padding:8px 12px;color:var(--green)">✓</td></tr>
-        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">ExecutionGraph</td><td style="padding:8px 12px;color:var(--text3)">—</td><td style="padding:8px 12px;color:var(--green)">✓</td></tr>
-        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">Private memory integration</td><td style="padding:8px 12px;color:var(--text3)">—</td><td style="padding:8px 12px;color:var(--green)">✓</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">External signing hook</td><td style="padding:8px 12px;color:var(--green)">âœ“</td><td style="padding:8px 12px;color:var(--green)">âœ“</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">DataEncryptor</td><td style="padding:8px 12px;color:var(--text3)">â€”</td><td style="padding:8px 12px;color:var(--green)">âœ“</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">AccessAuditLog</td><td style="padding:8px 12px;color:var(--text3)">â€”</td><td style="padding:8px 12px;color:var(--green)">âœ“</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">IntegrityValidator</td><td style="padding:8px 12px;color:var(--text3)">â€”</td><td style="padding:8px 12px;color:var(--green)">âœ“</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">ExecutionGraph</td><td style="padding:8px 12px;color:var(--text3)">â€”</td><td style="padding:8px 12px;color:var(--green)">âœ“</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">Private memory integration</td><td style="padding:8px 12px;color:var(--text3)">â€”</td><td style="padding:8px 12px;color:var(--green)">âœ“</td></tr>
       </tbody>
     </table>
     </div>
 
-    <!-- ── ENGINE API ── -->
-    <h2 id="engine-api">⚡ Engine API (Port 7483)</h2>
+    <!-- â”€â”€ ENGINE API â”€â”€ -->
+    <h2 id="engine-api">âš¡ Engine API (Port 7483)</h2>
     <p>The SRT-1 engine exposes a local HTTP API on port 7483. The developer dashboard and mobile PWA communicate through these endpoints.</p>
     <h3>GET Endpoints</h3>
     <div style="overflow-x:auto;margin-bottom:24px">
@@ -161,6 +161,7 @@
       </tbody>
     </table>
     </div>
-    <p>All enforcement responses include a <code style="color:var(--cyan);background:var(--bg-card);padding:2px 8px;border-radius:4px;font-size:13px">_provenance</code> field when the signing service is connected — cryptographic proof of the action.</p>
+    <p>All enforcement responses include a <code style="color:var(--cyan);background:var(--bg-card);padding:2px 8px;border-radius:4px;font-size:13px">_provenance</code> field when the signing service is connected â€” cryptographic proof of the action.</p>
 
   </main>
+

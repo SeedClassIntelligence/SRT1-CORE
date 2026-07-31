@@ -2,3 +2,4 @@ include LICENSE
 include pyproject.toml
 recursive-include srt1_platform/pwa *.html *.js *.css *.json
 recursive-include srt1_platform/mobile *.html
+exclude srt1_platform/pwa/preview2.html
