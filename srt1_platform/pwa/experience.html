@@ -1923,11 +1923,35 @@ function explicitlyRequestsScopedWork(text) {
   return /\b(?:plant|create|open|start|run)\b[^.]{0,80}\b(?:seed|workcell|scoped work|execution)\b/.test(request);
 }
 
+function scopedWorkApprovalCommand(text) {
+  const request = String(text || '').replace(/\s+/g, ' ').trim();
+  return `Create a scoped WorkCell seed for: ${request}`;
+}
+
 function shouldCreateBoundedWork(text, intent) {
   const request = String(text || '').toLowerCase();
   if (explicitlyRequestsScopedWork(request)) return true;
   if (!['create', 'execute'].includes(intent)) return false;
   return /\b(?:add|build|change|fix|implement|refactor|update|wire|connect|remove|rename|test|verify)\b/.test(request);
+}
+
+async function showWorkRequestConfirmation(text) {
+  await converseAboutProject(`Help me shape this request before execution: ${text}`);
+  addContextCard({
+    title: 'Ready to create scoped work?',
+    meta: projectDisplayName(),
+    body: 'I can discuss and refine this request without creating a Seed. When you are ready to execute, I will create a bounded WorkCell with allowed paths, recall, verification, and no repo-wide write scope.',
+    tone: 'ready',
+    facts: [
+      { label: 'Current step', value: 'Planning' },
+      { label: 'Execution gate', value: 'Requires your explicit WorkCell approval' },
+      { label: 'Write scope', value: 'Not granted yet' }
+    ],
+    actions: [
+      { label: 'Refine plan', kind: 'quick', command: `Create a plan for this request: ${text}` },
+      { label: 'Create WorkCell', primary: true, kind: 'quick', command: scopedWorkApprovalCommand(text) }
+    ]
+  });
 }
 
 function showProjectBrief() {
@@ -2175,7 +2199,8 @@ async function handleIntent(text) {
     return;
   }
   if (['create', 'execute'].includes(intent) && shouldCreateBoundedWork(text, intent) && !getActiveSeedId()) {
-    await createWorkFromIntent(text);
+    if (explicitlyRequestsScopedWork(text)) await createWorkFromIntent(text);
+    else await showWorkRequestConfirmation(text);
     return;
   }
   if (l.includes('verify') || l.includes('run verification') || l.includes('run tests')) {
@@ -2207,7 +2232,8 @@ async function handleIntent(text) {
       await converseAboutProject(text);
       return;
     }
-    await createWorkFromIntent(text);
+    if (explicitlyRequestsScopedWork(text)) await createWorkFromIntent(text);
+    else await showWorkRequestConfirmation(text);
     return;
   }
   if (intent === 'plan') {
@@ -2766,7 +2792,7 @@ function showLocalProjectResponse(message, understanding) {
     facts: repositoryDiscussionFacts(understanding),
     actions: [
       { label: 'Connect Project Assistant', primary: true, kind: 'project-assistant' },
-      { label: 'Plan first WorkCell', kind: 'quick', command: 'Create a scoped WorkCell seed for the first safe change in this project.' },
+      { label: 'Plan first WorkCell', kind: 'quick', command: 'Help me plan the first safe WorkCell for this project.' },
       { label: 'Open Control Room', kind: 'control-room' }
     ]
   });

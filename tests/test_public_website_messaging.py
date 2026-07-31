@@ -171,6 +171,13 @@ class PublicWebsiteMessagingTests(unittest.TestCase):
         self.assertIn("srt1_core'} answered from SRT-1 repository evidence", experience)
         self.assertIn("showLocalProjectResponse(message, understanding)", experience)
         self.assertIn("await converseAboutProject(text)", experience)
+        self.assertIn("showWorkRequestConfirmation", experience)
+        self.assertIn("Ready to create scoped work?", experience)
+        self.assertIn("Requires your explicit WorkCell approval", experience)
+        self.assertIn("Create a scoped WorkCell seed for:", experience)
+        self.assertIn("else await showWorkRequestConfirmation(text)", experience)
+        self.assertIn("Help me plan the first safe WorkCell for this project.", experience)
+        self.assertNotIn("Create a scoped WorkCell seed for the first safe change in this project.", experience)
         self.assertLess(
             experience.index("if (['plan', 'tasks', 'estimate', 'prioritize', 'milestone']"),
             experience.index("if (['add', 'build', 'start', 'create', 'generate', 'brainstorm']"),
