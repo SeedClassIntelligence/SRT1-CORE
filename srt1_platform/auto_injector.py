@@ -225,27 +225,11 @@ class SCIADocumentGenerator:
     # -----------------------------------------------------------------
 
     def _generate_all_context_files(self) -> None:
-        """Generate context files for all supported AI tools."""
+        """Generate the canonical runtime context without overwriting policy files."""
         content = self._build_universal_context()
-
-        # 1. CLAUDE.md (Claude Code, Antigravity)
-        self._write_file("CLAUDE.md", content)
-
-        # 2. .cursorrules (Cursor)
-        self._write_file(".cursorrules", content)
-
-        # 3. AGENTS.md (generic)
-        self._write_file("AGENTS.md", content)
-
-        # 4. .github/copilot-instructions.md (GitHub Copilot)
-        github_dir = os.path.join(self.repo_path, ".github")
-        os.makedirs(github_dir, exist_ok=True)
-        self._write_file(os.path.join(".github", "copilot-instructions.md"), content)
-
-        # 5. .srt1/context.md (universal SRT-1 context)
-        srt1_dir = os.path.join(self.repo_path, ".srt1")
-        os.makedirs(srt1_dir, exist_ok=True)
-        self._write_file(os.path.join(".srt1", "context.md"), content)
+        context_dir = os.path.join(self.repo_path, ".srt1", "context")
+        os.makedirs(context_dir, exist_ok=True)
+        self._write_file(os.path.join(".srt1", "context", "repository_context.md"), content)
 
     def _write_file(self, rel_path: str, content: str) -> None:
         """Write a context file to the repo."""

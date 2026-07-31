@@ -311,74 +311,33 @@ class SCIADispatchBridge:
         }
 
     def _dispatch_context_injection(self, seed_id: str, intent: str,
-                                     blueprint: str) -> Dict:
-        """
-        Context injection: update the AI context files with the seed task.
-        
-        This updates AGENTS.md, CLAUDE.md, .cursorrules so ANY assistant
-        that reads these files automatically gets the seed.
-        """
-        # Build task injection block
-        task_block = (
-            f"\n\n## 🌱 ACTIVE SEED — {seed_id}\n\n"
-            f"**TASK:** {intent}\n\n"
-            f"**STATUS:** Dispatched, awaiting execution\n\n"
-            f"**PRIORITY:** Execute this task NOW. This was planted remotely.\n\n"
-            f"When complete, create a file at `.srt1/signals/{seed_id}_done.json` with:\n"
-            f"```json\n"
-            f'{{"seed_id": "{seed_id}", "status": "complete", '
-            f'"files_modified": ["list", "of", "files"], '
-            f'"summary": "what was done"}}\n'
-            f"```\n\n"
-            f"---\n\n"
-        )
-
-        files_updated = []
-        context_files = [
-            os.path.join(self.repo_path, "AGENTS.md"),
-            os.path.join(self.repo_path, "CLAUDE.md"),
-            os.path.join(self.repo_path, ".cursorrules"),
-        ]
-
-        for cf in context_files:
-            if os.path.exists(cf):
-                try:
-                    with open(cf, "r", encoding="utf-8") as f:
-                        existing = f.read()
-
-                    # Remove any previous seed injection
-                    marker_start = "## 🌱 ACTIVE SEED —"
-                    if marker_start in existing:
-                        # Find the section and replace it
-                        idx = existing.index(marker_start)
-                        # Find the end (next ## or end of file)
-                        rest = existing[idx:]
-                        end_markers = ["\n## ", "\n# "]
-                        end_idx = len(rest)
-                        for em in end_markers:
-                            found = rest.find(em, len(marker_start))
-                            if found > 0 and found < end_idx:
-                                end_idx = found
-                        existing = existing[:idx] + existing[idx + end_idx:]
-
-                    # Inject after the first header
-                    first_newline = existing.find("\n\n")
-                    if first_newline > 0:
-                        updated = existing[:first_newline] + task_block + existing[first_newline:]
-                    else:
-                        updated = task_block + existing
-
-                    with open(cf, "w", encoding="utf-8") as f:
-                        f.write(updated)
-                    files_updated.append(cf)
-                except IOError:
-                    continue
-
+                                    blueprint: str) -> Dict:
+        """Publish seed context to the SRT-1 runtime package only."""
+        context_dir = os.path.join(self.srt1_dir, "context")
+        os.makedirs(context_dir, exist_ok=True)
+        markdown_path = os.path.join(context_dir, "active_seed.md")
+        metadata_path = os.path.join(context_dir, "active_seed.json")
+        content = self._build_dispatch_document(seed_id, intent, blueprint)
+        metadata = {
+            "seed_id": seed_id,
+            "intent": intent,
+            "status": "dispatched",
+            "runtime_context": True,
+            "created_at": datetime.now().isoformat(),
+        }
+        for path, payload in (
+            (markdown_path, content),
+            (metadata_path, json.dumps(metadata, indent=2)),
+        ):
+            temporary_path = path + ".tmp"
+            with open(temporary_path, "w", encoding="utf-8") as handle:
+                handle.write(payload)
+            os.replace(temporary_path, path)
         return {
             "success": True,
-            "files_updated": files_updated,
+            "files_updated": [markdown_path, metadata_path],
+            "standing_instructions_mutated": False,
         }
-
     def _dispatch_webhook(self, seed_id: str, intent: str,
                            blueprint: str) -> Dict:
         """Send seed to a webhook URL (for external integrations)."""
@@ -803,38 +762,24 @@ class SCIADispatchBridge:
             logger.error(f"Webhook notification failed: {e}")
 
     def _clean_context_injection(self, seed_id: str) -> None:
-        """Remove the seed injection from context files after completion."""
-        context_files = [
-            os.path.join(self.repo_path, "AGENTS.md"),
-            os.path.join(self.repo_path, "CLAUDE.md"),
-            os.path.join(self.repo_path, ".cursorrules"),
-        ]
-
-        marker = f"## 🌱 ACTIVE SEED — {seed_id}"
-
-        for cf in context_files:
-            if not os.path.exists(cf):
-                continue
-            try:
-                with open(cf, "r", encoding="utf-8") as f:
-                    content = f.read()
-
-                if marker in content:
-                    idx = content.index(marker)
-                    rest = content[idx:]
-                    end_markers = ["\n## ", "\n# "]
-                    end_idx = len(rest)
-                    for em in end_markers:
-                        found = rest.find(em, len(marker))
-                        if 0 < found < end_idx:
-                            end_idx = found
-                    content = content[:idx] + content[idx + end_idx:]
-
-                    with open(cf, "w", encoding="utf-8") as f:
-                        f.write(content)
-            except IOError:
-                continue
-
+        """Mark runtime context complete without editing repository policy files."""
+        context_dir = os.path.join(self.srt1_dir, "context")
+        metadata_path = os.path.join(context_dir, "active_seed.json")
+        if not os.path.isfile(metadata_path):
+            return
+        try:
+            with open(metadata_path, "r", encoding="utf-8") as handle:
+                metadata = json.load(handle)
+            if metadata.get("seed_id") != seed_id:
+                return
+            metadata["status"] = "completed"
+            metadata["completed_at"] = datetime.now().isoformat()
+            temporary_path = metadata_path + ".tmp"
+            with open(temporary_path, "w", encoding="utf-8") as handle:
+                json.dump(metadata, handle, indent=2)
+            os.replace(temporary_path, metadata_path)
+        except (OSError, ValueError):
+            logger.warning("Unable to finalize runtime context for seed %s", seed_id)
     # -----------------------------------------------------------------
     # ACTIVE DISPATCH QUERIES
     # -----------------------------------------------------------------
