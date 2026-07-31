@@ -178,6 +178,14 @@ class PublicWebsiteMessagingTests(unittest.TestCase):
         self.assertIn("else await showWorkRequestConfirmation(text)", experience)
         self.assertIn("Help me plan the first safe WorkCell for this project.", experience)
         self.assertNotIn("Create a scoped WorkCell seed for the first safe change in this project.", experience)
+        self.assertIn("workcellReadinessFacts", experience)
+        self.assertIn("auto_dispatch: false", experience)
+        self.assertIn("The assistant has not been dispatched yet.", experience)
+        self.assertIn("Open Package", experience)
+        self.assertIn("Choose/Run Assistant", experience)
+        self.assertIn("Message WorkCell", experience)
+        self.assertIn("kind === 'workcell-console'", experience)
+        self.assertIn("openWorkcellConsole(button.dataset.consoleTab || 'overview')", experience)
         self.assertLess(
             experience.index("if (['plan', 'tasks', 'estimate', 'prioritize', 'milestone']"),
             experience.index("if (['add', 'build', 'start', 'create', 'generate', 'brainstorm']"),

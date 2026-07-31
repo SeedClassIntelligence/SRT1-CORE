@@ -1029,6 +1029,20 @@ function workcellFacts(execution = {}, result = {}) {
   ];
 }
 
+function workcellReadinessFacts(execution = {}, result = {}) {
+  const pkg = execution.package_status || {};
+  const workspace = execution.workspace || {};
+  const allowed = workspace.allowed_paths || execution.allowed_paths || execution.owned_paths || [];
+  const base = workcellFacts(execution, result);
+  return base.concat([
+    { label: 'workcell.md', value: pkg.workcell_md_exists ? 'ready' : 'missing' },
+    { label: 'filecells.json', value: pkg.filecells_json_exists ? 'ready' : 'missing' },
+    { label: 'Conversation', value: pkg.conversation_ready ? 'ready' : 'not initialized' },
+    { label: 'Execution package', value: pkg.assistant_ready ? 'ready' : 'incomplete' },
+    { label: 'Write boundary', value: allowed.length ? 'scoped' : 'blocked' }
+  ]);
+}
+
 function workcellBody(execution = {}, fallback = '') {
   const workspace = execution.workspace || {};
   const pkg = execution.package_status || {};
@@ -2032,7 +2046,7 @@ async function createWorkFromIntent(text) {
       task: text,
       source: 'standard_experience',
       priority: 5,
-      auto_dispatch: true
+      auto_dispatch: false
     });
     activeQueueSeedId = result.queue_seed_id || result.seed_id || activeQueueSeedId;
     await loadWorkspace({ preserveThread: true });
@@ -2040,12 +2054,14 @@ async function createWorkFromIntent(text) {
     addContextCard({
       title: 'WorkCell created',
       meta: result.queue_seed_id || result.seed_id || projectDisplayName(),
-      body: workcellBody(created, result.message || 'I planted the seed and initialized the WorkCell runtime.'),
+      body: workcellBody(created, result.message || 'I planted the seed and initialized the WorkCell runtime. The assistant has not been dispatched yet.'),
       tone: 'ready',
-      facts: workcellFacts(created, result),
+      facts: workcellReadinessFacts(created, result),
       actions: [
-        { label: 'Load conversation', primary: true, kind: 'review' },
-        { label: 'Show progress', kind: 'quick', command: 'Show progress.' },
+        { label: 'Open Package', primary: true, kind: 'workcell-console', data: { consoleTab: 'package' } },
+        { label: 'Choose/Run Assistant', kind: 'workcell-console', data: { consoleTab: 'execution' } },
+        { label: 'Message WorkCell', kind: 'workcell-console', data: { consoleTab: 'chat' } },
+        { label: 'Keep planning', kind: 'quick', command: `Refine the plan for: ${text}` },
         { label: 'Open Control Room', kind: 'control-room' }
       ]
     });
@@ -2360,6 +2376,8 @@ function bindContextActions() {
         reviewProposal(button.dataset.proposalId, button.dataset.action);
       } else if (kind === 'workcell-action') {
         controlActiveWork(button.dataset.workcellAction);
+      } else if (kind === 'workcell-console') {
+        openWorkcellConsole(button.dataset.consoleTab || 'overview');
       } else if (kind === 'open-url') {
         window.open(button.dataset.url, '_blank');
       } else if (kind === 'repository-discussion') {
