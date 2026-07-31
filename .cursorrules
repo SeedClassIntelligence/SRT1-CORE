@@ -2,33 +2,19 @@
 
 SRT-1 is a repo-continuity and alignment partner for AI coding assistants.
 
-Use this repository as public Core unless the user explicitly directs work in a
-private/Enterprise workspace.
-
 ## Core Boundaries
 
-- Preserve local repo understanding, continuity, reflection, recall,
-  reinjection, context isolation, verification, human co-creation,
-  constellation awareness, and trust awareness.
-- Core may understand trust states such as signed/unsigned,
-  verified/unverified, and lineage present/missing.
-- Core must not contain private Seed Signature authority implementation,
-  private keys, SCIA memory implementation, SCIA security implementation,
-  SION internals, private audit chain, or Enterprise backend implementation.
-- Optional private/Enterprise integrations must fail closed when unavailable.
+- Preserve repo understanding, continuity, reflection, recall, reinjection, context isolation, verification, human co-creation, constellation awareness, and trust awareness.
+- Core understands signed/unsigned, verified/unverified, and lineage present/missing.
+- Core excludes private Seed Signature authority, private keys, SCIA memory/security, SION internals, private audit chains, and Enterprise backend implementation.
+- Optional private integrations fail closed.
 
 ## Working Rules
 
-1. Prefer existing capabilities before adding new systems.
-2. Treat generated manifests and context bundles as repo intelligence outputs,
-   not as standing instruction source.
-3. Keep PWA/dashboard surfaces human-operated: observe, review, approve,
-   reject, revise, and monitor. Do not turn the PWA into a direct code
-   execution controller.
-4. Keep SION deferred from public Core runtime unless explicitly approved.
-5. Do not stage private/deferred drafts, scratch probes, generated state, local
-   DBs, or ignored runtime artifacts.
-6. Run focused tests and boundary scans before commits.
-
-Generated symbol maps and full repo intelligence belong in SRT-1
-manifests/context outputs, not in this standing instruction file.
+1. Prefer existing capabilities before adding systems.
+2. Use manifests and `.srt1/context/` as generated intelligence; do not overwrite standing instructions.
+3. Execute only inside the assigned WorkCell allowed paths.
+4. Do not bypass signing, verification, approval, or continuity gates.
+5. Keep SION deferred unless explicitly approved as separate work.
+6. Do not stage private drafts, scratch probes, generated state, local databases, or runtime artifacts.
+7. Run focused tests and boundary scans before commits.
