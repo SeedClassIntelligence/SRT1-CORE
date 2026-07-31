@@ -113,6 +113,7 @@ docs/marketing/
 # -- LOCAL PWA PROTOTYPE COPY --
 # Public Core ships the packaged cockpit from srt1_platform/pwa/.
 developer-pwa/
+srt1_platform/pwa/preview2.html
 
 # -- LOCAL PRIVATE / REVIEW DOCTRINE --
 # Preserve locally until explicitly promoted into public Core docs.
