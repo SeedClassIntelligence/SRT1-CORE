@@ -28,16 +28,24 @@ def _request_json(
     url: str,
     payload: Optional[Dict[str, Any]] = None,
     timeout: float = 4.0,
+    headers: Optional[Dict[str, str]] = None,
 ) -> Dict[str, Any]:
     data = None
-    headers = {"Accept": "application/json"}
+    request_headers = {"Accept": "application/json"}
+    request_headers.update(headers or {})
     if payload is not None:
         data = json.dumps(payload).encode("utf-8")
-        headers["Content-Type"] = "application/json"
-    req = urllib.request.Request(url, data=data, headers=headers, method=method)
+        request_headers["Content-Type"] = "application/json"
+    req = urllib.request.Request(url, data=data, headers=request_headers, method=method)
     with urllib.request.urlopen(req, timeout=timeout) as response:
         body = response.read().decode("utf-8")
     return json.loads(body) if body else {}
+
+
+def _runtime_session_headers(origin: str) -> Dict[str, str]:
+    session = _request_json("GET", f"{origin}/api/v1/runtime/session")
+    token = session.get("session_token")
+    return {"X-SRT1-Session": str(token), "X-SRT1-Request": "cli"} if token else {}
 
 
 def _active_engines() -> List[Dict[str, Any]]:
@@ -151,7 +159,12 @@ def command_stop(args: argparse.Namespace) -> int:
     port = int(engine.get("port") or DEFAULT_PORT)
     origin = _origin(port)
     try:
-        result = _request_json("POST", f"{origin}/api/v1/runtime/shutdown", payload={})
+        result = _request_json(
+            "POST",
+            f"{origin}/api/v1/runtime/shutdown",
+            payload={},
+            headers=_runtime_session_headers(origin),
+        )
     except urllib.error.URLError as exc:
         print(f"SRT-1 runtime on port {port} did not accept shutdown: {exc}")
         return 1
@@ -177,6 +190,7 @@ def command_register(args: argparse.Namespace) -> int:
             "POST",
             f"{origin}/api/v1/repositories/register-path",
             payload={"path": repo_path},
+            headers=_runtime_session_headers(origin),
         )
     except Exception as exc:
         print(f"Repository registration failed: {exc}")

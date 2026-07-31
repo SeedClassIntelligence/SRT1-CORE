@@ -94,34 +94,49 @@ class CLIPolishTests(unittest.TestCase):
 
     def test_stop_calls_runtime_shutdown_endpoint(self):
         with patch.object(cli, "_select_engine", return_value={"port": 7484}), \
-             patch.object(cli, "_request_json", return_value={"status": "stopping"}) as request_json:
+             patch.object(cli, "_request_json", side_effect=[
+                 {"session_token": "runtime-session"},
+                 {"status": "stopping"},
+             ]) as request_json:
             out = io.StringIO()
             with redirect_stdout(out):
                 code = cli.main(["stop"])
 
         self.assertEqual(code, 0)
-        request_json.assert_called_once_with(
+        self.assertEqual(request_json.call_args_list[0].args, (
+            "GET",
+            "http://127.0.0.1:7484/api/v1/runtime/session",
+        ))
+        self.assertEqual(request_json.call_args_list[1].args, (
             "POST",
             "http://127.0.0.1:7484/api/v1/runtime/shutdown",
-            payload={},
-        )
+        ))
+        self.assertEqual(request_json.call_args_list[1].kwargs["payload"], {})
+        self.assertEqual(request_json.call_args_list[1].kwargs["headers"]["X-SRT1-Session"], "runtime-session")
+        self.assertEqual(request_json.call_args_list[1].kwargs["headers"]["X-SRT1-Request"], "cli")
         self.assertIn("stopping", out.getvalue())
 
     def test_register_posts_path_to_active_runtime(self):
         with tempfile.TemporaryDirectory() as repo:
             response = {"status": "registered", "registered_repository": {"path": str(Path(repo).resolve())}}
             with patch.object(cli, "_select_engine", return_value={"port": 7484}), \
-                 patch.object(cli, "_request_json", return_value=response) as request_json:
+                 patch.object(cli, "_request_json", side_effect=[
+                     {"session_token": "runtime-session"},
+                     response,
+                 ]) as request_json:
                 out = io.StringIO()
                 with redirect_stdout(out):
                     code = cli.main(["register", repo])
 
         self.assertEqual(code, 0)
-        method, url = request_json.call_args.args
-        payload = request_json.call_args.kwargs["payload"]
+        method, url = request_json.call_args_list[1].args
+        payload = request_json.call_args_list[1].kwargs["payload"]
+        headers = request_json.call_args_list[1].kwargs["headers"]
         self.assertEqual(method, "POST")
         self.assertEqual(url, "http://127.0.0.1:7484/api/v1/repositories/register-path")
         self.assertEqual(payload["path"], str(Path(repo).resolve()))
+        self.assertEqual(headers["X-SRT1-Session"], "runtime-session")
+        self.assertEqual(headers["X-SRT1-Request"], "cli")
         self.assertIn("registered", out.getvalue())
 
     def test_start_uses_existing_engine(self):
