@@ -32,6 +32,13 @@ from srt1_platform.tracing_system import SRT1TracingSystem
 from srt1_platform.intelligence_adapter import IntelligenceAdapter
 from srt1_platform.llm_providers import TokenBudget, AnalysisCache, LLMResponse
 from srt1_platform.workcell import WorkCell, WorkCellExecution, WorkCellRegistry
+from srt1_platform.native_execution_runtime import (
+    NativeExecutionBoundaryError,
+    NativeExecutionError,
+    NativeExecutionPackage,
+    NativeExecutionResult,
+    SRT1NativeExecutionRuntime,
+)
 from srt1_platform.assistant_adapters import (
     AssistantAdapterRegistry,
     AssistantDispatchResult,
@@ -58,6 +65,9 @@ __all__ = [
     "SRT1TracingSystem", "SCIARemoteAuth",
     "IntelligenceAdapter", "TokenBudget", "AnalysisCache", "LLMResponse",
     "WorkCell", "WorkCellExecution", "WorkCellRegistry",
+    "NativeExecutionBoundaryError", "NativeExecutionError",
+    "NativeExecutionPackage", "NativeExecutionResult",
+    "SRT1NativeExecutionRuntime",
     "AssistantAdapterRegistry", "AssistantDispatchResult",
     "CodexAssistantAdapter", "CustomHTTPAssistantAdapter",
     "FileHandoffAssistantAdapter", "WorkCellExecutionRequest",
