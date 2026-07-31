@@ -845,6 +845,30 @@ class WorkCellRuntimeTests(unittest.TestCase):
         self.assertFalse(cancelled["allowed"])
         self.assertEqual(cancelled["execution_status"], "cancel_requested")
 
+    def test_engine_cancel_control_marks_result_suppression_guarantee(self):
+        with tempfile.TemporaryDirectory() as repo:
+            engine = engine_module.SRT1Engine.__new__(engine_module.SRT1Engine)
+            engine.repo_path = repo
+            engine._workcell_cancel_events = {}
+            engine.workcell_registry = WorkCellRegistry(repo_path=repo)
+            engine.workcell_registry.activate_execution(
+                queue_seed_id="seed_cancel_runtime",
+                objective="Stop provider work",
+                manifest={"file_manifest": [{"file_path": "app.py"}]},
+            )
+
+            result = engine._control_workcell_execution(
+                "seed_cancel_runtime",
+                "cancel",
+                actor="dashboard_human",
+            )
+
+        self.assertEqual(result["status"], "cancel_requested")
+        self.assertFalse(result["provider_termination_guaranteed"])
+        self.assertTrue(result["result_suppression_guaranteed"])
+        self.assertIn("seed_cancel_runtime", engine._workcell_cancel_events)
+        self.assertTrue(engine._workcell_cancel_events["seed_cancel_runtime"].is_set())
+
     def test_engine_dispatches_existing_workcell_without_planting_duplicate_seed(self):
         class FakeBridge:
             def __init__(self):

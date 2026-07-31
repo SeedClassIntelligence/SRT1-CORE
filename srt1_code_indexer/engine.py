@@ -274,6 +274,7 @@ class SRT1Engine:
         self.repo_path = os.path.abspath(repo_path)
         self.task = task
         self.port = port
+        self._workcell_cancel_events: Dict[str, threading.Event] = {}
 
         # Core SCIA IP
         self.srt_tool = SRT(reflection_interval=self.REFLECTION_INTERVAL)
@@ -2530,6 +2531,12 @@ class SRT1Engine:
             if auto_dispatch and self.bridge:
                 def _dispatch_async(sid, t):
                     job_id = None
+                    cancel_event = threading.Event()
+                    cancel_events = getattr(self, "_workcell_cancel_events", None)
+                    if cancel_events is None:
+                        cancel_events = {}
+                        self._workcell_cancel_events = cancel_events
+                    cancel_events[sid] = cancel_event
                     try:
                         allowed_paths = self._get_workcell_allowed_paths(workcell_execution)
                         registry = self._get_workcell_registry()
@@ -2625,8 +2632,28 @@ class SRT1Engine:
                                 "credential_providers": credential_context["providers"],
                             },
                             transient_credentials=credential_context["provider_keys"],
+                            cancel_event=cancel_event,
                         )
                         registry = self._get_workcell_registry()
+                        if cancel_event.is_set():
+                            if registry:
+                                registry.update_execution_job(
+                                    sid,
+                                    job_id=job_id,
+                                    status="cancelled",
+                                    metadata={
+                                        "result_discarded": True,
+                                        "provider_termination_guaranteed": False,
+                                    },
+                                )
+                                registry.acknowledge_execution_job(
+                                    sid,
+                                    job_id=job_id,
+                                    acknowledgement="cancelled",
+                                    actor="workcell_runtime_governor",
+                                    message="Provider output discarded after cancellation request.",
+                                )
+                            return
                         if registry:
                             registry.update_execution_job(
                                 sid,
@@ -2670,6 +2697,8 @@ class SRT1Engine:
                                 message=str(e),
                             )
                         logger.error(f"Async dispatch failed for {sid}: {e}")
+                    finally:
+                        cancel_events.pop(sid, None)
                 threading.Thread(
                     target=_dispatch_async, args=(queue_seed_id, task),
                     daemon=True, name=f"dispatch-{queue_seed_id[:8]}"
@@ -2917,7 +2946,17 @@ class SRT1Engine:
         registry = self._get_workcell_registry()
         if not registry:
             return {"error": "WorkCell registry unavailable", "status": "error"}
-        return registry.control_execution(queue_seed_id, action, actor=actor, reason=reason)
+        result = registry.control_execution(queue_seed_id, action, actor=actor, reason=reason)
+        if action in {"stop", "cancel"} and result.get("status") in {"stop_requested", "cancel_requested"}:
+            events = getattr(self, "_workcell_cancel_events", None)
+            if events is None:
+                events = {}
+                self._workcell_cancel_events = events
+            event = events.setdefault(queue_seed_id, threading.Event())
+            event.set()
+            result["provider_termination_guaranteed"] = False
+            result["result_suppression_guaranteed"] = True
+        return result
 
     def _verify_workcell_execution(
         self,
@@ -3443,7 +3482,7 @@ class SRT1Engine:
         if not execution:
             return {"allowed": False, "status": "blocked", "reason": "WorkCell execution not found"}
         execution_status = execution.get("status") or "unknown"
-        if execution_status in {"pause_requested", "stop_requested", "cancelled", "terminated", "completed"}:
+        if execution_status in {"pause_requested", "stop_requested", "cancel_requested", "cancelled", "terminated", "completed"}:
             return {
                 "allowed": False,
                 "status": "blocked",
