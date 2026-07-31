@@ -15,21 +15,14 @@ Extracted Purposes:
 SRT-1 — Seed Reflection Tracing for Code
 =========================================
 
-ONE PRODUCT. ONE COMMAND.
+LOCAL REPO CONTINUITY. BOUNDED WORKCELLS.
 
-    srt1 --repo_path ./my_project --task "Add refund emails"
+    srt1-code-indexer --repo_path ./my_project
 
-This single command does EVERYTHING:
-    1. Indexes the entire codebase (knows what every function does)
-    2. Generates AI context files (CLAUDE.md, .cursorrules, AGENTS.md, etc.)
-    3. Starts the live middleware server (checkpoints every 3 operations)
-    4. Serves the visual dashboard (coherence gauge, warnings, chat)
-    5. Watches for file changes and auto-regenerates everything
-
-The developer runs ONE command. Their AI assistant automatically becomes
-smarter — it reads the generated files and knows the entire codebase.
-The middleware runs in the background, firing reflection checkpoints.
-The dashboard shows coherence, warnings, and lets them talk to SRT-1.
+The engine indexes the selected repository, builds manifest-backed repo
+intelligence, prepares FileCells and WorkCells, serves the local dashboard and
+standard experience, and watches for changes. Assistant execution remains
+bounded by WorkCell scope, verification, and human approval.
 
 Author : William Darnell Jernigan IV (Architect)
 License: Business Source License 1.1
@@ -61,6 +54,7 @@ import signal
 import webbrowser
 import sqlite3
 import uuid
+import secrets
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from socketserver import ThreadingMixIn
 from datetime import datetime, timedelta, timezone
@@ -160,7 +154,7 @@ def _find_free_port(start_port: int, span: int = 100) -> int:
 
 # ---- Consumer Auth Helpers (unified from legacy/srt1_cloud.py) ----
 DB_FILE = "srt1_cloud.db"
-SECRET_KEY = "srt1-super-secret-production-key"
+SECRET_KEY = os.environ.get("SRT1_AUTH_SECRET") or secrets.token_urlsafe(32)
 
 def indexer_hash_password(password: str) -> str:
     return hashlib.sha256((password + SECRET_KEY).encode()).hexdigest()
@@ -312,14 +306,8 @@ class SRT1Engine:
         except ImportError:
             self.authority = None
 
-        # ---- Optional external authority hook ----
-        self.signing_client = None
-        try:
-            from srt1_code_indexer.authority_client import AuthorityClient
-            _authority = AuthorityClient()
-            self.signing_client = _authority if _authority.is_available else None
-        except ImportError:
-            pass
+        # A configured external authority may sign; local hashes never masquerade as signatures.
+        self.signing_client = self.authority if self.authority and self.authority.is_available else None
 
         # ---- Seed Queue ----
         self.seed_queue: Optional[SCIASeedQueue] = None
@@ -368,6 +356,56 @@ class SRT1Engine:
                 generate_blueprint=self.generate_blueprint,
                 get_file_hashes=lambda: self.file_hashes.items(),
             )
+
+    def _sign_artifact(
+        self,
+        content: Any,
+        operation_type: str,
+        metadata: Optional[Dict[str, Any]] = None,
+        required: bool = False,
+    ) -> Dict[str, Any]:
+        """Return normalized public trust metadata from the external authority client."""
+        client = getattr(self, "signing_client", None) or getattr(self, "authority", None)
+        if not client:
+            return {
+                "status": "failed" if required else "unsigned",
+                "authority_issued": False,
+                "signature_id": "",
+                "operation_type": operation_type,
+                "degradation_reason": "External Seed Signature authority is unavailable",
+            }
+        try:
+            record = client.sign(
+                content,
+                operation_type=operation_type,
+                metadata=metadata,
+                phase=operation_type,
+                require_authority=required,
+            )
+        except TypeError:
+            record = client.sign(content, phase=operation_type)
+        except Exception as exc:
+            return {
+                "status": "failed" if required else "unsigned",
+                "authority_issued": False,
+                "signature_id": "",
+                "operation_type": operation_type,
+                "degradation_reason": type(exc).__name__,
+            }
+        data = record.to_dict() if hasattr(record, "to_dict") else dict(record or {})
+        if "status" not in data:
+            data["status"] = "signed" if data.get("authority_issued") or data.get("signed") else "unsigned"
+        data.setdefault("authority_issued", data.get("status") == "signed")
+        data.setdefault("operation_type", operation_type)
+        return data
+
+    def _current_trust_state(self) -> Dict[str, str]:
+        client = getattr(self, "signing_client", None)
+        return {
+            "signature": "signed" if client and getattr(client, "is_available", True) else "unsigned",
+            "verification": "verified" if getattr(self, "_trust_integrity", False) else "unverified",
+            "lineage": "present" if getattr(self, "_trust_chain", []) else "missing",
+        }
 
     # -----------------------------------------------------------------
     # REAL EVENT LOG
@@ -699,12 +737,12 @@ class SRT1Engine:
             "data": data or {},
         }
         # Optional external signing; Core continues if unavailable.
-        if self.signing_client:
-            sig = self.signing_client.sign(
+        if getattr(self, "signing_client", None):
+            sig = self._sign_artifact(
                 {"category": category, "message": message, "ts": event["timestamp"]},
-                phase="event_log"
+                "event_log",
             )
-            if "error" not in sig:
+            if sig.get("status") == "signed":
                 event["_provenance"] = sig
         # In-memory event cache for dashboard read performance.
         self._event_log.append(event)
@@ -920,13 +958,13 @@ class SRT1Engine:
             "symbols_indexed": symbols_indexed,
             "coherence_score": 1.0,
             "timestamp": self.session_start.isoformat(),
-            "engine_version": "SRT-1 v2.0",
+            "engine_version": f"SRT-1 v{self._SRT1_VERSION}",
         }
 
         # Attach optional external trust provenance when configured.
         if self.signing_client:
-            sig = self.signing_client.sign(trust_entry, phase="bootstrap")
-            if "error" not in sig:
+            sig = self._sign_artifact(trust_entry, "bootstrap")
+            if sig.get("status") == "signed":
                 trust_entry["_provenance"] = sig
 
         self._trust_chain = [trust_entry]
@@ -955,8 +993,8 @@ class SRT1Engine:
                 )
                 # Attach optional external trust provenance when configured.
                 if self.signing_client:
-                    sig = self.signing_client.sign(event.to_dict(), phase="enforcement")
-                    if "error" not in sig:
+                    sig = self._sign_artifact(event.to_dict(), "enforcement")
+                    if sig.get("status") == "signed":
                         event.metadata = sig  # attach provenance
 
         if blocking_overlaps or warnings:
@@ -991,12 +1029,23 @@ class SRT1Engine:
             return True
 
         interface_method_names = {
+            "dispatch",
             "generate",
             "get_available_providers",
             "get_budget_status",
             "is_available",
         }
         if func in interface_method_names:
+            return True
+
+        local_helper_names = {
+            "_load",
+            "_now",
+            "_safe_slug",
+            "_save",
+            "_utc_now",
+        }
+        if func in local_helper_names:
             return True
 
         return False
@@ -1049,8 +1098,8 @@ class SRT1Engine:
                         from srt1_platform.delta_auditor import SCIADeltaAuditor
                         delta_report = SCIADeltaAuditor.compute_delta(self.repo_path, state_t1, self.manifest)
                         if self.signing_client:
-                            sig = self.signing_client.sign(delta_report, phase="delta_audit")
-                            if "error" not in sig:
+                            sig = self._sign_artifact(delta_report, "delta_audit")
+                            if sig.get("status") == "signed":
                                 delta_report["_provenance"] = sig
                         
                         # Write to Audit file
@@ -2087,11 +2136,11 @@ class SRT1Engine:
         if self.signing_client:
             import hashlib as _hl
             content_hash = _hl.sha256(("REINJECT_" + str(self.task)).encode()).hexdigest()
-            sig = self.signing_client.sign(
+            sig = self._sign_artifact(
                 {"content_hash": content_hash, "files_written": 1},
-                phase="context_reinjection"
+                "context_reinjection",
             )
-            if "error" not in sig:
+            if sig.get("status") == "signed":
                 print("         ✓ Reinjection event signed by authority")
         return result
 
@@ -2862,7 +2911,26 @@ class SRT1Engine:
                 "error": "WorkCell write validation blocked proposal apply.",
                 "write_check": write_check,
             }
+        signature = self._sign_artifact(
+            {
+                "proposal_id": proposal_id,
+                "queue_seed_id": queue_seed_id,
+                "proposal_hash": proposal.get("proposal_hash"),
+                "target_paths": target_paths,
+            },
+            "change_proposal_apply",
+            metadata={"actor": actor or "human"},
+            required=True,
+        )
+        if signature.get("status") != "signed" or not signature.get("authority_issued"):
+            return {
+                "status": "blocked",
+                "proposal_id": proposal_id,
+                "error": "Seed Signature authority must sign a source mutation before apply.",
+                "trust": signature,
+            }
         result = store.apply_proposal(proposal_id, actor=actor)
+        result["trust"] = signature
         registry = self._get_workcell_registry() if queue_seed_id else None
         if registry:
             registry.record_execution_event(
@@ -2876,6 +2944,7 @@ class SRT1Engine:
                     "applied": result.get("applied", False),
                     "files_changed": result.get("files_changed", []),
                     "verification": result.get("verification"),
+                    "signature_id": signature.get("signature_id"),
                 },
             )
         return result
@@ -3596,9 +3665,9 @@ class SRT1Engine:
             # Emit immediate Seed Signature for allocation
             if getattr(self, "signing_client", None):
                 try:
-                    self.signing_client.sign(
+                    self._sign_artifact(
                         content={"cell_id": filecell_manifest.cell_id, "intent": seed},
-                        phase="filecell_allocation"
+                        operation_type="filecell_allocation",
                     )
                 except Exception:
                     pass
@@ -3770,7 +3839,7 @@ class SRT1Engine:
     #
 
     _TELEMETRY_URL = "https://telemetry.srt1.network/v1/ping"
-    _SRT1_VERSION = "1.0.0"
+    _SRT1_VERSION = "2.3.3"
 
     @staticmethod
     def _get_consent_path(repo_path: str) -> str:
@@ -4107,11 +4176,7 @@ class SRT1Engine:
                         "duplicate_files": len(curation.get("duplicate_files", [])),
                         "functional_overlaps": len(curation.get("functional_overlaps", [])),
                         "unused_functions": len(curation.get("unused_functions", [])),
-                        "trust": {
-                            "signature": "signed" if engine.signing_client else "unsigned",
-                            "verification": "verified" if engine._trust_integrity else "unverified",
-                            "lineage": "present" if engine._trust_chain else "missing",
-                        },
+                        "trust": engine._current_trust_state(),
                         "enforcement": {
                             "mode": enforcement.get("mode", "unknown"),
                             "active_blocks": enforcement.get("active_blocks", 0),
@@ -4332,13 +4397,13 @@ class SRT1Engine:
                     }
                     # Attach optional external trust provenance when configured.
                     if engine.signing_client:
-                        sig = engine.signing_client.sign(
+                        sig = engine._sign_artifact(
                             {"violations": enforcement.get("enforcements_issued", 0),
                              "files": len(engine.manifest.get("file_manifest", [])),
                              "overlaps": len(overlaps)},
-                            phase="status_attestation"
+                            "status_attestation",
                         )
-                        if "error" not in sig:
+                        if sig.get("status") == "signed":
                             status_resp["_provenance"] = sig
                     self._json(status_resp)
 
@@ -4535,7 +4600,7 @@ class SRT1Engine:
                             "token_count": token_count,
                         },
                         "coherence_score": coherence_score,
-                        "engine_version": "SRT-1 v2.0",
+                        "engine_version": f"SRT-1 v{self._SRT1_VERSION}",
                     })
 
                 elif path == "/dashboard":
@@ -5512,12 +5577,12 @@ class SRT1Engine:
                     # Attach optional external trust provenance when configured.
                     if engine.signing_client:
                         try:
-                            sig = engine.signing_client.sign(
-                                {"task": task, "seed_id": engine.task_seed_id, "source": source},
-                                operation_type="seed_dispatch"
+                            sig = engine._sign_artifact(
+                                {"task": task, "seed_id": response.get("queue_seed_id"), "source": source},
+                                "seed_dispatch",
                             )
-                            if sig:
-                                response["_provenance"] = sig.to_dict() if hasattr(sig, "to_dict") else str(sig)
+                            if sig.get("status") == "signed":
+                                response["_provenance"] = sig
                         except Exception as e:
                             logger.error(f"External signing failed: {e}")
                     self._json(response)
@@ -5546,11 +5611,11 @@ class SRT1Engine:
                         }
                         # Attach optional external trust provenance when configured.
                         if engine.signing_client:
-                            sig = engine.signing_client.sign(
+                            sig = engine._sign_artifact(
                                 {"event_id": event_id, "action": "resolve"},
-                                phase="enforcement_resolve"
+                                "enforcement_resolve",
                             )
-                            if "error" not in sig:
+                            if sig.get("status") == "signed":
                                 resolve_data["_provenance"] = sig
                         self._json(resolve_data)
                     else:
@@ -5581,12 +5646,12 @@ class SRT1Engine:
                         }
                         # Attach optional external trust provenance when configured.
                         if engine.signing_client:
-                            sig = engine.signing_client.sign(
+                            sig = engine._sign_artifact(
                                 {"event_id": event_id, "action": "override",
                                  "reason": reason, "actor": actor},
-                                phase="enforcement_override"
+                                "enforcement_override",
                             )
-                            if "error" not in sig:
+                            if sig.get("status") == "signed":
                                 override_data["_provenance"] = sig
                         self._json(override_data)
                     else:

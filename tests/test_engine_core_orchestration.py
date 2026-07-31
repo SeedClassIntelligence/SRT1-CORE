@@ -134,6 +134,18 @@ class EngineCoreOrchestrationTests(unittest.TestCase):
                         {"function": "is_available", "file": "srt1_platform/intelligence_adapter.py", "line": 92},
                         {"function": "is_available", "file": "srt1_platform/llm_providers.py", "line": 149},
                     ]
+                },
+                {
+                    "instances": [
+                        {"function": "dispatch", "file": "srt1_platform/assistant_adapters.py", "line": 92},
+                        {"function": "dispatch", "file": "srt1_platform/assistant_adapters.py", "line": 219},
+                    ]
+                },
+                {
+                    "instances": [
+                        {"function": "_now", "file": "srt1_platform/assistant_adapters.py", "line": 18},
+                        {"function": "_now", "file": "srt1_platform/native_execution_runtime.py", "line": 48},
+                    ]
                 }
             ]
         }

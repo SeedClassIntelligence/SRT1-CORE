@@ -79,6 +79,9 @@ class ProvenanceRecord:
         metadata: Optional[Dict[str, Any]] = None,
         chain_position: int = 0,
         authority_issued: bool = True,
+        status: Optional[str] = None,
+        authority_id: Optional[str] = None,
+        degradation_reason: Optional[str] = None,
     ):
         self.signature_id = signature_id
         self.operation_type = operation_type
@@ -88,6 +91,9 @@ class ProvenanceRecord:
         self.metadata = metadata or {}
         self.chain_position = chain_position
         self.authority_issued = authority_issued
+        self.status = status or ("signed" if authority_issued else "unsigned")
+        self.authority_id = authority_id
+        self.degradation_reason = degradation_reason
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -99,6 +105,10 @@ class ProvenanceRecord:
             "metadata": self.metadata,
             "chain_position": self.chain_position,
             "authority_issued": self.authority_issued,
+            "status": self.status,
+            "authority_id": self.authority_id,
+            "degradation_reason": self.degradation_reason,
+            "lineage": "present" if self.previous_signature or self.chain_position == 0 else "missing",
         }
 
     @classmethod
@@ -112,6 +122,9 @@ class ProvenanceRecord:
             metadata=data.get("metadata", {}),
             chain_position=data.get("chain_position", 0),
             authority_issued=data.get("authority_issued", True),
+            status=data.get("status"),
+            authority_id=data.get("authority_id"),
+            degradation_reason=data.get("degradation_reason"),
         )
 
 
@@ -172,6 +185,8 @@ class AuthorityClient:
         content: Any,
         operation_type: str = "artifact",
         metadata: Optional[Dict[str, Any]] = None,
+        phase: Optional[str] = None,
+        require_authority: bool = False,
     ) -> ProvenanceRecord:
         """
         Sign content through the authority service.
@@ -190,12 +205,22 @@ class AuthorityClient:
             ProvenanceRecord with authority-issued signature, or a local
             fallback record if the authority service is unavailable.
         """
+        operation_type = str(phase or operation_type or "artifact")
         if self._available:
             try:
                 return self._remote_sign(content, operation_type, metadata)
             except Exception as e:
-                logger.warning(f"Authority service error, using local fallback: {e}")
+                logger.warning("Authority service could not issue a signature: %s", type(e).__name__)
+                if require_authority:
+                    return self._failed_record(content, operation_type, metadata, str(e))
 
+        if require_authority:
+            return self._failed_record(
+                content,
+                operation_type,
+                metadata,
+                "External Seed Signature authority is unavailable",
+            )
         return self._local_sign(content, operation_type, metadata)
 
     # ── INJECT ───────────────────────────────────────────────────────────────
@@ -346,13 +371,12 @@ class AuthorityClient:
             with urllib.request.urlopen(req, timeout=10) as resp:
                 result = json.loads(resp.read().decode("utf-8"))
         except urllib.error.HTTPError as e:
-            body = e.read().decode("utf-8", errors="replace")
-            raise RuntimeError(f"Authority returned {e.code}: {body}")
+            raise RuntimeError(f"Authority returned HTTP {e.code}")
         except urllib.error.URLError as e:
             raise ConnectionError(f"Cannot reach authority: {e.reason}")
 
         record = ProvenanceRecord(
-            signature_id=result.get("signature_id", content_hash[:16]),
+            signature_id=str(result.get("signature_id") or ""),
             operation_type=operation_type,
             timestamp=result.get("timestamp", time.time()),
             content_hash=content_hash,
@@ -360,7 +384,12 @@ class AuthorityClient:
             metadata=metadata or {},
             chain_position=len(self._local_chain),
             authority_issued=True,
+            status="signed",
+            authority_id=result.get("authority_id") or result.get("issuer"),
         )
+
+        if not record.signature_id:
+            raise RuntimeError("Authority response did not include a signature_id")
 
         self._local_chain.append(record)
         logger.info(f"Authority-signed: {record.signature_id} [{operation_type}]")
@@ -408,8 +437,33 @@ class AuthorityClient:
             metadata=metadata or {},
             chain_position=len(self._local_chain),
             authority_issued=False,
+            status="unsigned",
+            degradation_reason="External Seed Signature authority was not used",
         )
 
         self._local_chain.append(record)
         logger.debug(f"Local-only (unsigned): {record.signature_id} [{operation_type}]")
         return record
+
+    def _failed_record(
+        self,
+        content: Any,
+        operation_type: str,
+        metadata: Optional[Dict[str, Any]],
+        reason: str,
+    ) -> ProvenanceRecord:
+        """Return explicit failed trust metadata without creating a fake signature."""
+        content_str = json.dumps(content, sort_keys=True, default=str)
+        content_hash = hashlib.sha256(content_str.encode("utf-8")).hexdigest()
+        return ProvenanceRecord(
+            signature_id="",
+            operation_type=operation_type,
+            timestamp=datetime.now(tz=timezone.utc).timestamp(),
+            content_hash=content_hash,
+            previous_signature=self._local_chain[-1].signature_id if self._local_chain else None,
+            metadata=metadata or {},
+            chain_position=len(self._local_chain),
+            authority_issued=False,
+            status="failed",
+            degradation_reason=str(reason or "Authority signature failed"),
+        )
