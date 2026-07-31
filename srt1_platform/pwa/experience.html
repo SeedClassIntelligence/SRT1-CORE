@@ -2136,7 +2136,7 @@ async function handleIntent(text) {
   if (latestRepositoryUnderstanding && (asksAboutSelectedProject || (!latestAttachment && asksAboutUpload))) {
     const projectSession = getWorkcellProviderSession('__project__');
     if (projectSession.enabled) await converseAboutProject(text);
-    else showRepositoryDiscussion();
+    else showLocalProjectResponse(text, latestRepositoryUnderstanding);
     return;
   }
   if (pendingRepositoryActivation && (asksAboutSelectedProject || asksAboutUpload)) {
@@ -2206,7 +2206,7 @@ async function handleIntent(text) {
     return;
   }
   if (['understand', 'observe'].includes(intent)) {
-    if (intent === 'understand' && latestRepositoryUnderstanding) showRepositoryDiscussion();
+    if (intent === 'understand' && latestRepositoryUnderstanding) showLocalProjectResponse(text, latestRepositoryUnderstanding);
     else showProjectBrief();
     return;
   }
@@ -2745,7 +2745,7 @@ function localProjectResponse(message, understanding) {
   const planTail = intent === 'plan'
     ? 'A practical first pass is: confirm the main user flow, pick one bounded WorkCell, define the success check, then let SRT-1 hand that scoped package to the selected assistant.'
     : 'You can ask me to plan a first change, inspect a WorkCell, or connect a Project Assistant for deeper model-backed discussion.';
-  return `${synopsis}\n\n${summary}\n\n${planTail}`;
+  return `${synopsis}\n\n${summary}\n\nNo Seed was created and no write scope was granted for this explanation.\n\n${planTail}`;
 }
 
 function showLocalProjectResponse(message, understanding) {
@@ -3047,7 +3047,7 @@ projectTrigger.addEventListener('click', event => {
 projectMenu.addEventListener('click', event => event.stopPropagation());
 document.addEventListener('click', () => projectMenu.classList.remove('open'));
 
-document.getElementById('briefBtn').addEventListener('click', () => renderSessionBrief(latestSummary, latestWork));
+document.getElementById('briefBtn').addEventListener('click', () => converseAboutProject('Explain this project.'));
 document.getElementById('projectAssistantBtn').addEventListener('click', openProjectAssistantSettings);
 document.getElementById('closeProjectAssistant').addEventListener('click', () => projectAssistantOverlay.classList.remove('open'));
 projectAssistantOverlay.addEventListener('click', event => { if (event.target === projectAssistantOverlay) projectAssistantOverlay.classList.remove('open'); });
