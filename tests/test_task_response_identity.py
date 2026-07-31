@@ -315,7 +315,7 @@ class TaskResponseIdentityTests(unittest.TestCase):
                 reflections=[packet],
             )
             state = json.loads((Path(repo) / ".srt1" / "reinjector_state.json").read_text(encoding="utf-8"))
-            content = agents_path.read_text(encoding="utf-8")
+            content = (Path(repo) / ".srt1" / "context" / "reinjection.md").read_text(encoding="utf-8")
 
         self.assertTrue(success)
         recall_state = [p for p in state if p["mode"] == "recall"][0]
@@ -354,7 +354,7 @@ class TaskResponseIdentityTests(unittest.TestCase):
                 reflections=[packet.to_reinjection_dict()],
             )
             state = json.loads((Path(repo) / ".srt1" / "reinjector_state.json").read_text(encoding="utf-8"))
-            content = agents_path.read_text(encoding="utf-8")
+            content = (Path(repo) / ".srt1" / "context" / "reinjection.md").read_text(encoding="utf-8")
 
         self.assertTrue(success)
         recall_state = [p for p in state if p["mode"] == "recall"][0]

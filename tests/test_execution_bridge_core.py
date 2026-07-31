@@ -269,7 +269,7 @@ class ExecutionBridgeCoreTests(unittest.TestCase):
             def __enter__(self): return self
             def __exit__(self, exc_type, exc, tb): return False
             def read(self):
-                return b'{"choices":[{"message":{"content":"{\"message\":\"Grounded answer\"}"}}]}'
+                return b'{"choices":[{"message":{"content":"{\\"message\\":\\"Grounded answer\\"}"}}]}'
 
         def fake_urlopen(request, timeout=0):
             captured["body"] = request.data.decode("utf-8")

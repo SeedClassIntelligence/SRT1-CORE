@@ -93,6 +93,7 @@ class RepositoryActivationTests(unittest.TestCase):
         self.assertEqual(result["status"], "error")
         self.assertIn("Git is required", result["error"])
         self.assertEqual(result["repositories"], [])
+
     def test_engine_registers_external_path_without_switching_runtime(self):
         with tempfile.TemporaryDirectory() as active_repo, tempfile.TemporaryDirectory() as other_repo:
             engine = engine_module.SRT1Engine.__new__(engine_module.SRT1Engine)
@@ -244,6 +245,9 @@ class RepositoryActivationTests(unittest.TestCase):
         self.assertIn("shutdownCurrentRuntime", dashboard)
         self.assertIn("Stop SRT-1", dashboard)
         self.assertIn("openRepositoryRuntime", dashboard)
+        self.assertIn("result.experience_url", dashboard)
+        self.assertIn("/experience.html", dashboard)
+        self.assertNotIn("window.location.href = result.dashboard_url", dashboard)
         self.assertIn("registerCurrentRepository", dashboard)
         self.assertIn("/api/v1/repositories/launch", dashboard)
         self.assertIn("/api/v1/repositories/stop-runtime", dashboard)
