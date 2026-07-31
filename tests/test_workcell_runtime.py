@@ -9,6 +9,42 @@ from srt1_platform.workcell import WorkCellRegistry
 
 
 class WorkCellRuntimeTests(unittest.TestCase):
+    def test_manifest_refresh_marks_removed_file_workcells_orphaned(self):
+        with tempfile.TemporaryDirectory() as repo:
+            registry = WorkCellRegistry(repo_path=repo)
+            registry.populate_from_manifest({
+                "integrity": {"manifest_hash": "first"},
+                "file_manifest": [{"file_path": "app.py"}, {"file_path": "old.py"}],
+            })
+            registry.populate_from_manifest({
+                "integrity": {"manifest_hash": "second"},
+                "file_manifest": [{"file_path": "app.py"}],
+            })
+
+            summary = registry.summary(compact=True)
+            raw = json.loads(Path(registry.registry_file).read_text(encoding="utf-8"))
+
+        self.assertEqual(summary["workcell_count"], 1)
+        self.assertEqual(summary["orphaned_workcell_count"], 1)
+        self.assertEqual(len(summary["workcells"]), 1)
+        self.assertTrue(any(item["freshness_state"] == "orphaned" for item in raw["workcells"]))
+
+    def test_compact_summary_excludes_history_and_inactive_executions(self):
+        with tempfile.TemporaryDirectory() as repo:
+            registry = WorkCellRegistry(repo_path=repo)
+            registry.activate_execution(
+                queue_seed_id="seed_compact",
+                objective="Update app.py",
+                manifest={"file_manifest": [{"file_path": "app.py"}]},
+            )
+            registry.record_execution_event("seed_compact", "test", "ready")
+            registry._executions["wcx_seed_compact"].status = "completed"
+
+            summary = registry.summary(compact=True, limit=10)
+
+        self.assertEqual(summary["active_executions"], [])
+        self.assertNotIn("activity_events", summary["executions"][0])
+
     def test_repository_understanding_populates_one_workcell_per_file(self):
         with tempfile.TemporaryDirectory() as repo:
             registry = WorkCellRegistry(repo_path=repo)
@@ -434,7 +470,7 @@ class WorkCellRuntimeTests(unittest.TestCase):
         self.assertTrue(current["current_execution_job"]["review_required"])
         self.assertTrue(current["current_execution_job"]["verification_required"])
 
-    def test_dashboard_verification_records_review_gate(self):
+    def test_backend_verification_evidence_records_review_gate(self):
         with tempfile.TemporaryDirectory() as repo:
             registry = WorkCellRegistry(repo_path=repo)
             registry.activate_execution(
@@ -457,8 +493,12 @@ class WorkCellRuntimeTests(unittest.TestCase):
             result = registry.record_verification(
                 "seed_verify_gate",
                 verified=True,
-                actor="dashboard_human",
-                details={"source": "dashboard_review_lane"},
+                actor="verification_authority",
+                details={
+                    "source": "post_execution_verifier",
+                    "evidence_id": "verify_test_1",
+                    "verdict": "VERIFIED",
+                },
             )
             current = registry.get_execution_for_seed("seed_verify_gate")
 
@@ -481,8 +521,12 @@ class WorkCellRuntimeTests(unittest.TestCase):
             registry.record_verification(
                 "seed_human_decision",
                 verified=True,
-                actor="dashboard_human",
-                details={"method": "manual_core_verification"},
+                actor="verification_authority",
+                details={
+                    "source": "post_execution_verifier",
+                    "evidence_id": "verify_test_2",
+                    "verdict": "VERIFIED",
+                },
             )
 
             result = registry.control_execution(
@@ -587,8 +631,8 @@ class WorkCellRuntimeTests(unittest.TestCase):
         self.assertEqual(paused["status"], "pause_requested")
         self.assertEqual(resumed["status"], "running")
         self.assertEqual(stopped["status"], "stop_requested")
-        self.assertEqual(cancelled["status"], "cancelled")
-        self.assertEqual(current["status"], "cancelled")
+        self.assertEqual(cancelled["status"], "cancel_requested")
+        self.assertEqual(current["status"], "cancel_requested")
         self.assertTrue(
             any(event["event_type"] == "execution.cancel" for event in current["activity_events"])
         )
@@ -799,7 +843,7 @@ class WorkCellRuntimeTests(unittest.TestCase):
         self.assertFalse(unscoped["allowed"])
         self.assertIn("validated WorkCell write scope", unscoped["reason"])
         self.assertFalse(cancelled["allowed"])
-        self.assertEqual(cancelled["execution_status"], "cancelled")
+        self.assertEqual(cancelled["execution_status"], "cancel_requested")
 
     def test_engine_dispatches_existing_workcell_without_planting_duplicate_seed(self):
         class FakeBridge:

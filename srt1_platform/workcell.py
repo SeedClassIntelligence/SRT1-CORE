@@ -226,12 +226,14 @@ class WorkCellRegistry:
         file_entries = manifest.get("file_manifest", []) or []
         manifest_hash = manifest.get("integrity", {}).get("manifest_hash")
         workcells = []
+        current_workcell_ids = set()
 
         for entry in file_entries:
             path = entry.get("file_path") or entry.get("path")
             if not path:
                 continue
             workcell_id = _workcell_id_for_path(path)
+            current_workcell_ids.add(workcell_id)
             existing = self._workcells.get(workcell_id)
             if existing:
                 existing.updated_at = _now()
@@ -261,7 +263,14 @@ class WorkCellRegistry:
             self._workcells[workcell_id] = workcell
             workcells.append(workcell)
 
-        if workcells:
+        for workcell_id, existing in self._workcells.items():
+            if workcell_id == "workcell_repository" or workcell_id in current_workcell_ids:
+                continue
+            if existing.freshness_state != "orphaned":
+                existing.freshness_state = "orphaned"
+                existing.updated_at = _now()
+
+        if workcells or self._workcells:
             self._save()
         return workcells
 
@@ -540,6 +549,7 @@ class WorkCellRegistry:
             "acknowledged",
             "stopping",
             "stopped",
+            "cancelled",
             "paused",
             "resumed",
             "failed",
@@ -550,7 +560,7 @@ class WorkCellRegistry:
             return {
                 "status": "invalid_acknowledgement",
                 "queue_seed_id": queue_seed_id,
-                "error": "Supported acknowledgements: acknowledged, stopping, stopped, paused, resumed, failed, completed.",
+                "error": "Supported acknowledgements: acknowledged, stopping, stopped, cancelled, paused, resumed, failed, completed.",
             }
         execution = self._executions.get(f"wcx_{_safe_slug(queue_seed_id)}")
         if not execution:
@@ -564,6 +574,8 @@ class WorkCellRegistry:
         job["updated_at"] = _now()
         if ack in {"stopping", "stopped"}:
             job["stop_requested"] = True
+        if ack == "cancelled":
+            job["cancel_requested"] = True
         if ack == "paused":
             job["pause_requested"] = True
         if ack == "failed":
@@ -576,8 +588,8 @@ class WorkCellRegistry:
             job["review_required"] = True
             job["verification_required"] = True
             execution.status = "awaiting_review"
-        elif ack == "stopped":
-            job["status"] = "stopped"
+        elif ack in {"stopped", "cancelled"}:
+            job["status"] = ack
             job["completed_at"] = job.get("completed_at") or job["updated_at"]
             execution.status = "terminated"
         elif ack in {"stopping", "paused"}:
@@ -878,7 +890,7 @@ class WorkCellRegistry:
             "stop": ({"ready", "running", "dispatched", "paused", "pause_requested", "returned"}, "stop_requested"),
             "cancel": (
                 {"ready", "running", "dispatched", "paused", "pause_requested", "stop_requested", "returned"},
-                "cancelled",
+                "cancel_requested",
             ),
             "reject": ({"ready", "running", "dispatched", "paused", "pause_requested", "awaiting_review"}, "returned"),
         }
@@ -953,6 +965,14 @@ class WorkCellRegistry:
         execution = self._executions.get(f"wcx_{_safe_slug(queue_seed_id)}")
         if not execution:
             return {"status": "not_found", "queue_seed_id": queue_seed_id}
+        details = dict(details or {})
+        evidence_id = str(details.get("evidence_id") or "")
+        source = str(details.get("source") or "")
+        verdict = str(details.get("verdict") or "")
+        evidence_owned = bool(evidence_id) and source == "post_execution_verifier"
+        verified = bool(verified) and evidence_owned and verdict == "VERIFIED"
+        if not evidence_owned:
+            details["verification_refusal"] = "Backend-owned verification evidence is required."
         execution.verification_state = "verified" if verified else "failed"
         execution.trust_state["verification"] = execution.verification_state
         execution.status = "awaiting_review" if verified else "returned"
@@ -1288,26 +1308,62 @@ class WorkCellRegistry:
             "package_status": execution.package_status,
         }
 
-    def summary(self) -> Dict[str, Any]:
+    def summary(
+        self,
+        compact: bool = False,
+        limit: int = 50,
+        status: Optional[str] = None,
+    ) -> Dict[str, Any]:
         execution_dicts = []
         for execution in self._executions.values():
             item = execution.to_dict()
             item["package_status"] = self._build_package_status(execution)
+            if compact:
+                item.pop("activity_events", None)
+                item["execution_jobs"] = (item.get("execution_jobs") or [])[-1:]
             execution_dicts.append(item)
         executions = sorted(
             execution_dicts,
             key=lambda ex: ex.get("updated_at") or ex.get("created_at") or "",
             reverse=True,
         )
+        if status:
+            requested = {item.strip() for item in str(status).split(",") if item.strip()}
+            executions = [item for item in executions if item.get("status") in requested]
+        safe_limit = max(1, min(int(limit or 50), 200))
+        executions = executions[:safe_limit]
+        active_states = {
+            "running", "dispatched", "pause_requested", "paused",
+            "stop_requested", "cancel_requested", "awaiting_review",
+            "awaiting_verification",
+        }
+        current_workcells = [
+            workcell for workcell in self._workcells.values()
+            if workcell.freshness_state != "orphaned"
+        ]
+        orphaned_count = len(self._workcells) - len(current_workcells)
+        workcells = [workcell.to_dict() for workcell in current_workcells]
+        if compact:
+            workcells = [
+                {
+                    "workcell_id": item.get("workcell_id"),
+                    "name": item.get("name"),
+                    "owned_paths": item.get("owned_paths", []),
+                    "freshness_state": item.get("freshness_state"),
+                    "updated_at": item.get("updated_at"),
+                }
+                for item in workcells[:safe_limit]
+            ]
         return {
             "registry_path": self.registry_file,
-            "workcell_count": len(self._workcells),
+            "workcell_count": len(current_workcells),
+            "orphaned_workcell_count": orphaned_count,
             "execution_count": len(self._executions),
-            "workcells": [wc.to_dict() for wc in self._workcells.values()],
+            "workcells": workcells,
             "executions": executions,
             "active_executions": [
                 ex for ex in executions
-                if ex.get("status") not in {"completed", "terminated"}
+                if ex.get("status") in active_states
             ],
         }
 
