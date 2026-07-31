@@ -22,6 +22,31 @@ class RecordingSeedQueue(engine_module.SCIASeedQueue):
 
 
 class TaskResponseIdentityTests(unittest.TestCase):
+    def test_project_conversation_without_provider_uses_local_understanding(self):
+        engine = engine_module.SRT1Engine.__new__(engine_module.SRT1Engine)
+        engine.repo_path = "C:/project"
+        engine.synopsis = "Canonical project synopsis"
+        engine.manifest = {
+            "metadata": {"total_files_scanned": 2, "total_symbols_indexed": 4},
+            "integrity": {"manifest_hash": "manifest-123"},
+            "file_manifest": [{"file_path": "app.py"}, {"file_path": "tests/test_app.py"}],
+        }
+        engine.symbol_table = {"app.py": [{"name": "main", "type": "function", "line": 1}]}
+        engine.curation_report = {"functional_overlaps": [{"name": "duplicate"}]}
+
+        result = engine._project_conversation({
+            "message": "Explain this project",
+            "assistant_credentials": {"mode": "session", "provider_keys": {}},
+        })
+
+        self.assertEqual(result["status"], "ok")
+        self.assertEqual(result["provider"], "srt1_core")
+        self.assertIn("Canonical project synopsis", result["message"])
+        self.assertIn("2 files", result["message"])
+        self.assertFalse(result["execution_created"])
+        self.assertFalse(result["write_scope_granted"])
+        self.assertFalse(result["secret_persisted"])
+
     def test_project_conversation_uses_srt1_context_without_creating_execution(self):
         engine = engine_module.SRT1Engine.__new__(engine_module.SRT1Engine)
         engine.repo_path = "C:/project"

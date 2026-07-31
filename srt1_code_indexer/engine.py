@@ -3759,8 +3759,6 @@ class SRT1Engine:
         message = str(body.get("message") or "").strip()
         if not message:
             return {"status": "error", "error": "Project conversation message is required"}
-        if not AssistantAdapterRegistry or not WorkCellExecutionRequest:
-            return {"status": "unavailable", "error": "Assistant adapters unavailable"}
 
         configs = self._sanitize_assistant_adapter_config([
             body.get("assistant_adapter") if isinstance(body.get("assistant_adapter"), dict) else {}
@@ -3770,11 +3768,10 @@ class SRT1Engine:
         }]
         credentials = self._normalize_assistant_credentials(body.get("assistant_credentials"))
         if not configs or not credentials.get("provider_keys"):
-            return {
-                "status": "configuration_required",
-                "error": "Select a project assistant and provide a session key",
-                "secret_persisted": False,
-            }
+            return self._local_project_conversation(message)
+
+        if not AssistantAdapterRegistry or not WorkCellExecutionRequest:
+            return self._local_project_conversation(message)
 
         metadata = self.manifest.get("metadata", {})
         files = self.manifest.get("file_manifest", [])
@@ -3844,6 +3841,57 @@ class SRT1Engine:
             "message": str(content or "The configured assistant returned no conversational message."),
             "provider": response.get("provider") or configs[0].get("provider") or configs[0].get("type"),
             "model": response.get("model") or configs[0].get("model"),
+            "grounded_by": "SRT-1 repository synopsis, manifest, continuity, and WorkCell state",
+            "execution_created": False,
+            "write_scope_granted": False,
+            "secret_persisted": False,
+        }
+
+    def _local_project_conversation(self, message: str) -> Dict[str, Any]:
+        """Answer from SRT-1's own repository understanding without provider credentials."""
+        metadata = self.manifest.get("metadata", {}) if isinstance(self.manifest, dict) else {}
+        files = self.manifest.get("file_manifest", []) if isinstance(self.manifest, dict) else []
+        file_count = metadata.get("total_files_scanned", len(files))
+        symbol_count = metadata.get(
+            "total_symbols_indexed",
+            sum(len(items) for items in getattr(self, "symbol_table", {}).values()),
+        )
+        evidence = self._build_project_conversation_context(message)
+        relevant = evidence.get("relevant_files", []) if isinstance(evidence, dict) else []
+        findings = evidence.get("known_findings", {}) if isinstance(evidence, dict) else {}
+        synopsis = str(getattr(self, "synopsis", "") or "").strip()
+        if not synopsis:
+            synopsis = (
+                f"SRT-1 has registered {os.path.basename(self.repo_path)} and indexed "
+                f"{file_count} files with {symbol_count} symbols."
+            )
+        file_lines = [
+            f"- {item.get('path')} ({item.get('role') or 'unknown role'})"
+            for item in relevant[:5]
+            if item.get("path")
+        ]
+        finding_bits = []
+        for label, values in findings.items():
+            if values:
+                finding_bits.append(f"{label.replace('_', ' ')}: {len(values)}")
+        parts = [
+            synopsis,
+            "",
+            f"SRT-1 repository understanding currently sees {file_count} files and {symbol_count} symbols.",
+        ]
+        if file_lines:
+            parts.extend(["", "Relevant repository evidence:", *file_lines])
+        if finding_bits:
+            parts.extend(["", "Current findings: " + "; ".join(finding_bits)])
+        parts.extend([
+            "",
+            "No Seed was created and no write scope was granted. To change code, create a scoped WorkCell seed.",
+        ])
+        return {
+            "status": "ok",
+            "message": "\n".join(parts),
+            "provider": "srt1_core",
+            "model": "deterministic_repository_understanding",
             "grounded_by": "SRT-1 repository synopsis, manifest, continuity, and WorkCell state",
             "execution_created": False,
             "write_scope_granted": False,
