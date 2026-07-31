@@ -569,5 +569,34 @@ class ExecutionBridgeCoreTests(unittest.TestCase):
             self.assertEqual(app.read_text(encoding="utf-8"), "old = True\n")
 
 
+    def test_change_proposal_rolls_back_when_structural_verification_fails(self):
+        from srt1_platform.change_proposal import ChangeProposalStore
+
+        with tempfile.TemporaryDirectory() as repo:
+            app = Path(repo) / "app.py"
+            app.write_text("value = 'safe'\n", encoding="utf-8")
+            store = ChangeProposalStore(repo_path=repo)
+            record = store.create_from_provider_result(
+                queue_seed_id="seed_rollback",
+                objective="Reject invalid Python",
+                provider_result={"proposed_changes": [{
+                    "file_path": "app.py",
+                    "action": "MODIFY",
+                    "new_content": "def broken(:\n",
+                }]},
+                allowed_paths=["app.py"],
+            )
+            proposal_id = record["proposal"]["proposal_id"]
+            store.review_proposal(proposal_id, action="approve")
+
+            result = store.apply_proposal(proposal_id)
+
+            self.assertEqual(result["status"], "returned")
+            self.assertFalse(result["applied"])
+            self.assertTrue(result["rollback_performed"])
+            self.assertEqual(result["verification"]["verdict"], "FAILED")
+            self.assertTrue(result["verification"]["evidence_id"].startswith("verify_"))
+            self.assertEqual(app.read_text(encoding="utf-8"), "value = 'safe'\n")
+
 if __name__ == "__main__":
     unittest.main()

@@ -26,11 +26,16 @@ import uuid
 import json
 import hashlib
 import logging
-from datetime import datetime
+import tempfile
+from datetime import datetime, timezone
 from dataclasses import dataclass, field, asdict
 from typing import Dict, List, Any, Optional
 
 logger = logging.getLogger("srt1.change_proposal")
+
+
+def _utc_now() -> str:
+    return datetime.now(timezone.utc).isoformat()
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -136,7 +141,7 @@ class ChangeProposal:
         return cls(
             proposal_id=f"prop_{uuid.uuid4().hex[:16]}",
             seed_id=seed_id,
-            timestamp=datetime.utcnow().isoformat() + "Z",
+            timestamp=_utc_now(),
             task=task[:500],
             keywords=keywords or [],
             domains=domains or [],
@@ -376,7 +381,7 @@ class ChangeProposalStore:
             "boundary_validation": boundary,
             "proposal_validation": validation,
             "allowed_paths": list(allowed_paths or []),
-            "created_at": datetime.utcnow().isoformat() + "Z",
+            "created_at": _utc_now(),
             "applied": False,
             "apply_blocked_reason": "Human approval and write validation are required before source mutation.",
         }
@@ -457,9 +462,9 @@ class ChangeProposalStore:
             "reason": reason or "",
             "previous_status": previous_status,
             "status": record["status"],
-            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "timestamp": _utc_now(),
         })
-        record["updated_at"] = datetime.utcnow().isoformat() + "Z"
+        record["updated_at"] = _utc_now()
         path = self._proposal_path(proposal_id)
         with open(path, "w", encoding="utf-8") as f:
             json.dump(record, f, indent=2, sort_keys=True, default=str)
@@ -473,7 +478,7 @@ class ChangeProposalStore:
         }
 
     def apply_proposal(self, proposal_id: str, actor: str = "human") -> Dict[str, Any]:
-        """Apply an approved proposal only when it contains deterministic replacement content."""
+        """Atomically apply deterministic content and roll back unless evidence is VERIFIED."""
         record = self.get_proposal(proposal_id)
         if record.get("status") == "not_found":
             return record
@@ -488,6 +493,7 @@ class ChangeProposalStore:
 
         changes = record.get("provider_changes") or []
         prepared = []
+        allowed_paths = set(boundary.get("allowed_paths") or [])
         for change in changes:
             file_path = str(change.get("file_path") or change.get("path") or "").strip()
             action = str(change.get("action") or "MODIFY").strip().upper()
@@ -499,58 +505,173 @@ class ChangeProposalStore:
             if content is None:
                 return {"status": "blocked", "proposal_id": proposal_id, "error": f"Change for {file_path} lacks new_content/content."}
             rel_path = self._normalize_rel(file_path)
-            if rel_path not in set(boundary.get("allowed_paths") or []):
+            if rel_path not in allowed_paths:
                 return {"status": "blocked", "proposal_id": proposal_id, "error": f"{rel_path} is outside allowed paths."}
             abs_path = os.path.realpath(os.path.join(self.repo_path, rel_path))
-            if os.path.commonpath([self.repo_path, abs_path]) != self.repo_path:
+            try:
+                inside_repo = os.path.commonpath([self.repo_path, abs_path]) == self.repo_path
+            except ValueError:
+                inside_repo = False
+            if not inside_repo:
                 return {"status": "blocked", "proposal_id": proposal_id, "error": f"{rel_path} escapes repository root."}
+            if os.path.lexists(abs_path) and os.path.islink(abs_path):
+                return {"status": "blocked", "proposal_id": proposal_id, "error": f"Symbolic-link targets are not applyable: {rel_path}."}
             if action == "MODIFY" and not os.path.exists(abs_path):
                 return {"status": "blocked", "proposal_id": proposal_id, "error": f"Cannot modify missing file {rel_path}."}
-            prepared.append({"path": rel_path, "abs_path": abs_path, "action": action, "content": str(content)})
+            current_hash = self._hash_path(abs_path)
+            expected_hash = change.get("original_hash") or change.get("base_hash") or change.get("expected_hash")
+            if expected_hash and expected_hash != current_hash:
+                return {"status": "blocked", "proposal_id": proposal_id, "error": f"{rel_path} changed after the proposal was created."}
+            prepared.append({
+                "path": rel_path,
+                "abs_path": abs_path,
+                "action": action,
+                "content": str(content),
+                "before_hash": current_hash,
+                "backup": self._read_bytes(abs_path),
+                "temp_path": None,
+            })
 
         if not prepared:
             return {"status": "blocked", "proposal_id": proposal_id, "error": "No applyable changes found."}
 
         from srt1_platform.verification import PostExecutionVerifier
         verifier = PostExecutionVerifier(workspace_root=self.repo_path)
-        proposal = record.get("proposal") or {}
-        files_write = proposal.get("files_write") or []
-        files_create = proposal.get("files_create") or []
-        files_must_not_change = record.get("allowed_paths") or []
-        files_must_not_change = [path for path in files_must_not_change if path not in set(files_write + files_create)]
+        files_write = [item["path"] for item in prepared if item["action"] == "MODIFY"]
+        files_create = [item["path"] for item in prepared if item["action"] == "CREATE"]
+        target_paths = set(files_write + files_create)
+        files_must_not_change = [path for path in self._repository_files() if path not in target_paths]
         verifier.capture_snapshot(proposal_id, files_to_watch=files_write + files_create, files_must_not_change=files_must_not_change)
+        rollback_performed = False
+        verification_data: Dict[str, Any]
+        try:
+            for item in prepared:
+                parent = os.path.dirname(item["abs_path"])
+                os.makedirs(parent, exist_ok=True)
+                handle, temp_path = tempfile.mkstemp(prefix=".srt1-apply-", dir=parent)
+                item["temp_path"] = temp_path
+                with os.fdopen(handle, "w", encoding="utf-8", newline="") as temp_file:
+                    temp_file.write(item["content"])
 
-        for item in prepared:
-            os.makedirs(os.path.dirname(item["abs_path"]), exist_ok=True)
-            with open(item["abs_path"], "w", encoding="utf-8", newline="") as f:
-                f.write(item["content"])
+            for item in prepared:
+                if self._hash_path(item["abs_path"]) != item["before_hash"]:
+                    raise RuntimeError(f"{item['path']} changed while the proposal was being prepared")
+            for item in prepared:
+                os.replace(item["temp_path"], item["abs_path"])
+                item["temp_path"] = None
 
-        verification = verifier.verify(
-            proposal_id,
-            files_write=files_write,
-            files_create=files_create,
-            files_must_not_change=files_must_not_change,
-        )
-        record["applied"] = verification.verdict in {"VERIFIED", "PARTIAL_PASS"}
+            verification = verifier.verify(
+                proposal_id,
+                files_write=files_write,
+                files_create=files_create,
+                files_must_not_change=files_must_not_change,
+            )
+            verification_data = verification.to_dict()
+            record["applied"] = verification.verdict == "VERIFIED"
+            if not record["applied"]:
+                self._restore_prepared(prepared)
+                rollback_performed = True
+        except Exception as exc:
+            self._restore_prepared(prepared)
+            rollback_performed = True
+            record["applied"] = False
+            verification_data = {
+                "verdict": "FAILED",
+                "evidence_id": "verify_" + hashlib.sha256(str(exc).encode("utf-8")).hexdigest()[:16],
+                "timestamp": _utc_now(),
+                "scope_violations": [],
+                "collateral_damage": [],
+                "structural_warnings": [str(exc)],
+                "stats": {"proposal_id": proposal_id, "rollback_performed": True},
+            }
+        finally:
+            for item in prepared:
+                temp_path = item.get("temp_path")
+                if temp_path and os.path.exists(temp_path):
+                    try:
+                        os.remove(temp_path)
+                    except OSError:
+                        pass
+
         record["status"] = "completed" if record["applied"] else "returned"
         record["apply_result"] = {
             "actor": actor or "human",
-            "timestamp": datetime.utcnow().isoformat() + "Z",
-            "files_changed": [item["path"] for item in prepared],
-            "verification": verification.to_dict(),
+            "timestamp": _utc_now(),
+            "files_changed": [item["path"] for item in prepared] if record["applied"] else [],
+            "attempted_files": [item["path"] for item in prepared],
+            "rollback_performed": rollback_performed,
+            "verification": verification_data,
         }
-        record["updated_at"] = datetime.utcnow().isoformat() + "Z"
-        path = self._proposal_path(proposal_id)
-        with open(path, "w", encoding="utf-8") as f:
-            json.dump(record, f, indent=2, sort_keys=True, default=str)
+        record["updated_at"] = _utc_now()
+        self._persist_record(proposal_id, record)
         return {
             "status": record["status"],
             "proposal_id": proposal_id,
             "queue_seed_id": record.get("queue_seed_id"),
             "applied": record["applied"],
-            "files_changed": [item["path"] for item in prepared],
-            "verification": verification.to_dict(),
+            "files_changed": record["apply_result"]["files_changed"],
+            "rollback_performed": rollback_performed,
+            "verification": verification_data,
         }
+
+    @staticmethod
+    def _hash_path(path: str) -> Optional[str]:
+        try:
+            with open(path, "rb") as source:
+                return hashlib.sha256(source.read()).hexdigest()
+        except OSError:
+            return None
+
+    @staticmethod
+    def _read_bytes(path: str) -> Optional[bytes]:
+        try:
+            with open(path, "rb") as source:
+                return source.read()
+        except OSError:
+            return None
+
+    def _restore_prepared(self, prepared: List[Dict[str, Any]]) -> None:
+        for item in reversed(prepared):
+            backup = item.get("backup")
+            target = item["abs_path"]
+            if backup is None:
+                if os.path.exists(target):
+                    os.remove(target)
+                continue
+            parent = os.path.dirname(target)
+            handle, temp_path = tempfile.mkstemp(prefix=".srt1-rollback-", dir=parent)
+            try:
+                with os.fdopen(handle, "wb") as temp_file:
+                    temp_file.write(backup)
+                os.replace(temp_path, target)
+            finally:
+                if os.path.exists(temp_path):
+                    os.remove(temp_path)
+
+    def _repository_files(self) -> List[str]:
+        excluded = {".git", ".srt1", "__pycache__", "node_modules", "build", "dist"}
+        files: List[str] = []
+        for root, dirs, names in os.walk(self.repo_path):
+            dirs[:] = [name for name in dirs if name not in excluded]
+            for name in names:
+                absolute = os.path.realpath(os.path.join(root, name))
+                if os.path.islink(absolute):
+                    continue
+                files.append(os.path.relpath(absolute, self.repo_path).replace("\\", "/"))
+                if len(files) >= 5000:
+                    return files
+        return files
+
+    def _persist_record(self, proposal_id: str, record: Dict[str, Any]) -> None:
+        path = self._proposal_path(proposal_id)
+        handle, temp_path = tempfile.mkstemp(prefix=".proposal-", dir=self.proposals_dir)
+        try:
+            with os.fdopen(handle, "w", encoding="utf-8") as temp_file:
+                json.dump(record, temp_file, indent=2, sort_keys=True, default=str)
+            os.replace(temp_path, path)
+        finally:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
 
     def _proposal_path(self, proposal_id: str) -> str:
         safe = "".join(ch if ch.isalnum() or ch in {"-", "_"} else "_" for ch in proposal_id)

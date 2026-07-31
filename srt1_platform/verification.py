@@ -20,7 +20,8 @@ SCIA Contract: SCIA-CONTRACT-005
 import os
 import hashlib
 import logging
-from datetime import datetime
+import json
+from datetime import datetime, timezone
 from typing import Dict, List, Any, Optional, Set
 
 logger = logging.getLogger("srt1.verification")
@@ -39,7 +40,8 @@ class VerificationResult:
         self.collateral_damage: List[Dict[str, str]] = []
         self.structural_warnings: List[str] = []
         self.stats: Dict[str, Any] = {}
-        self.timestamp: str = datetime.utcnow().isoformat() + "Z"
+        self.timestamp: str = datetime.now(timezone.utc).isoformat()
+        self.evidence_id: str = ""
     
     def add_scope_violation(self, file_path: str, reason: str) -> None:
         """Record an unauthorized file modification."""
@@ -56,11 +58,17 @@ class VerificationResult:
         self.structural_warnings.append(warning)
         if self.verdict == self.VERIFIED:
             self.verdict = self.PARTIAL_PASS
+
+    def add_structural_failure(self, warning: str) -> None:
+        """Record structural evidence that makes acceptance unsafe."""
+        self.structural_warnings.append(warning)
+        self.verdict = self.FAILED
     
     def to_dict(self) -> Dict[str, Any]:
         """Serialize to dictionary."""
         return {
             "verdict": self.verdict,
+            "evidence_id": self.evidence_id,
             "timestamp": self.timestamp,
             "scope_violations": self.scope_violations,
             "collateral_damage": self.collateral_damage,
@@ -238,13 +246,16 @@ class PostExecutionVerifier:
                         source = f.read()
                     compile(source, abs_path, "exec")
                 except SyntaxError as e:
-                    result.add_structural_warning(
+                    result.add_structural_failure(
                         f"Syntax error in {abs_path}: {e}"
                     )
                 except (OSError, IOError):
                     pass
         
         # ── Step 4: Stats ─────────────────────────────────────────────────
+        if (files_write or files_create or files_delete) and not files_actually_changed:
+            result.add_structural_failure("No authorized file mutation was detected for the proposal.")
+
         result.stats = {
             "proposal_id": proposal_id,
             "files_expected_to_change": len(files_write) + len(files_create),
@@ -253,7 +264,23 @@ class PostExecutionVerifier:
             "scope_violations": len(result.scope_violations),
             "collateral_damage_count": len(result.collateral_damage),
             "structural_warnings": len(result.structural_warnings),
+            "files_changed": [
+                os.path.relpath(path, self.workspace_root).replace("\\", "/")
+                for path in files_actually_changed
+            ],
         }
+
+        evidence_material = {
+            "proposal_id": proposal_id,
+            "verdict": result.verdict,
+            "pre": sorted(pre_snapshot.items()),
+            "post": sorted(post_snapshot.items()),
+            "stats": result.stats,
+            "warnings": result.structural_warnings,
+        }
+        result.evidence_id = "verify_" + hashlib.sha256(
+            json.dumps(evidence_material, sort_keys=True, default=str).encode("utf-8")
+        ).hexdigest()[:16]
         
         # ── SCIA Events ──────────────────────────────────────────────────
         if self.audit_ledger:
