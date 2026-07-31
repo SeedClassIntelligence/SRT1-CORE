@@ -629,6 +629,7 @@ class SRT1Engine:
                 "active_repository": registry.active_repository(),
                 "repositories": repositories,
                 "runtime_port": getattr(self, "port", None),
+                "experience_url": f"http://127.0.0.1:{getattr(self, 'port', '')}/experience.html",
                 "dashboard_url": f"http://127.0.0.1:{getattr(self, 'port', '')}/dashboard",
                 "message": "Repository is already running in this engine.",
             }
@@ -642,6 +643,7 @@ class SRT1Engine:
                         return {
                             "status": "running",
                             "runtime_port": port,
+                            "experience_url": f"http://127.0.0.1:{port}/experience.html",
                             "dashboard_url": f"http://127.0.0.1:{port}/dashboard",
                             "active_repository": registry.active_repository(),
                             "repositories": repositories,
@@ -652,7 +654,7 @@ class SRT1Engine:
 
         start_port = int(getattr(self, "port", 7484) or 7484) + 1
         port = _find_free_port(start_port)
-        log_dir = os.path.join(os.path.expanduser("~"), ".srt1", "runtime-logs")
+        log_dir = os.path.join(self.repo_path, ".srt1", "runtime-logs")
         os.makedirs(log_dir, exist_ok=True)
         safe_name = "".join(ch if ch.isalnum() or ch in ("-", "_") else "_" for ch in os.path.basename(repo_path) or "repository")
         stdout_path = os.path.join(log_dir, f"{safe_name}_{port}.out.log")
@@ -660,6 +662,7 @@ class SRT1Engine:
 
         env = os.environ.copy()
         env["PYTHONPATH"] = os.pathsep.join([_core_dir, env.get("PYTHONPATH", "")]).rstrip(os.pathsep)
+        env["SRT1_NO_BROWSER"] = "1"
         creationflags = getattr(subprocess, "CREATE_NO_WINDOW", 0) if os.name == "nt" else 0
         try:
             with open(stdout_path, "a", encoding="utf-8") as stdout, open(stderr_path, "a", encoding="utf-8") as stderr:
@@ -688,6 +691,7 @@ class SRT1Engine:
             "status": "launching",
             "runtime_port": port,
             "pid": process.pid,
+            "experience_url": f"http://127.0.0.1:{port}/experience.html",
             "dashboard_url": f"http://127.0.0.1:{port}/dashboard",
             "registered_repository": record.to_dict(),
             "active_repository": registry.active_repository(),
@@ -991,8 +995,9 @@ class SRT1Engine:
 
         # Open dashboard via the local server instead of file://
         dashboard_path = self._get_dashboard_path()
-        if dashboard_path:
-            webbrowser.open(f"http://127.0.0.1:{self.port}/dashboard")
+        browser_disabled = os.getenv("SRT1_NO_BROWSER", "").strip().lower() in {"1", "true", "yes"}
+        if dashboard_path and not browser_disabled:
+            webbrowser.open(f"http://127.0.0.1:{self.port}/experience.html")
 
         # Start HTTP server (blocks)
         self._serve()

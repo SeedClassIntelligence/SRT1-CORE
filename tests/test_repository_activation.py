@@ -117,14 +117,16 @@ class RepositoryActivationTests(unittest.TestCase):
                  patch.object(engine_module.subprocess, "Popen", return_value=Mock(pid=12345)) as popen:
                 launched = engine._launch_repository_runtime(repo_id)
 
-        self.assertEqual(launched["status"], "launching")
+        self.assertEqual(launched["status"], "launching", launched)
         self.assertEqual(launched["runtime_port"], 7555)
         self.assertEqual(launched["pid"], 12345)
         self.assertEqual(launched["active_repository"]["path"], str(Path(active_repo).resolve()))
+        self.assertIn("http://127.0.0.1:7555/experience.html", launched["experience_url"])
         self.assertIn("http://127.0.0.1:7555/dashboard", launched["dashboard_url"])
         args = popen.call_args.args[0]
         self.assertIn("--repo_path", args)
         self.assertIn(str(Path(other_repo).resolve()), args)
+        self.assertEqual(popen.call_args.kwargs["env"]["SRT1_NO_BROWSER"], "1")
 
     def test_engine_stops_external_repository_runtime(self):
         with tempfile.TemporaryDirectory() as active_repo, tempfile.TemporaryDirectory() as other_repo:
