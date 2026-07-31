@@ -102,6 +102,7 @@ scratch/
 scratch_ledger_test/
 sion_output/
 project_code.txt
+CODING/
 
 # -- PRODUCT PACKAGING / MARKETING DRAFTS --
 # Keep these outside Core commits until product packaging is approved.
