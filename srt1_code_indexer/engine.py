@@ -2252,7 +2252,7 @@ class SRT1Engine:
             },
         }
 
-    def _generate_context_files(self) -> Dict[str, Any]:
+    def _generate_context_files_legacy(self) -> Dict[str, Any]:
         """Inject JIT Context directly into the AGENTS.md master document via Reinjector."""
         result: Dict[str, Any] = {
             "status": "skipped",
@@ -2348,6 +2348,54 @@ class SRT1Engine:
             )
             if sig.get("status") == "signed":
                 print("         ✓ Reinjection event signed by authority")
+        return result
+
+    def _generate_context_files(self) -> Dict[str, Any]:
+        """Generate bounded runtime context without mutating assistant policy files."""
+        result: Dict[str, Any] = {
+            "status": "skipped",
+            "files_written": [],
+            "reason": None,
+        }
+        try:
+            from srt1_pro.reinjector import SCIAReinjector
+
+            reinjector = SCIAReinjector(self.repo_path)
+            success = reinjector.inject_packets(
+                active_task=self.task,
+                warnings=self._collect_warnings(),
+                reflections=self._build_recall_packets(limit=3),
+            )
+            if not success:
+                result["reason"] = "runtime reinjection unavailable"
+                return result
+
+            context_dir = os.path.join(self.repo_path, ".srt1", "context")
+            os.makedirs(context_dir, exist_ok=True)
+            map_path = os.path.join(context_dir, "runtime_codebase_map.md")
+            temporary_path = map_path + ".tmp"
+            with open(temporary_path, "w", encoding="utf-8") as handle:
+                handle.write(self._build_codebase_map_only())
+            os.replace(temporary_path, map_path)
+            result["status"] = "updated"
+            result["files_written"] = [
+                os.path.join(".srt1", "context", "reinjection.md"),
+                os.path.join(".srt1", "context", "runtime_codebase_map.md"),
+            ]
+
+            if self.signing_client:
+                content_hash = hashlib.sha256(
+                    ("REINJECT_" + str(self.task)).encode("utf-8")
+                ).hexdigest()
+                signature = self._sign_artifact(
+                    {"content_hash": content_hash, "files_written": len(result["files_written"])},
+                    "context_reinjection",
+                )
+                result["trust_state"] = signature.get("status", "unsigned")
+        except ImportError:
+            result["reason"] = "srt1_pro.reinjector unavailable"
+        except (OSError, ValueError, TypeError) as exc:
+            result["reason"] = f"runtime context generation failed: {exc}"
         return result
 
     def _write(self, directory: str, filename: str, content: str) -> None:

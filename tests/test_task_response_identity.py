@@ -583,6 +583,7 @@ class TaskResponseIdentityTests(unittest.TestCase):
 
             state = json.loads((Path(repo) / ".srt1" / "reinjector_state.json").read_text(encoding="utf-8"))
             agents_text = (Path(repo) / "AGENTS.md").read_text(encoding="utf-8")
+            reinjection = Path(repo) / ".srt1" / "context" / "reinjection.md"
             runtime_map = Path(repo) / ".srt1" / "context" / "runtime_codebase_map.md"
             runtime_map_exists = runtime_map.exists()
             runtime_map_text = runtime_map.read_text(encoding="utf-8") if runtime_map_exists else ""
@@ -591,13 +592,13 @@ class TaskResponseIdentityTests(unittest.TestCase):
         self.assertEqual(recall_state["queue_seed_id"], "seed_0001_queue")
         self.assertEqual(recall_state["source_type"], "manifest")
         self.assertEqual(result["status"], "updated")
-        self.assertIn("AGENTS.md", result["files_written"])
+        self.assertIn(os.path.join(".srt1", "context", "reinjection.md"), result["files_written"])
         self.assertIn(os.path.join(".srt1", "context", "runtime_codebase_map.md"), result["files_written"])
         self.assertNotIn("Runtime Codebase Map", agents_text)
         self.assertTrue(runtime_map_exists)
         self.assertIn("Runtime map synopsis", runtime_map_text)
 
-    def test_engine_generate_context_files_reports_skipped_when_agents_zone_missing(self):
+    def test_engine_generate_context_files_reports_runtime_reinjection_unavailable(self):
         with tempfile.TemporaryDirectory() as repo:
             Path(repo, "AGENTS.md").write_text("plain instructions only\n", encoding="utf-8")
             engine = engine_module.SRT1Engine.__new__(engine_module.SRT1Engine)
@@ -615,7 +616,7 @@ class TaskResponseIdentityTests(unittest.TestCase):
 
         self.assertEqual(result["status"], "skipped")
         self.assertEqual(result["files_written"], [])
-        self.assertEqual(result["reason"], "AGENTS.md JIT block not found")
+        self.assertEqual(result["reason"], "runtime reinjection unavailable")
 
     def test_recall_response_returns_packet_shape_with_queue_identity(self):
         with tempfile.TemporaryDirectory() as repo:
