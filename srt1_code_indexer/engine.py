@@ -56,6 +56,7 @@ import sqlite3
 import uuid
 import secrets
 import ipaddress
+import re
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from socketserver import ThreadingMixIn
 from datetime import datetime, timedelta, timezone
@@ -95,6 +96,7 @@ try:
     from srt1_platform.workcell import WorkCellRegistry
     from srt1_platform.repository_activation import RepositoryActivationRegistry
     from srt1_platform.change_proposal import ChangeProposalStore
+    from srt1_platform.assistant_adapters import AssistantAdapterRegistry, WorkCellExecutionRequest
 except ImportError:
     SCIARemoteAuth = None
     SCIASeedQueue = None
@@ -103,6 +105,8 @@ except ImportError:
     WorkCellRegistry = None
     RepositoryActivationRegistry = None
     ChangeProposalStore = None
+    AssistantAdapterRegistry = None
+    WorkCellExecutionRequest = None
 
 # ---- Shared LLM Intelligence Layer ----
 try:
@@ -2747,6 +2751,8 @@ class SRT1Engine:
         assistant_credentials: Optional[Dict[str, Any]] = None,
         actor: str = "dashboard_human",
         background: bool = True,
+        instruction: Optional[str] = None,
+        assistant_adapter: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """Dispatch an existing WorkCell execution without planting a duplicate seed."""
         if not queue_seed_id:
@@ -2763,6 +2769,10 @@ class SRT1Engine:
 
         allowed_paths = self._get_workcell_allowed_paths(execution)
         credential_context = self._normalize_assistant_credentials(assistant_credentials)
+        adapter_override = self._sanitize_assistant_adapter_config(
+            [assistant_adapter] if isinstance(assistant_adapter, dict) else []
+        )
+        selected_adapter = adapter_override[0] if adapter_override else None
         job_result = registry.start_execution_job(
             queue_seed_id,
             provider=credential_context["provider"] or "execution_bridge",
@@ -2775,14 +2785,39 @@ class SRT1Engine:
                 "credential_mode": credential_context["mode"],
                 "credential_providers": credential_context["providers"],
                 "dispatch_source": "existing_workcell",
+                "instruction_source": "workcell_chat" if instruction else "workcell_objective",
+                "assistant_adapter": {
+                    "type": selected_adapter.get("type"),
+                    "provider": selected_adapter.get("provider"),
+                    "model": selected_adapter.get("model"),
+                } if selected_adapter else {},
             },
         )
         if job_result.get("status") != "registered":
             return job_result
         job_id = (job_result.get("job") or {}).get("job_id")
+        cancel_event = threading.Event()
+        cancel_events = getattr(self, "_workcell_cancel_events", None)
+        if cancel_events is None:
+            cancel_events = {}
+            self._workcell_cancel_events = cancel_events
+        cancel_events[queue_seed_id] = cancel_event
 
         def _dispatch_now() -> Dict[str, Any]:
             try:
+                if cancel_event.is_set():
+                    registry.acknowledge_execution_job(
+                        queue_seed_id,
+                        job_id=job_id,
+                        acknowledgement="cancelled",
+                        actor="workcell_runtime_governor",
+                    )
+                    return {
+                        "status": "cancelled",
+                        "queue_seed_id": queue_seed_id,
+                        "job_id": job_id,
+                        "result_discarded": True,
+                    }
                 guard = self._check_workcell_dispatch_guard(queue_seed_id, allowed_paths)
                 if not guard.get("allowed"):
                     registry.update_execution_job(queue_seed_id, job_id=job_id, status="blocked", metadata=guard)
@@ -2796,7 +2831,7 @@ class SRT1Engine:
                     )
                     return {"status": "blocked", "queue_seed_id": queue_seed_id, "job_id": job_id, "guard": guard}
 
-                objective = execution.get("objective") or "Execute selected WorkCell objective"
+                objective = str(instruction or "").strip() or execution.get("objective") or "Execute selected WorkCell objective"
                 bp_result = self.generate_blueprint(objective)
                 if getattr(self, "seed_queue", None):
                     try:
@@ -2833,7 +2868,33 @@ class SRT1Engine:
                         "credential_providers": credential_context["providers"],
                     },
                     transient_credentials=credential_context["provider_keys"],
+                    assistant_adapters=adapter_override or None,
+                    cancel_event=cancel_event,
                 )
+                if cancel_event.is_set():
+                    registry.update_execution_job(
+                        queue_seed_id,
+                        job_id=job_id,
+                        status="cancelled",
+                        metadata={
+                            "result_discarded": True,
+                            "provider_termination_guaranteed": False,
+                        },
+                    )
+                    registry.acknowledge_execution_job(
+                        queue_seed_id,
+                        job_id=job_id,
+                        acknowledgement="cancelled",
+                        actor="workcell_runtime_governor",
+                        message="Provider output discarded after cancellation request.",
+                    )
+                    return {
+                        "status": "cancelled",
+                        "queue_seed_id": queue_seed_id,
+                        "job_id": job_id,
+                        "result_discarded": True,
+                        "provider_termination_guaranteed": False,
+                    }
                 registry.update_execution_job(
                     queue_seed_id,
                     job_id=job_id,
@@ -2859,6 +2920,11 @@ class SRT1Engine:
                     },
                     execution_status="dispatched",
                 )
+                self._record_assistant_dispatch_message(
+                    queue_seed_id,
+                    dispatch_result=dispatch_result,
+                    job_id=job_id,
+                )
                 return {
                     "status": "dispatched",
                     "queue_seed_id": queue_seed_id,
@@ -2876,6 +2942,8 @@ class SRT1Engine:
                     message=str(exc),
                 )
                 return {"status": "failed", "queue_seed_id": queue_seed_id, "job_id": job_id, "error": str(exc)}
+            finally:
+                cancel_events.pop(queue_seed_id, None)
 
         if background:
             threading.Thread(
@@ -2891,6 +2959,77 @@ class SRT1Engine:
                 "secret_persisted": False,
             }
         return _dispatch_now()
+
+    def _record_assistant_dispatch_message(
+        self,
+        queue_seed_id: str,
+        dispatch_result: Dict[str, Any],
+        job_id: Optional[str] = None,
+    ) -> None:
+        """Project real adapter outcomes into the WorkCell conversation."""
+        registry = self._get_workcell_registry()
+        if not registry:
+            return
+        methods = dispatch_result.get("methods") if isinstance(dispatch_result, dict) else {}
+        adapter_method = (methods or {}).get("assistant_adapter") or {}
+        adapters = adapter_method.get("adapters") if isinstance(adapter_method, dict) else {}
+        if not isinstance(adapters, dict) or not adapters:
+            return
+
+        for adapter_name, adapter_result in adapters.items():
+            if not isinstance(adapter_result, dict):
+                continue
+            status = str(adapter_result.get("status") or "unknown")
+            message = str(adapter_result.get("message") or "Assistant adapter returned no message.")
+            metadata: Dict[str, Any] = {
+                "source": "assistant_dispatch",
+                "job_id": job_id,
+                "adapter_status": status,
+                "secret_persisted": False,
+            }
+            response = adapter_result.get("response") if isinstance(adapter_result.get("response"), dict) else {}
+            provider = str(response.get("provider") or adapter_name)
+            model = str(response.get("model") or "")
+            provider_result = response.get("result") if isinstance(response.get("result"), dict) else {}
+            choices = provider_result.get("choices") if isinstance(provider_result, dict) else []
+            content = ""
+            if isinstance(choices, list) and choices and isinstance(choices[0], dict):
+                choice_message = choices[0].get("message")
+                if isinstance(choice_message, dict):
+                    content = str(choice_message.get("content") or "").strip()
+
+            proposed_count = 0
+            if content:
+                try:
+                    parsed = json.loads(content)
+                    changes = parsed.get("proposed_changes") if isinstance(parsed, dict) else []
+                    proposed_count = len(changes) if isinstance(changes, list) else 0
+                except (TypeError, ValueError):
+                    proposed_count = 0
+            metadata["proposed_change_count"] = proposed_count
+            if model:
+                metadata["model"] = model
+
+            if status == "dispatched" and content:
+                chat_text = (
+                    f"I completed the bounded WorkCell analysis using {provider}"
+                    f"{f' / {model}' if model else ''}. "
+                    f"I prepared {proposed_count} proposed change{'s' if proposed_count != 1 else ''} for review."
+                )
+            elif status == "dispatched":
+                chat_text = message
+            else:
+                chat_text = f"Assistant dispatch did not complete: {message}"
+
+            registry.post_conversation_message(
+                queue_seed_id,
+                role="assistant" if status == "dispatched" else "system",
+                content=chat_text,
+                channel="provider_runtime",
+                actor="assistant_runtime",
+                assistant_adapter=adapter_name,
+                metadata=metadata,
+            )
 
     def _acknowledge_workcell_execution_job(
         self,
@@ -3257,6 +3396,152 @@ class SRT1Engine:
             "slack_seed_endpoint": "/api/v1/slack/seed",
             "slack_command_endpoint": "/api/v1/slack/command",
         }
+    def _build_project_conversation_context(self, message: str) -> Dict[str, Any]:
+        """Select bounded repository evidence relevant to one conversation turn."""
+        tokens = {
+            token for token in re.findall(r"[a-zA-Z_][a-zA-Z0-9_]{2,}", message.lower())
+            if token not in {"the", "and", "this", "that", "with", "from", "about", "project", "explain"}
+        }
+        scored_files = []
+        file_entries = self.manifest.get("file_manifest", []) or []
+        for entry in file_entries:
+            path = str(entry.get("file_path") or "")
+            symbols = self.symbol_table.get(path, []) or []
+            searchable = [path.lower()]
+            for symbol in symbols:
+                reflection = symbol.get("reflection") or {}
+                searchable.extend([
+                    str(symbol.get("name") or "").lower(),
+                    str(symbol.get("docstring_first_line") or reflection.get("purpose") or "").lower(),
+                    " ".join(str(item).lower() for item in (symbol.get("dependencies") or [])),
+                ])
+            score = sum(1 for token in tokens if any(token in value for value in searchable))
+            if score or not tokens:
+                scored_files.append({
+                    "path": path,
+                    "score": score,
+                    "role": entry.get("architectural_role") or entry.get("role"),
+                    "symbols": [
+                        {
+                            "name": symbol.get("name"),
+                            "type": symbol.get("type"),
+                            "line": symbol.get("line"),
+                            "purpose": symbol.get("docstring_first_line")
+                                or (symbol.get("reflection") or {}).get("purpose"),
+                            "dependencies": (symbol.get("dependencies") or [])[:8],
+                        }
+                        for symbol in symbols[:20]
+                    ],
+                })
+        scored_files.sort(key=lambda item: (-item["score"], item["path"]))
+        curation = getattr(self, "curation_report", {}) or {}
+        return {
+            "query_terms": sorted(tokens),
+            "relevant_files": scored_files[:12],
+            "known_findings": {
+                "functional_overlaps": (curation.get("functional_overlaps") or [])[:8],
+                "duplicate_files": (curation.get("duplicate_files") or [])[:8],
+                "unused_functions": (curation.get("unused_functions") or [])[:8],
+            },
+            "evidence_rule": "Cite repository paths and symbol names from relevant_files when making project claims.",
+        }
+
+    def _project_conversation(self, body: Dict[str, Any]) -> Dict[str, Any]:
+        """Run grounded project discussion without creating a Seed or authorizing writes."""
+        message = str(body.get("message") or "").strip()
+        if not message:
+            return {"status": "error", "error": "Project conversation message is required"}
+        if not AssistantAdapterRegistry or not WorkCellExecutionRequest:
+            return {"status": "unavailable", "error": "Assistant adapters unavailable"}
+
+        configs = self._sanitize_assistant_adapter_config([
+            body.get("assistant_adapter") if isinstance(body.get("assistant_adapter"), dict) else {}
+        ])
+        configs = [config for config in configs if config.get("type") in {
+            "openai_compatible", "anthropic", "gemini"
+        }]
+        credentials = self._normalize_assistant_credentials(body.get("assistant_credentials"))
+        if not configs or not credentials.get("provider_keys"):
+            return {
+                "status": "configuration_required",
+                "error": "Select a project assistant and provide a session key",
+                "secret_persisted": False,
+            }
+
+        metadata = self.manifest.get("metadata", {})
+        files = self.manifest.get("file_manifest", [])
+        workcell_status = self._get_workcell_status() or {}
+        executions = workcell_status.get("executions", []) if isinstance(workcell_status, dict) else []
+        context = {
+            "repository": os.path.basename(self.repo_path),
+            "synopsis": self.synopsis,
+            "manifest": {
+                "hash": self.manifest.get("integrity", {}).get("manifest_hash", ""),
+                "files": metadata.get("total_files_scanned", len(files)),
+                "symbols": metadata.get("total_symbols_indexed", sum(len(items) for items in self.symbol_table.values())),
+                "sample_paths": [item.get("file_path") for item in files[:40] if item.get("file_path")],
+            },
+            "retrieved_repository_evidence": self._build_project_conversation_context(message),
+            "continuity": {
+                "active_seed": self._get_active_seed_identity(),
+                "active_workcells": [
+                    {
+                        "queue_seed_id": item.get("queue_seed_id"),
+                        "objective": item.get("objective"),
+                        "status": item.get("status"),
+                        "allowed_paths": (item.get("workspace") or {}).get("allowed_paths", []),
+                    }
+                    for item in executions[:12]
+                ],
+            },
+        }
+        history = body.get("history") if isinstance(body.get("history"), list) else []
+        request = WorkCellExecutionRequest(
+            seed_id="project_conversation",
+            intent=message,
+            blueprint=json.dumps(context, ensure_ascii=True, sort_keys=True),
+            repo_path=self.repo_path,
+            allowed_paths=["__conversation_only_no_write_scope__"],
+            restricted_paths=["*"],
+            trust_state={
+                "signature": "signed" if self.signing_client else "unsigned",
+                "verification": "verified" if self._trust_integrity else "unverified",
+                "lineage": "present" if self._trust_chain else "missing",
+            },
+            metadata={
+                "conversation_only": True,
+                "conversation_history": history[-12:],
+            },
+            transient_credentials=dict(credentials.get("provider_keys") or {}),
+        )
+        results = AssistantAdapterRegistry(configs).dispatch_all(request)
+        result = next(iter(results.values()), {})
+        if result.get("status") != "dispatched":
+            return {
+                "status": result.get("status") or "degraded",
+                "error": result.get("message") or "Project conversation provider did not respond",
+                "secret_persisted": False,
+            }
+        response = result.get("response") or {}
+        normalized = response.get("result") or {}
+        choices = normalized.get("choices") or []
+        content = (((choices[0].get("message") or {}).get("content")) if choices else "") or ""
+        try:
+            parsed = json.loads(content)
+            content = parsed.get("message") if isinstance(parsed, dict) else content
+        except (TypeError, json.JSONDecodeError):
+            pass
+        return {
+            "status": "ok",
+            "message": str(content or "The configured assistant returned no conversational message."),
+            "provider": response.get("provider") or configs[0].get("provider") or configs[0].get("type"),
+            "model": response.get("model") or configs[0].get("model"),
+            "grounded_by": "SRT-1 repository synopsis, manifest, continuity, and WorkCell state",
+            "execution_created": False,
+            "write_scope_granted": False,
+            "secret_persisted": False,
+        }
+
     def _configure_assistant_adapters(
         self, adapters: Optional[List[Dict[str, Any]]]
     ) -> Dict[str, Any]:
@@ -5406,6 +5691,11 @@ class SRT1Engine:
                     status_code = 200 if result.get("status") == "configured" else 400
                     return self._json(result, status_code)
 
+                elif path == "/api/v1/project-conversation":
+                    result = engine._project_conversation(body)
+                    status_code = 200 if result.get("status") == "ok" else 400
+                    return self._json(result, status_code)
+
                 elif path.startswith("/api/v1/change-proposals/") and path.endswith("/review"):
                     proposal_id = path[len("/api/v1/change-proposals/"):-len("/review")].strip("/")
                     result = engine._review_change_proposal(
@@ -5491,6 +5781,8 @@ class SRT1Engine:
                         assistant_credentials=body.get("assistant_credentials"),
                         actor=body.get("actor") or "dashboard_human",
                         background=True,
+                        instruction=body.get("instruction") or body.get("message"),
+                        assistant_adapter=body.get("assistant_adapter") if isinstance(body.get("assistant_adapter"), dict) else None,
                     )
                     status_code = 200 if result.get("status") in {
                         "dispatch_started", "dispatched"

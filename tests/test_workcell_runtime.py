@@ -858,7 +858,25 @@ class WorkCellRuntimeTests(unittest.TestCase):
                     "methods": {
                         "assistant_adapter": {
                             "success": True,
-                            "adapters": {"openai_compatible": {"status": "dispatched"}},
+                            "adapters": {
+                                "openai_compatible": {
+                                    "status": "dispatched",
+                                    "message": "Bounded provider response completed",
+                                    "response": {
+                                        "provider": "openai",
+                                        "model": "gpt-test",
+                                        "result": {
+                                            "choices": [{
+                                                "message": {
+                                                    "content": json.dumps({
+                                                        "proposed_changes": [{"file_path": "app.py"}]
+                                                    })
+                                                }
+                                            }]
+                                        },
+                                    },
+                                }
+                            },
                             "proposals": [{"proposal_id": "proposal_1", "status": "awaiting_review"}],
                         }
                     },
@@ -891,11 +909,21 @@ class WorkCellRuntimeTests(unittest.TestCase):
                     "provider_keys": {"openai": "test-session-token"},
                 },
                 background=False,
+                instruction="Change only the selected WorkCell file.",
+                assistant_adapter={
+                    "type": "openai_compatible",
+                    "provider": "openai",
+                    "endpoint": "https://api.openai.com/v1/chat/completions",
+                    "model": "gpt-test",
+                },
             )
             current = engine.workcell_registry.get_execution_for_seed("seed_existing_workcell")
+            messages = engine.workcell_registry.get_execution_messages("seed_existing_workcell")
 
         self.assertEqual(result["status"], "dispatched")
         self.assertEqual(engine.bridge.calls[0]["seed_id"], "seed_existing_workcell")
+        self.assertEqual(engine.bridge.calls[0]["intent"], "Change only the selected WorkCell file.")
+        self.assertEqual(engine.bridge.calls[0]["assistant_adapters"][0]["model"], "gpt-test")
         self.assertEqual(engine.bridge.calls[0]["transient_credentials"], {"openai": "test-session-token"})
         self.assertEqual(engine.bridge.calls[0]["execution_context"]["allowed_paths"], ["app.py"])
         self.assertEqual(current["status"], "dispatched")
@@ -908,6 +936,10 @@ class WorkCellRuntimeTests(unittest.TestCase):
         self.assertTrue(
             any(event["event_type"] == "assistant.dispatched" for event in current["activity_events"])
         )
+        self.assertEqual(messages["messages"][0]["role"], "assistant")
+        self.assertEqual(messages["messages"][0]["channel"], "provider_runtime")
+        self.assertIn("1 proposed change", messages["messages"][0]["content"])
+        self.assertEqual(messages["messages"][0]["metadata"]["proposed_change_count"], 1)
 
     def test_engine_preserves_native_provider_adapter_types_without_secrets(self):
         engine = engine_module.SRT1Engine.__new__(engine_module.SRT1Engine)

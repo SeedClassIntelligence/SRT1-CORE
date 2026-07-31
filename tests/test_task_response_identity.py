@@ -22,6 +22,56 @@ class RecordingSeedQueue(engine_module.SCIASeedQueue):
 
 
 class TaskResponseIdentityTests(unittest.TestCase):
+    def test_project_conversation_uses_srt1_context_without_creating_execution(self):
+        engine = engine_module.SRT1Engine.__new__(engine_module.SRT1Engine)
+        engine.repo_path = "C:/project"
+        engine.synopsis = "Canonical project synopsis"
+        engine.manifest = {
+            "metadata": {"total_files_scanned": 2, "total_symbols_indexed": 4},
+            "integrity": {"manifest_hash": "manifest-123"},
+            "file_manifest": [{"file_path": "app.py"}, {"file_path": "tests/test_app.py"}],
+        }
+        engine.symbol_table = {}
+        engine.signing_client = None
+        engine._trust_integrity = None
+        engine._trust_chain = None
+        engine._get_workcell_status = lambda: {"executions": []}
+        engine._get_active_seed_identity = lambda: None
+        captured = {}
+
+        class FakeRegistry:
+            def __init__(self, configs): captured["configs"] = configs
+            def dispatch_all(self, request):
+                captured["request"] = request
+                return {"openai_compatible": {
+                    "status": "dispatched",
+                    "response": {
+                        "provider": "together", "model": "test-model",
+                        "result": {"choices": [{"message": {"content": '{"message":"Grounded response"}'}}]},
+                    },
+                }}
+
+        with patch.object(engine_module, "AssistantAdapterRegistry", FakeRegistry):
+            result = engine._project_conversation({
+                "message": "Explain the architecture",
+                "assistant_adapter": {
+                    "type": "openai_compatible", "provider": "together",
+                    "endpoint": "https://api.together.xyz/v1/chat/completions", "model": "test-model",
+                },
+                "assistant_credentials": {
+                    "mode": "session", "provider": "together",
+                    "provider_keys": {"together": "session-secret"},
+                },
+            })
+
+        self.assertEqual(result["status"], "ok")
+        self.assertEqual(result["message"], "Grounded response")
+        self.assertFalse(result["execution_created"])
+        self.assertFalse(result["write_scope_granted"])
+        self.assertFalse(result["secret_persisted"])
+        self.assertTrue(captured["request"].metadata["conversation_only"])
+        self.assertIn("Canonical project synopsis", captured["request"].blueprint)
+
     def test_task_response_uses_queue_seed_id_as_primary_seed_id(self):
         with tempfile.TemporaryDirectory() as repo:
             engine = engine_module.SRT1Engine.__new__(engine_module.SRT1Engine)
