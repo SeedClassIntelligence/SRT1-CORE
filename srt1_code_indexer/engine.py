@@ -271,6 +271,7 @@ class SRT1Engine:
         if not expected and provider_name in {"custom", "custom_http", "http", "webhook"} and not custom_approved:
             raise ValueError("Custom assistant endpoints require explicit human approval")
         return value
+
     def __init__(self, repo_path: str, task: Optional[str] = None, port: int = 7483):
         self.repo_path = os.path.abspath(repo_path)
         self.task = task
@@ -2751,7 +2752,13 @@ class SRT1Engine:
         workcell = workcells.get(workcell_id)
         return list(getattr(workcell, "owned_paths", []) or [])
 
-    def _get_workcell_status(self, queue_seed_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    def _get_workcell_status(
+        self,
+        queue_seed_id: Optional[str] = None,
+        compact: bool = False,
+        limit: int = 50,
+        status: Optional[str] = None,
+    ) -> Optional[Dict[str, Any]]:
         """Return WorkCell registry summary or a specific execution for status/API output."""
         registry = self._get_workcell_registry()
         if not registry:
@@ -2760,7 +2767,7 @@ class SRT1Engine:
             execution = registry.get_execution_for_seed(queue_seed_id)
             if execution:
                 return execution
-        return registry.summary()
+        return registry.summary(compact=compact, limit=limit, status=status)
 
     def _repair_workcell_package(self, queue_seed_id: Optional[str]) -> Dict[str, Any]:
         """Regenerate local WorkCell package files for an existing queue seed."""
@@ -3607,6 +3614,7 @@ class SRT1Engine:
                 })
         self._assistant_adapter_config_errors = errors
         return clean
+
     def _normalize_assistant_credentials(
         self,
         credentials: Optional[Dict[str, Any]],
@@ -3661,16 +3669,41 @@ class SRT1Engine:
             "dispatch_methods": methods,
             "assistant_adapters": adapters,
             "available_adapters": [
-                {"type": "codex", "label": "Codex WorkCell handoff", "description": "Writes bounded WorkCell instructions for Codex."},
-                {"type": "file_context", "label": "File handoff", "description": "Writes a model-agnostic request package into .srt1/adapters/."},
-                {"type": "custom_http", "label": "Custom HTTP model adapter", "description": "Posts bounded WorkCell JSON to a developer-controlled endpoint."},
-                {"type": "openai_compatible", "label": "OpenAI-compatible provider runtime", "description": "Calls any chat-completions-compatible LLM with transient credentials and bounded WorkCell context."},
-                {"type": "anthropic", "label": "Anthropic Claude runtime", "description": "Calls the native Anthropic Messages API with a transient session credential."},
-                {"type": "gemini", "label": "Google Gemini runtime", "description": "Calls the native Gemini generateContent API with a transient session credential."},
+                {
+                    "type": "codex",
+                    "label": "Codex WorkCell handoff",
+                    "description": "Writes bounded WorkCell instructions for Codex.",
+                },
+                {
+                    "type": "file_context",
+                    "label": "File handoff",
+                    "description": "Writes a model-agnostic request package into .srt1/adapters/.",
+                },
+                {
+                    "type": "custom_http",
+                    "label": "Custom HTTP model adapter",
+                    "description": "Posts bounded WorkCell JSON to a developer-controlled endpoint.",
+                },
+                {
+                    "type": "openai_compatible",
+                    "label": "OpenAI-compatible provider runtime",
+                    "description": "Calls any chat-completions-compatible LLM with transient credentials and bounded WorkCell context.",
+                },
+                {
+                    "type": "anthropic",
+                    "label": "Anthropic Claude runtime",
+                    "description": "Calls the native Anthropic Messages API with a transient session credential.",
+                },
+                {
+                    "type": "gemini",
+                    "label": "Google Gemini runtime",
+                    "description": "Calls the native Gemini generateContent API with a transient session credential.",
+                },
             ],
             "slack_seed_endpoint": "/api/v1/slack/seed",
             "slack_command_endpoint": "/api/v1/slack/command",
         }
+
     def _build_project_conversation_context(self, message: str) -> Dict[str, Any]:
         """Select bounded repository evidence relevant to one conversation turn."""
         tokens = {
@@ -3839,6 +3872,7 @@ class SRT1Engine:
             "assistant_adapters": clean,
             "dispatch_methods": list(bridge.dispatch_methods),
         }
+
     def _verify_slack_request(self, headers: Dict[str, Any], raw_body: bytes) -> Dict[str, Any]:
         """Verify Slack signing-secret provenance and reject replayed requests."""
         signing_secret = str(os.getenv("SRT1_SLACK_SIGNING_SECRET") or "")
@@ -4308,7 +4342,7 @@ class SRT1Engine:
         L.append(f"5. Stay focused on: **{seed}**")
         L.append(f"")
         L.append(f"---")
-        L.append(f"*Blueprint generated by SRT-1 v2.0 — {datetime.now().isoformat()}*")
+        L.append(f"*Blueprint generated by SRT-1 v{self._SRT1_VERSION} - {datetime.now().isoformat()}*")
 
         blueprint_text = "\n".join(L)
 
@@ -4931,7 +4965,7 @@ class SRT1Engine:
 
                     self._json({
                         "repo": os.path.basename(engine.repo_path),
-                        "product": "SRT-1 v2.0",
+                        "product": f"SRT-1 v{engine._SRT1_VERSION}",
                         "manifest_hash": manifest_hash,
                         "manifest_freshness": "fresh" if manifest_hash else "unknown",
                         "files_indexed": metadata.get("total_files_scanned", len(files)),
@@ -4949,7 +4983,7 @@ class SRT1Engine:
                         "seed_queue": engine.seed_queue.get_stats() if engine.seed_queue else None,
                         "active_seed": engine._get_active_seed_identity(),
                         "repository_activation": engine._get_repository_activation_status(),
-                        "workcells": engine._get_workcell_status(),
+                        "workcells": engine._get_workcell_status(compact=True, limit=24),
                     })
 
                 elif path == "/api/v1/users/me":
@@ -5039,7 +5073,7 @@ class SRT1Engine:
 
                 elif path == "/health":
 
-                    self._json({"status": "healthy", "product": "SRT-1 v2.0"})
+                    self._json({"status": "healthy", "product": f"SRT-1 v{engine._SRT1_VERSION}"})
 
                 elif path == "/synopsis":
                     self._json({
@@ -5095,7 +5129,7 @@ class SRT1Engine:
                     overlaps = engine.curation_report.get("functional_overlaps", [])
 
                     status_resp = {
-                        "product": "SRT-1 v2.0",
+                        "product": f"SRT-1 v{engine._SRT1_VERSION}",
                         "repo": os.path.basename(engine.repo_path),
                         "uptime_seconds": (datetime.now() - engine.session_start).total_seconds(),
                         "task": engine.task,
@@ -5224,7 +5258,18 @@ class SRT1Engine:
                     self._json(engine._get_repository_activation_status())
 
                 elif path == "/api/v1/workcells":
-                    self._json(engine._get_workcell_status() or {
+                    query = parse_qs(urlparse(self.path).query)
+                    compact = str((query.get("compact") or ["false"])[0]).lower() in {"1", "true", "yes"}
+                    status_filter = (query.get("status") or [None])[0]
+                    try:
+                        workcell_limit = int((query.get("limit") or ["50"])[0])
+                    except (TypeError, ValueError):
+                        workcell_limit = 50
+                    self._json(engine._get_workcell_status(
+                        compact=compact,
+                        limit=workcell_limit,
+                        status=status_filter,
+                    ) or {
                         "workcell_count": 0,
                         "execution_count": 0,
                         "workcells": [],
@@ -5364,7 +5409,7 @@ class SRT1Engine:
                             "token_count": token_count,
                         },
                         "coherence_score": coherence_score,
-                        "engine_version": f"SRT-1 v{self._SRT1_VERSION}",
+                        "engine_version": f"SRT-1 v{engine._SRT1_VERSION}",
                     })
 
                 elif path == "/dashboard":
@@ -6007,7 +6052,7 @@ class SRT1Engine:
                             self.wfile.write(f.read())
                     else:
                         self._json({
-                            "product": "SRT-1 v2.0",
+                            "product": f"SRT-1 v{engine._SRT1_VERSION}",
                             "endpoints": {
                                 "GET": [
                                     "/status", "/context", "/synopsis", "/manifest",
@@ -6033,6 +6078,7 @@ class SRT1Engine:
 
             def do_POST(self):
                 path = urlparse(self.path).path
+
                 if not self._check_auth(path, mutation=True):
                     return
 
@@ -6358,15 +6404,12 @@ class SRT1Engine:
                     }
                     # Attach optional external trust provenance when configured.
                     if engine.signing_client:
-                        try:
-                            sig = engine._sign_artifact(
-                                {"task": task, "seed_id": response.get("queue_seed_id"), "source": source},
-                                "seed_dispatch",
-                            )
-                            if sig.get("status") == "signed":
-                                response["_provenance"] = sig
-                        except Exception as e:
-                            logger.error(f"External signing failed: {e}")
+                        sig = engine._sign_artifact(
+                            {"task": task, "seed_id": response.get("queue_seed_id"), "source": source},
+                            "seed_dispatch",
+                        )
+                        if sig.get("status") == "signed":
+                            response["_provenance"] = sig
                     self._json(response)
 
                 elif path == "/operation":
@@ -6746,7 +6789,7 @@ class SRT1Engine:
     def _print_banner(self) -> None:
         print()
         print("  ╔══════════════════════════════════════════════════════╗")
-        print("  ║           SRT-1 Code Indexer v2.0                   ║")
+        print(f"  ║{f'SRT-1 Code Indexer v{self._SRT1_VERSION}':^54}║")
         print("  ║   Repo Continuity and Alignment for AI Assistants    ║")
         print("  ╚══════════════════════════════════════════════════════╝")
         print()
