@@ -1468,6 +1468,32 @@ async function dispatchWorkcellInstruction(execution, instruction = '', button =
   return result;
 }
 
+function showWorkcellDispatchResult(execution = {}, result = {}, session = {}) {
+  const workspace = execution.workspace || {};
+  const allowed = workspace.allowed_paths || execution.allowed_paths || activeWorkcellDefinition(execution).owned_paths || [];
+  const isCodex = session.provider === 'codex';
+  addContextCard({
+    title: isCodex ? 'Codex handoff prepared' : 'Assistant dispatch started',
+    meta: execution.queue_seed_id || result.queue_seed_id || 'WorkCell',
+    body: isCodex
+      ? 'SRT-1 prepared the bounded WorkCell package for Codex. Work remains inside the allowed paths and returns through review before completion.'
+      : 'SRT-1 sent the bounded WorkCell package to the selected assistant. Provider output must return as reviewable WorkCell activity before any change is accepted.',
+    tone: 'ready',
+    facts: [
+      { label: 'Assistant', value: session.enabled ? `${session.provider} / ${session.model}` : 'Not selected' },
+      { label: 'Dispatch status', value: result.status || 'recorded' },
+      { label: 'Execution job', value: result.execution_job_id || result.job_id || execution.current_execution_job_id || 'pending' },
+      { label: 'Write boundary', value: allowed.length ? 'scoped' : 'blocked' },
+      { label: 'Allowed paths', value: String(allowed.length || 0) }
+    ],
+    actions: [
+      { label: 'Open Activity', primary: true, kind: 'workcell-console', data: { consoleTab: 'activity' } },
+      { label: 'Review Changes', kind: 'workcell-console', data: { consoleTab: 'execution' } },
+      { label: 'Message WorkCell', kind: 'workcell-console', data: { consoleTab: 'chat' } }
+    ]
+  });
+}
+
 async function runWorkcellConsoleAction(action, button) {
   const execution = activeExecution();
   const seedId = execution?.queue_seed_id || activeQueueSeedId;
@@ -1484,9 +1510,11 @@ async function runWorkcellConsoleAction(action, button) {
         metadata: { source: 'workcell_console' }
       });
       const session = getWorkcellProviderSession(seedId);
-      if (session.enabled && session.key && session.autoRespond) {
+      const hasRequiredCredential = !providerRequiresSessionKey(session.provider) || Boolean(session.key);
+      if (session.enabled && hasRequiredCredential && session.autoRespond) {
         button.textContent = 'Assistant working...';
-        await dispatchWorkcellInstruction(execution, content, button);
+        const result = await dispatchWorkcellInstruction(execution, content, button);
+        showWorkcellDispatchResult(execution, result, session);
       } else {
         button.textContent = recorded.status || 'Recorded';
       }
@@ -1521,7 +1549,8 @@ async function runWorkcellConsoleAction(action, button) {
   if (action === 'dispatch') {
     button.disabled = true;
     try {
-      await dispatchWorkcellInstruction(execution, execution.objective || '', button);
+      const result = await dispatchWorkcellInstruction(execution, execution.objective || '', button);
+      showWorkcellDispatchResult(execution, result, getWorkcellProviderSession(seedId));
       await loadWorkspace({ preserveThread: true });
     } catch (error) { button.textContent = error.message || 'Dispatch failed'; }
     finally { button.disabled = false; }
