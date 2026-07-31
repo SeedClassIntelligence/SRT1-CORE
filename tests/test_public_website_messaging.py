@@ -1,5 +1,6 @@
 ﻿from pathlib import Path
 import unittest
+import re
 
 
 class PublicWebsiteMessagingTests(unittest.TestCase):
@@ -254,6 +255,40 @@ class PublicWebsiteMessagingTests(unittest.TestCase):
         self.assertNotIn("RecallPacket", experience)
         self.assertNotIn('<div class="speaker">S1</div>', experience)
         self.assertNotIn("function routeIntent", experience)
+
+    def test_experience_buttons_have_frontend_handlers(self):
+        experience = (
+            Path(__file__).resolve().parents[1]
+            / "srt1_platform"
+            / "pwa"
+            / "experience.html"
+        ).read_text(encoding="utf-8")
+
+        rendered_action_kinds = set(re.findall(r"kind:\s*'([^']+)'", experience))
+        rendered_action_kinds.update(
+            re.findall(r"intakeActionButton\([^,]+,\s*'([^']+)'", experience)
+        )
+        handled_action_kinds = set(re.findall(r"kind === '([^']+)'", experience))
+        rendered_action_kinds.discard("quick")
+
+        self.assertFalse(
+            rendered_action_kinds - handled_action_kinds,
+            f"Unhandled action kinds: {sorted(rendered_action_kinds - handled_action_kinds)}",
+        )
+
+        rendered_console_actions = set(
+            re.findall(r"workcellConsoleButton\([^,]+,\s*'([^']+)'", experience)
+        )
+        individually_handled = set(re.findall(r"action === '([^']+)'", experience))
+        grouped_console_actions = set()
+        for grouped_match in re.findall(r"\[([^\]]+)\]\.includes\(action\)", experience):
+            grouped_console_actions.update(re.findall(r"'([^']+)'", grouped_match))
+
+        handled_console_actions = individually_handled | grouped_console_actions
+        self.assertFalse(
+            rendered_console_actions - handled_console_actions,
+            f"Unhandled console actions: {sorted(rendered_console_actions - handled_console_actions)}",
+        )
 
 
 if __name__ == "__main__":
