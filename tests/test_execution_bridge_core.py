@@ -99,6 +99,26 @@ class ExecutionBridgeCoreTests(unittest.TestCase):
             self.assertIn("Improve app.py only", instructions)
             self.assertIn("app.py", instructions)
 
+    def test_workcell_dispatch_adapter_override_does_not_mutate_global_adapters(self):
+        with tempfile.TemporaryDirectory() as repo:
+            bridge = SCIADispatchBridge(repo_path=repo)
+            bridge.configure(dispatch_methods=[DispatchMethod.FILE_BASED], assistant_adapters=[])
+
+            result = bridge.dispatch_seed(
+                "seed_per_workcell",
+                "Update app.py",
+                blueprint_meta={"allowed_paths": ["app.py"]},
+                execution_context={"allowed_paths": ["app.py"]},
+                assistant_adapters=[{"type": "file_context", "name": "workcell_assistant"}],
+            )
+
+            self.assertIn(DispatchMethod.ASSISTANT_ADAPTER, result["methods"])
+            self.assertEqual(
+                result["methods"][DispatchMethod.ASSISTANT_ADAPTER]["adapters"]["workcell_assistant"]["status"],
+                "dispatched",
+            )
+            self.assertEqual(bridge.assistant_adapters, [])
+
     def test_unknown_assistant_adapter_fails_closed(self):
         with tempfile.TemporaryDirectory() as repo:
             bridge = SCIADispatchBridge(repo_path=repo)

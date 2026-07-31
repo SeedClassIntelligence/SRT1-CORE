@@ -201,7 +201,9 @@ class SCIADispatchBridge:
                       blueprint: Optional[str] = None,
                       blueprint_meta: Optional[Dict] = None,
                       execution_context: Optional[Dict[str, Any]] = None,
-                      transient_credentials: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
+                      transient_credentials: Optional[Dict[str, str]] = None,
+                      assistant_adapters: Optional[List[Dict[str, Any]]] = None,
+                      cancel_event: Optional[threading.Event] = None) -> Dict[str, Any]:
         """
         Dispatch a seed to the code assistant.
         
@@ -235,8 +237,13 @@ class SCIADispatchBridge:
             self._file_snapshots[seed_id] = dict(self._get_file_hashes())
         self._last_change_time[seed_id] = time.time()
 
+        # A WorkCell may select its own adapter without mutating global bridge configuration.
+        dispatch_methods = list(self.dispatch_methods)
+        if assistant_adapters and DispatchMethod.ASSISTANT_ADAPTER not in dispatch_methods:
+            dispatch_methods.append(DispatchMethod.ASSISTANT_ADAPTER)
+
         # Dispatch through each configured method
-        for method in self.dispatch_methods:
+        for method in dispatch_methods:
             try:
                 if method == DispatchMethod.FILE_BASED:
                     results[method] = self._dispatch_file_based(seed_id, intent, blueprint)
@@ -258,6 +265,8 @@ class SCIADispatchBridge:
                         blueprint_meta=blueprint_meta or {},
                         execution_context=execution_context or {},
                         transient_credentials=transient_credentials or {},
+                        adapter_configs=assistant_adapters,
+                        cancel_event=cancel_event,
                     )
 
             except Exception as e:
@@ -384,9 +393,12 @@ class SCIADispatchBridge:
         blueprint_meta: Dict[str, Any],
         execution_context: Dict[str, Any],
         transient_credentials: Optional[Dict[str, str]] = None,
+        adapter_configs: Optional[List[Dict[str, Any]]] = None,
+        cancel_event: Optional[threading.Event] = None,
     ) -> Dict[str, Any]:
         """Dispatch through model-agnostic assistant adapters."""
-        if not self.assistant_adapters:
+        selected_adapters = self.assistant_adapters if adapter_configs is None else adapter_configs
+        if not selected_adapters:
             return {
                 "success": False,
                 "error": "No assistant adapters configured",
@@ -445,8 +457,24 @@ class SCIADispatchBridge:
             },
             transient_credentials=dict(transient_credentials or {}),
         )
-        registry = AssistantAdapterRegistry(self.assistant_adapters)
+        if cancel_event is not None and cancel_event.is_set():
+            return {
+                "success": False,
+                "status": "cancelled",
+                "result_discarded": True,
+                "provider_termination_guaranteed": False,
+                "error": "Cancellation was requested before provider dispatch.",
+            }
+        registry = AssistantAdapterRegistry(selected_adapters)
         adapter_results = registry.dispatch_all(request)
+        if cancel_event is not None and cancel_event.is_set():
+            return {
+                "success": False,
+                "status": "cancelled",
+                "result_discarded": True,
+                "provider_termination_guaranteed": False,
+                "error": "Cancellation was requested; provider output was discarded.",
+            }
         proposals = self._capture_provider_change_proposals(
             seed_id=seed_id,
             intent=intent,
