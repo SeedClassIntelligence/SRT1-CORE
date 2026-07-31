@@ -126,6 +126,7 @@ class PublicWebsiteMessagingTests(unittest.TestCase):
         self.assertIn("await launchProject(button.dataset.repoId)", experience)
         self.assertIn("if (repoId && repoId !== activeRepoId)", experience)
         self.assertIn("window.location.assign(runtimeUrl(port, 'experience.html?ready=1'))", experience)
+        self.assertIn("result.runtime_port && ['ready', 'running'].includes(result.status)", experience)
         self.assertNotIn("const launchButton = event.target.closest", experience)
         self.assertIn("/synopsis", experience)
         self.assertIn("Repository Understanding has not returned", experience)

@@ -2868,12 +2868,12 @@ async function launchProject(repoId) {
         { label: 'Runtime port', value: result.runtime_port || 'Starting' },
         { label: 'State', value: result.status || 'launching' }
       ],
-      actions: result.runtime_port
+      actions: result.runtime_port && ['ready', 'running'].includes(result.status)
         ? [
             { label: 'Open project workspace', primary: true, kind: 'open-url', data: { url: runtimeUrl(result.runtime_port, 'experience.html?ready=1') } },
             { label: 'Open project Control Room', kind: 'open-url', data: { url: runtimeUrl(result.runtime_port, 'dashboard.html') } }
           ]
-        : [{ label: 'Open Control Room', kind: 'control-room' }]
+        : []
     });
     if (!result.runtime_port) return;
     if (['ready', 'running'].includes(result.status) && Number(result.runtime_port) !== Number(window.location.port)) {

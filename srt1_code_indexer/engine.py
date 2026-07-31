@@ -159,6 +159,20 @@ def _find_free_port(start_port: int, span: int = 100) -> int:
     return start_port + span
 
 
+def _is_local_port_open(port: Any, timeout: float = 0.2) -> bool:
+    try:
+        port_number = int(port)
+    except (TypeError, ValueError):
+        return False
+    if port_number <= 0:
+        return False
+    try:
+        with socket.create_connection(("127.0.0.1", port_number), timeout=timeout):
+            return True
+    except OSError:
+        return False
+
+
 # ---- Consumer Auth Helpers (unified from legacy/srt1_cloud.py) ----
 DB_FILE = "srt1_cloud.db"
 SECRET_KEY = os.environ.get("SRT1_AUTH_SECRET") or secrets.token_urlsafe(32)
@@ -521,6 +535,23 @@ class SRT1Engine:
             }
         return registry.summary()
 
+    def _reconcile_repository_runtime_ports(self, registry) -> None:
+        """Clear stale external runtime ports before UI surfaces render them."""
+        current_path = os.path.realpath(getattr(self, "repo_path", "") or "")
+        current_port = getattr(self, "port", None)
+        for repo in registry.list_repositories():
+            runtime_port = repo.get("runtime_port")
+            if not runtime_port:
+                continue
+            repo_path = os.path.realpath(repo.get("path", "") or "")
+            if repo_path == current_path and int(runtime_port) == int(current_port or 0):
+                continue
+            if not _is_local_port_open(runtime_port):
+                try:
+                    registry.register_path(repo_path, runtime_port=None, activate=False)
+                except Exception:
+                    pass
+
     def _get_repository_activation_status(self) -> Dict[str, Any]:
         """Return first-run Repository Manager status for API/PWA surfaces."""
         registry = self._get_repository_registry()
@@ -531,6 +562,7 @@ class SRT1Engine:
                 "repositories": [],
                 "count": 0,
             }
+        self._reconcile_repository_runtime_ports(registry)
         summary = registry.summary()
         if not summary.get("active_repository"):
             return self._refresh_repository_activation()

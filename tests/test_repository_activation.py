@@ -156,6 +156,30 @@ class RepositoryActivationTests(unittest.TestCase):
         self.assertIn(str(Path(other_repo).resolve()), args)
         self.assertEqual(popen.call_args.kwargs["env"]["SRT1_NO_BROWSER"], "1")
 
+    def test_engine_clears_stale_external_runtime_ports_from_status(self):
+        with tempfile.TemporaryDirectory() as active_repo, tempfile.TemporaryDirectory() as other_repo:
+            engine = engine_module.SRT1Engine.__new__(engine_module.SRT1Engine)
+            engine.repo_path = active_repo
+            engine.port = 7499
+            engine.manifest = {
+                "integrity": {"manifest_hash": "manifest_active"},
+                "file_manifest": [{"file_path": "src/app.py"}],
+            }
+            engine.repository_registry = RepositoryActivationRegistry(
+                state_dir=str(Path(active_repo) / ".srt1" / "repositories")
+            )
+            engine.workcell_registry = WorkCellRegistry(repo_path=active_repo)
+            engine.workcell_registry.populate_from_manifest(engine.manifest)
+            engine._refresh_repository_activation()
+            stale = engine.repository_registry.register_path(other_repo, runtime_port=7555)
+
+            with patch.object(engine_module, "_is_local_port_open", return_value=False):
+                status = engine._get_repository_activation_status()
+
+        other = next(repo for repo in status["repositories"] if repo["repo_id"] == stale.repo_id)
+        self.assertIsNone(other["runtime_port"])
+        self.assertEqual(status["active_repository"]["runtime_port"], 7499)
+
     def test_engine_stops_external_repository_runtime(self):
         with tempfile.TemporaryDirectory() as active_repo, tempfile.TemporaryDirectory() as other_repo:
             engine = engine_module.SRT1Engine.__new__(engine_module.SRT1Engine)
