@@ -231,19 +231,20 @@ class AssistantAdapterSurfaceTests(unittest.TestCase):
         self.assertNotIn('localStorage.getItem("srt1_apikey_', dashboard)
 
     def test_dashboard_workcell_run_sends_session_credentials_to_existing_workcell(self):
-        dashboard = (
+        experience = (
             Path(__file__).resolve().parents[1]
             / "srt1_platform"
             / "pwa"
-            / "dashboard.html"
+            / "experience.html"
         ).read_text(encoding="utf-8")
 
-        self.assertIn("runWorkCellWithAssistant", dashboard)
-        self.assertIn("/api/v1/workcells/", dashboard)
-        self.assertIn("/dispatch", dashboard)
-        self.assertIn("assistant_credentials: buildAssistantCredentialPayload()", dashboard)
-        self.assertIn("loadWorkCellProposals", dashboard)
-        self.assertIn("applyChangeProposal", dashboard)
+        self.assertIn("dispatchWorkcellInstruction", experience)
+        self.assertIn("/api/v1/workcells/", experience)
+        self.assertIn("/dispatch", experience)
+        self.assertIn("assistant_credentials:", experience)
+        self.assertIn("provider_keys: { [session.provider]: session.key }", experience)
+        self.assertIn("showProposalsContext", experience)
+        self.assertIn("applyProposal", experience)
 
     def test_dashboard_seed_actions_use_unified_task_helper(self):
         dashboard = (
@@ -253,10 +254,11 @@ class AssistantAdapterSurfaceTests(unittest.TestCase):
             / "dashboard.html"
         ).read_text(encoding="utf-8")
 
-        self.assertIn("data-submit-task", dashboard)
-        self.assertIn("await postFindingSeedPayload({", dashboard)
-        self.assertIn('source: "dashboard"', dashboard)
-        self.assertIn("auto_dispatch: false", dashboard)
+        self.assertNotIn("data-submit-task", dashboard)
+        self.assertIn("srt1_pending_prompt", dashboard)
+        self.assertIn("/experience.html?prompt=", dashboard)
+        self.assertNotIn("await postFindingSeedPayload({", dashboard)
+        self.assertNotIn('source: "dashboard_finding"', dashboard)
         self.assertIn("getPlatformApiBase", dashboard)
         self.assertIn("window.SRT1Platform", dashboard)
         self.assertNotIn("SRT1Platform?.API_BASE", dashboard)

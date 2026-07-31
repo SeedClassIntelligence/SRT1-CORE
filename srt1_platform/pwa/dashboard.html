@@ -656,11 +656,12 @@ body.theme-light .file-intel-popover{box-shadow:0 18px 40px rgba(15,23,42,0.18);
 
   <div class="page-header" style="display:flex; justify-content:space-between; align-items:flex-start;">
     <div>
-      <h1 id="mainDashboardTitle">Active Work</h1>
-      <p id="mainDashboardSubtitle">Plant ideas, guide WorkCells, verify progress, and approve completion</p>
+      <h1 id="mainDashboardTitle">Control Room</h1>
+      <p id="mainDashboardSubtitle">Repository intelligence, runtime evidence, verification, and diagnostics</p>
     </div>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end;">
       <button type="button" id="themeToggle" onclick="toggleDashboardTheme()" class="theme-toggle">Light Mode</button>
+      <a href="/experience.html" class="download-btn" style="font-size:12px;padding:8px 12px;text-decoration:none;background:var(--green);color:#06110b;border-color:var(--green);">Open Standard Experience</a>
       <button onclick="showIntroModal(true)" class="download-btn" style="font-size:12px;padding:8px 12px;">Core Help</button>
       <a href="/auth.html?mode=signup&type=developer&next=dashboard.html" class="download-btn" style="font-size:12px;padding:8px 12px;text-decoration:none;">Sign Up / Login</a>
       <a href="observatory.html" onclick="event.preventDefault();navPage('observatory')" style="display:inline-flex;align-items:center;padding:8px 16px;background:var(--bg3);border:1px solid var(--border2);color:var(--text);border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;transition:all 0.15s;">
@@ -692,7 +693,7 @@ body.theme-light .file-intel-popover{box-shadow:0 18px 40px rgba(15,23,42,0.18);
       </div>
       <div class="repo-activation-step" id="repoStepExecute">
         <div class="repo-activation-step-label">4. Execute</div>
-        <div class="repo-activation-step-value">Plant Seed in WorkCell</div>
+        <div class="repo-activation-step-value">Continue in Standard Experience</div>
       </div>
     </div>
     <div class="repo-library-title">Repository Readiness</div>
@@ -1447,48 +1448,14 @@ body.theme-light .file-intel-popover{box-shadow:0 18px 40px rgba(15,23,42,0.18);
     </div>
   </div>
 
-  <!-- ASK SRT-1 / SEED INPUT — Plan section anchor -->
-  <div class="panel" id="seed-input" style="margin-bottom:32px;scroll-margin-top: 80px;">
+  <div class="panel" id="standard-experience-handoff" style="margin-bottom:24px;scroll-margin-top:80px;">
     <div class="panel-header">
-      <div class="panel-title">Plant a Seed <span class="info-icon" data-tooltip="Plant tasks directly into the engine. SRT-1 will automatically bundle context, resolve dependencies, and dispatch it to the active AI for execution.">?</span></div>
+      <div class="panel-title">Human Workflow</div>
+      <div class="panel-badge" style="color:var(--green);border-color:var(--green-border);background:var(--green-bg);">STANDARD EXPERIENCE</div>
     </div>
-    <div style="display:flex; flex-direction:column; gap:12px;">
-      <div id="chatHistory" style="max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; font-size: 13px; color: var(--text2);">
-         <div style="padding: 12px; background: rgba(0,0,0,0.2); border-radius: 8px; text-align: center; color: var(--text4);">No tasks planted in this session.</div>
-      </div>
-      <div style="display:flex; gap:8px;">
-        <input type="text" id="taskInput" placeholder="Describe a task or architectural change..." style="flex:1; padding: 12px 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: var(--sans); outline: none; transition: border-color 0.2s;" onkeydown="if(event.key === 'Enter') submitTask()">
-        <button data-submit-task onclick="submitTask()" style="padding: 12px 24px; background: linear-gradient(135deg, var(--green), var(--cyan)); color: #000; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; transition: opacity 0.2s;">Plant Seed</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- BLUEPRINT PREVIEW - Shows what the AI will see and what humans can review. -->
-  <!-- NOTE: In Core, this is a context/plan review surface. Private execution runtimes are planned/inactive. -->
-  <div class="panel" id="blueprint-preview" style="margin-bottom:24px;scroll-margin-top:80px;">
-    <div class="panel-header">
-      <div class="panel-title">Blueprint Preview <span class="info-icon" data-tooltip="Core review surface for generated context, seed direction, and proposed work. Approval records human intent; it does not directly mutate code.">?</span></div>
-      <div class="panel-badge" id="blueprintBadge" style="color:var(--text3);border-color:var(--border2);background:var(--bg3);">AWAITING SEED</div>
-    </div>
-    <div id="blueprintContent">
-      <!-- Default state: no blueprint -->
-      <div style="padding:24px;text-align:center;border:1px solid var(--border);border-radius:8px;">
-        <div style="font-size:24px;margin-bottom:12px;opacity:0.3;color:var(--text4);">◇</div>
-        <div style="font-size:14px;color:var(--text3);margin-bottom:8px;">No blueprint generated yet</div>
-        <div style="font-size:12px;color:var(--text4);line-height:1.6;max-width:400px;margin:0 auto;">
-          Plant a seed above to generate a context/blueprint preview. Core shows what your assistant receives and what the human can review.
-          Private execution runtime is planned and inactive in this dashboard.
-        </div>
-      </div>
-    </div>
-    <!-- Approve/Reject buttons: human review only; no direct code mutation in Core. -->
-    <div id="blueprintActions" style="display:none;margin-top:16px;padding-top:16px;border-top:1px solid var(--border);display:flex;gap:12px;">
-      <button id="btnApproveBlueprint" onclick="approveBlueprint()" style="flex:1;padding:12px;background:var(--green-bg);border:1px solid var(--green-border);color:var(--green);font-weight:700;font-size:14px;border-radius:8px;cursor:pointer;font-family:var(--sans);transition:all 0.2s;">
-        Approve Review
-      </button>
-      <button id="btnRejectBlueprint" onclick="rejectBlueprint()" style="flex:1;padding:12px;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.2);color:var(--red);font-weight:700;font-size:14px;border-radius:8px;cursor:pointer;font-family:var(--sans);transition:all 0.2s;">
-        ✗ Reject
-      </button>
+    <div style="padding:18px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text2);line-height:1.65;">
+      Plant Seeds, talk with WorkCells, assign assistants, run bounded work, verify changes, and approve or return work in the Standard Experience. This Control Room remains the read-only engineering and audit surface.
+      <div style="margin-top:14px;"><a href="/experience.html" class="download-btn" style="display:inline-flex;text-decoration:none;">Continue in Standard Experience</a></div>
     </div>
   </div>
 
@@ -1696,14 +1663,23 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Simple markdown to HTML parser
+function escapeDashboardHtml(text) {
+  return String(text || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function renderMarkdown(text) {
   if (!text) return "";
-  let html = text
+  let html = escapeDashboardHtml(text)
     .replace(/^### (.*$)/gim, '<h4 style="color:var(--text);margin:16px 0 8px;font-size:14px;">$1</h4>')
     .replace(/^## (.*$)/gim, '<h3 style="color:var(--green);border-bottom:1px solid var(--border);padding-bottom:8px;margin:20px 0 12px;font-size:16px;font-family:var(--mono);text-transform:uppercase;">$1</h3>')
     .replace(/^# (.*$)/gim, '<h2 style="color:var(--text);margin:24px 0 16px;font-size:20px;">$1</h2>')
     .replace(/\*\*(.*?)\*\*/gim, '<strong style="color:var(--text);font-weight:700;">$1</strong>')
-    .replace(/\[(.*?)\]\((.*?)\)/gim, '<a href="$2" style="color:var(--green);text-decoration:none;">$1</a>')
+    .replace(/\[(.*?)\]\((https?:\/\/[^)\s]+)\)/gim, '<a href="$2" rel="noopener noreferrer" style="color:var(--green);text-decoration:none;">$1</a>')
     .replace(/`(.*?)`/gim, '<code style="background:var(--bg);border:1px solid var(--border);padding:2px 6px;border-radius:4px;font-family:var(--mono);font-size:12px;color:var(--cyan);">$1</code>')
     .replace(/^\- (.*$)/gim, '<li style="margin-left:20px;margin-bottom:6px;">$1</li>')
     .replace(/⚠️ (.*$)/gim, '<div style="background:var(--amber-bg);border:1px solid var(--amber-border);color:var(--amber);padding:10px 14px;border-radius:8px;margin:12px 0;font-size:13px;display:flex;align-items:center;gap:8px;"><span>⚠️</span> <span>$1</span></div>');
@@ -1877,6 +1853,18 @@ function setSynopsisState(preview, detail) {
   if (synFull && detail) synFull.innerHTML = detail;
 }
 
+function normalizeSynopsisEncoding(text) {
+  return String(text || '')
+    .replace(/(?:ðŸ[^\s]*|â[^\s]*|Ã[^\s]*)/g, ' ')
+    .replace(/[\u2500-\u257F\u2190-\u21FF\u2600-\u27BF\u{1F300}-\u{1FAFF}]/gu, ' ')
+    .replace(/[\s\u00a0]+/g, ' ')
+    .trim();
+}
+
+function cleanSynopsisDisplay(text) {
+  return normalizeSynopsisEncoding(text).replace(/^\s*#{1,6}\s*/, '').trim();
+}
+
 function getFileIcon(fidelity, ext) {
   if (fidelity === 'ast') return '🐍';
   if (fidelity === 'deep') return '⚡';
@@ -1896,7 +1884,10 @@ function renderNeuralMapGrid() {
   const container = document.getElementById('neuralMapGrid');
   if (!container) return;
   if (!manifest) {
-    setNeuralMapState('SRT-1 engine offline. Start the repository runtime to load the Codebase Neural Map.', 'error');
+    setNeuralMapState(
+      manifestLoading ? 'Loading repo intelligence...' : 'Repository intelligence has not loaded yet. Refresh when the runtime is ready.',
+      manifestLoading ? 'muted' : 'warn'
+    );
     return;
   }
   if (!Array.isArray(manifest.file_manifest)) {
@@ -2124,8 +2115,8 @@ async function loadManifest(options = {}) {
     
     // Dynamically update the main dashboard title to show the current project
     if (repoName !== 'Unknown') {
-      document.getElementById('mainDashboardTitle').textContent = repoName + " Active Work";
-      document.getElementById('mainDashboardSubtitle').textContent = "Plant ideas, guide WorkCells, verify progress, and approve completion";
+      document.getElementById('mainDashboardTitle').textContent = repoName + " Control Room";
+      document.getElementById('mainDashboardSubtitle').textContent = "Repository intelligence, runtime evidence, verification, and diagnostics";
     }
 
     // Fetch the holistic project synopsis directly from the local engine
@@ -2137,13 +2128,13 @@ async function loadManifest(options = {}) {
       
       const synPreview = document.getElementById('synopsisPreview');
       if (synPreview && manifest.project_synopsis) {
-        synPreview.textContent = manifest.project_synopsis.split('\n')[0].slice(0, 100);
+        synPreview.textContent = cleanSynopsisDisplay(manifest.project_synopsis.split('\n')[0]).slice(0, 100);
       } else if (synPreview) {
         synPreview.textContent = "No synopsis generated yet";
       }
       const synFull = document.getElementById('synopsisExpanded');
       if (synFull && manifest.project_synopsis) {
-        synFull.innerHTML = renderMarkdown(manifest.project_synopsis);
+        synFull.innerHTML = renderMarkdown(normalizeSynopsisEncoding(manifest.project_synopsis));
       } else if (synFull) {
         synFull.innerHTML = "No project synopsis generated yet. Re-index the repository to refresh codebase structure.";
       }
@@ -2251,8 +2242,8 @@ async function loadDashboardSummary() {
 
     document.getElementById('repoName').textContent = repoName;
     if (repoName !== 'Unknown') {
-      document.getElementById('mainDashboardTitle').textContent = repoName + " Active Work";
-      document.getElementById('mainDashboardSubtitle').textContent = "Plant ideas, guide WorkCells, verify progress, and approve completion";
+      document.getElementById('mainDashboardTitle').textContent = repoName + " Control Room";
+      document.getElementById('mainDashboardSubtitle').textContent = "Repository intelligence, runtime evidence, verification, and diagnostics";
     }
 
     document.getElementById('statFiles').textContent = files.toLocaleString();
@@ -2599,9 +2590,10 @@ async function launchRepositoryRuntime(repoId) {
       throw new Error(result.error || 'Repository runtime launch failed');
     }
     renderRepositoryManager(result, null);
-    if (result.dashboard_url) {
+    const destination = result.experience_url || (result.runtime_port ? `http://127.0.0.1:${result.runtime_port}/experience.html` : '');
+    if (destination) {
       if (statusEl) statusEl.textContent = result.status === 'launching' ? 'switching' : 'running';
-      setTimeout(() => { window.location.href = result.dashboard_url; }, result.status === 'launching' ? 2500 : 400);
+      setTimeout(() => { window.location.href = destination; }, result.status === 'launching' ? 2500 : 400);
     }
   } catch (e) {
     if (statusEl) {
@@ -2613,7 +2605,7 @@ async function launchRepositoryRuntime(repoId) {
 
 function openRepositoryRuntime(port) {
   if (!port) return;
-  window.location.href = `http://127.0.0.1:${port}/dashboard`;
+  window.location.href = `http://127.0.0.1:${port}/experience.html`;
 }
 
 async function stopRepositoryRuntime(repoId) {
@@ -2656,9 +2648,14 @@ async function shutdownCurrentRuntime() {
     statusEl.classList.remove('ready');
   }
   try {
+    const token = await getSrtRuntimeSession(API);
     const response = await fetch(API + '/api/v1/runtime/shutdown', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' }
+      headers: {
+        'Content-Type': 'application/json',
+        'X-SRT1-Session': token,
+        'X-SRT1-Request': 'browser'
+      }
     });
     const result = await response.json();
     if (!response.ok || result.status !== 'stopping') {
@@ -3010,7 +3007,7 @@ async function controlWorkCell(queueSeedId, action, button) {
   }
 }
 
-async function verifyWorkCell(queueSeedId, button, verified = true) {
+async function verifyWorkCell(queueSeedId, button) {
   if (!queueSeedId) return;
   const original = button?.textContent || 'Run Verification';
   if (button) {
@@ -3022,11 +3019,9 @@ async function verifyWorkCell(queueSeedId, button, verified = true) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        verified,
         actor: 'dashboard_human',
         details: {
-          source: 'dashboard_review_lane',
-          method: 'manual_core_verification'
+          request: 'run_backend_verification'
         }
       })
     });
@@ -3239,32 +3234,20 @@ function renderWorkCellDetail(payload, selectedExecution) {
         <div class="workcell-provider-readiness-grid" style="margin-top:8px;">
           ${providerResult.checks.map(check => `<span class="workcell-provider-check ${check.ready ? 'ready' : ''}">${check.ready ? 'ready' : 'needed'} ${escapeHtml(check.label)}: ${escapeHtml(check.detail)}</span>`).join('')}
         </div>
-        <div class="workcell-package-buttons" style="margin-top:10px;">
-          ${providerResult.actions.map(action => `<button type="button" class="workcell-package-btn" data-provider-result-action="${escapeHtml(action.action)}" data-provider-result-seed="${escapeHtml(selectedExecution.queue_seed_id || '')}">${escapeHtml(action.label)}</button>`).join('')}
-        </div>
+        <div class="workcell-review-lane-copy" style="margin-top:8px;">Provider actions are initiated from the Standard Experience. This panel reports the resulting state.</div>
       </div>
       <div class="workcell-package-buttons">
-        <button type="button" class="workcell-package-btn" data-workcell-assistant-run="${escapeHtml(selectedExecution.queue_seed_id || '')}" ${canRunAssistant ? '' : 'disabled'}>Run with Assistant</button>
-        ${canPause ? '<button type="button" class="workcell-package-btn" data-workcell-action="pause">Pause</button>' : ''}
-        ${canResume ? '<button type="button" class="workcell-package-btn" data-workcell-action="resume">Resume</button>' : ''}
-        ${canStop ? '<button type="button" class="workcell-package-btn" data-workcell-action="stop">Request stop</button>' : ''}
-        ${canCancel ? '<button type="button" class="workcell-package-btn" data-workcell-action="cancel">Cancel WorkCell</button>' : ''}
-        <button type="button" class="workcell-package-btn" data-workcell-action="approve" ${canApprove ? '' : 'disabled'}>Approve</button>
-        <button type="button" class="workcell-package-btn" data-workcell-action="reject" ${canReject ? '' : 'disabled'}>Return for revision</button>
+        <a href="/experience.html" class="workcell-package-btn" style="text-decoration:none;">Open WorkCell in Standard Experience</a>
       </div>
     </div>
     <div class="workcell-activity">
       <div class="workcell-preview-head">
-        <div class="workcell-preview-title">WorkCell Chat</div>
+        <div class="workcell-preview-title">Conversation Trace</div>
         <div id="workcellChatBadge" class="workcell-package-status">loading</div>
       </div>
-      <div style="font-size:11px;color:var(--text4);line-height:1.45;margin-bottom:8px;">This conversation belongs to SRT-1, not a specific assistant. PWA, Slack, mobile, IDE, and adapter messages all attach to the same queue seed and WorkCell context.</div>
+      <div style="font-size:11px;color:var(--text4);line-height:1.45;margin-bottom:8px;">Read-only continuity record for messages received through the Standard Experience, Slack, mobile, IDE, and assistant adapters.</div>
       <div id="workcellChatList" class="workcell-activity-list">
-        <div class="workcell-empty">Loading chat...</div>
-      </div>
-      <div class="workcell-package-buttons" style="padding:10px;border-top:1px solid var(--border);align-items:stretch;">
-        <textarea id="workcellChatInput" class="workcell-input" rows="3" placeholder="Message this WorkCell..." style="min-height:68px;flex:1 1 240px;"></textarea>
-        <button type="button" class="workcell-package-btn" data-workcell-chat-send="${escapeHtml(selectedExecution.queue_seed_id || '')}">Send Message</button>
+        <div class="workcell-empty">Loading conversation trace...</div>
       </div>
     </div>
     <div class="workcell-preview">
@@ -3285,9 +3268,7 @@ function renderWorkCellDetail(payload, selectedExecution) {
       <div class="workcell-provider-readiness-grid" style="margin-top:8px;">
         ${completionReview.checks.map(check => `<span class="workcell-provider-check ${check.ready ? 'ready' : ''}">${check.ready ? 'ready' : 'needed'} ${escapeHtml(check.label)}: ${escapeHtml(check.detail)}</span>`).join('')}
       </div>
-      <div class="workcell-package-buttons" style="margin-top:10px;">
-        <button type="button" class="workcell-package-btn" data-workcell-verify="${escapeHtml(selectedExecution.queue_seed_id || '')}" ${completionReview.canVerify ? '' : 'disabled'}>Run Verification</button>
-      </div>
+      <div class="workcell-review-lane-copy" style="margin-top:8px;">Verification and completion decisions are initiated from the Standard Experience.</div>
     </div>` : ''}
     <div class="workcell-activity">
       <div class="workcell-preview-head">
@@ -3332,39 +3313,6 @@ function renderWorkCellDetail(payload, selectedExecution) {
   });
   detailEl.querySelectorAll('.workcell-package-btn[data-preview-queue-seed-id]').forEach(button => {
     button.addEventListener('click', () => loadWorkCellMdPreview(button.dataset.previewQueueSeedId, button));
-  });
-  detailEl.querySelectorAll('.workcell-package-btn[data-workcell-action]').forEach(button => {
-    button.addEventListener('click', () => controlWorkCell(
-      selectedExecution.queue_seed_id,
-      button.dataset.workcellAction,
-      button
-    ));
-  });
-  detailEl.querySelectorAll('.workcell-package-btn[data-workcell-assistant-run]').forEach(button => {
-    button.addEventListener('click', () => runWorkCellWithAssistant(
-      button.dataset.workcellAssistantRun,
-      button
-    ));
-  });
-  detailEl.querySelectorAll('.workcell-package-btn[data-workcell-verify]').forEach(button => {
-    button.addEventListener('click', () => verifyWorkCell(
-      button.dataset.workcellVerify,
-      button,
-      true
-    ));
-  });
-  detailEl.querySelectorAll('.workcell-package-btn[data-provider-result-action]').forEach(button => {
-    button.addEventListener('click', () => handleProviderResultAction(
-      button.dataset.providerResultAction,
-      button.dataset.providerResultSeed,
-      button
-    ));
-  });
-  detailEl.querySelectorAll('.workcell-package-btn[data-workcell-chat-send]').forEach(button => {
-    button.addEventListener('click', () => sendWorkCellChat(
-      button.dataset.workcellChatSend,
-      button
-    ));
   });
   document.getElementById('workcellActivityOlder')?.addEventListener('click', event => {
     loadWorkCellActivity(selectedExecution.queue_seed_id, true, event.currentTarget);
@@ -3414,44 +3362,6 @@ async function loadWorkCellMessages(queueSeedId) {
   }
 }
 
-async function sendWorkCellChat(queueSeedId, button) {
-  const input = document.getElementById('workcellChatInput');
-  const content = (input?.value || '').trim();
-  if (!queueSeedId || !content) return;
-  const original = button?.textContent || 'Send Message';
-  if (button) {
-    button.disabled = true;
-    button.textContent = 'Sending...';
-  }
-  try {
-    const response = await fetch(API + '/api/v1/workcells/' + encodeURIComponent(queueSeedId) + '/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        role: 'user',
-        content,
-        channel: 'pwa',
-        actor: 'dashboard_human',
-        metadata: { source: 'dashboard_workcell_chat' }
-      })
-    });
-    const result = await response.json();
-    if (!response.ok || result.status !== 'recorded') throw new Error(result.error || 'Message blocked');
-    if (input) input.value = '';
-    await loadWorkCellMessages(queueSeedId);
-    await loadWorkCellActivity(queueSeedId);
-  } catch (e) {
-    if (button) button.textContent = e.message || 'Message blocked';
-  } finally {
-    if (button) {
-      setTimeout(() => {
-        button.disabled = false;
-        button.textContent = original;
-      }, 1200);
-    }
-  }
-}
-
 async function loadWorkCellProposals(queueSeedId) {
   const list = document.getElementById('workcellProposalList');
   const badge = document.getElementById('workcellProposalBadge');
@@ -3472,100 +3382,18 @@ async function loadWorkCellProposals(queueSeedId) {
     list.innerHTML = proposals.map(proposal => {
       const proposalId = proposal.proposal_id || '';
       const files = (proposal.files_write || []).concat(proposal.files_create || []).concat(proposal.files_delete || []);
-      const canReview = proposal.status === 'awaiting_review';
-      const canApply = proposal.status === 'approved' && !proposal.applied;
       return `<div class="workcell-activity-event" style="grid-template-columns:minmax(0,1fr) auto;">
         <div>
           <div class="workcell-activity-type">${escapeHtml(proposal.status || 'unknown')} ? ${escapeHtml(proposalId)}</div>
           <div class="workcell-activity-message">${escapeHtml(files.join(', ') || 'No file targets')}</div>
           <div class="workcell-activity-meta">Boundary: ${proposal.boundary_allowed ? 'allowed' : 'blocked'} ? Applied: ${proposal.applied ? 'yes' : 'no'}</div>
         </div>
-        <div class="workcell-package-buttons" style="justify-content:flex-end;">
-          <button type="button" class="workcell-package-btn" data-proposal-review="approve" data-proposal-id="${escapeHtml(proposalId)}" ${canReview ? '' : 'disabled'}>Approve</button>
-          <button type="button" class="workcell-package-btn" data-proposal-review="reject" data-proposal-id="${escapeHtml(proposalId)}" ${canReview ? '' : 'disabled'}>Reject</button>
-          <button type="button" class="workcell-package-btn" data-proposal-review="return" data-proposal-id="${escapeHtml(proposalId)}" ${canReview ? '' : 'disabled'}>Return</button>
-          <button type="button" class="workcell-package-btn" data-proposal-apply="${escapeHtml(proposalId)}" ${canApply ? '' : 'disabled'}>Apply</button>
-        </div>
+        <div class="workcell-package-status">read only</div>
       </div>`;
     }).join('');
-    list.querySelectorAll('[data-proposal-review]').forEach(button => {
-      button.addEventListener('click', () => reviewChangeProposal(
-        button.dataset.proposalId,
-        button.dataset.proposalReview,
-        queueSeedId,
-        button
-      ));
-    });
-    list.querySelectorAll('[data-proposal-apply]').forEach(button => {
-      button.addEventListener('click', () => applyChangeProposal(
-        button.dataset.proposalApply,
-        queueSeedId,
-        button
-      ));
-    });
   } catch (e) {
     if (badge) badge.textContent = 'unavailable';
     list.innerHTML = `<div class="workcell-empty">${escapeHtml(e.message || 'Proposals unavailable')}</div>`;
-  }
-}
-
-async function applyChangeProposal(proposalId, queueSeedId, button) {
-  if (!proposalId) return;
-  const original = button?.textContent || 'Apply';
-  if (button) {
-    button.disabled = true;
-    button.textContent = 'Applying...';
-  }
-  try {
-    const response = await fetch(API + '/api/v1/change-proposals/' + encodeURIComponent(proposalId) + '/apply', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ actor: 'dashboard_human' })
-    });
-    const result = await response.json();
-    if (!response.ok) throw new Error(result.error || 'Apply blocked');
-    delete workCellActivityPages[queueSeedId];
-    await loadWorkCellProposals(queueSeedId);
-    await loadWorkCellActivity(queueSeedId);
-  } catch (e) {
-    if (button) button.textContent = e.message || 'Apply blocked';
-  } finally {
-    if (button) {
-      setTimeout(() => {
-        button.disabled = false;
-        button.textContent = original;
-      }, 1600);
-    }
-  }
-}
-
-async function reviewChangeProposal(proposalId, action, queueSeedId, button) {
-  if (!proposalId || !action) return;
-  const original = button?.textContent || action;
-  if (button) {
-    button.disabled = true;
-    button.textContent = 'Working...';
-  }
-  try {
-    const response = await fetch(API + '/api/v1/change-proposals/' + encodeURIComponent(proposalId) + '/review', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action, actor: 'dashboard_human' })
-    });
-    const result = await response.json();
-    if (!response.ok) throw new Error(result.error || `Unable to ${action} proposal`);
-    delete workCellActivityPages[queueSeedId];
-    await loadWorkCellProposals(queueSeedId);
-    await loadWorkCellActivity(queueSeedId);
-  } catch (e) {
-    if (button) button.textContent = e.message || 'Review blocked';
-  } finally {
-    if (button) {
-      setTimeout(() => {
-        button.disabled = false;
-        button.textContent = original;
-      }, 1400);
-    }
   }
 }
 
@@ -3762,7 +3590,7 @@ async function loadStatus() {
           <span style="color:var(--amber);font-weight:600;">${overlaps} functional overlaps</span>
           ${unusedCount > 0 ? `<span style="color:var(--purple, #a78bfa);font-weight:600;">${unusedCount} unused functions</span>` : ''}
           <span style="color:var(--text4);margin-left:auto;">Reflection mode: ${enforcement.level || 'ACTIVE'}</span>
-          <span style="flex-basis:100%;color:var(--text3);font-size:11px;">Create Fix Seed turns a finding into a tracked Seed and WorkCell package visible in Seed Queue and WorkCells.</span>
+          <span style="flex-basis:100%;color:var(--text3);font-size:11px;">Open a finding in the Standard Experience to review its remediation instruction before creating a tracked Seed and WorkCell.</span>
         </div>`;
 
         // Individual finding rows (duplicates)
@@ -3775,7 +3603,7 @@ async function loadStatus() {
               <div class="violation-func">${escapeHtml(item.function || 'unknown')}</div>
               <div class="violation-locs">${escapeHtml(locs)}</div>
               <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-                <button type="button" class="workcell-package-btn" onclick="createFindingFixSeed('${actionId}', this)">Create Fix Seed</button>
+                <button type="button" class="workcell-package-btn" onclick="createFindingFixSeed('${actionId}', this)">Open in Standard Experience</button>
                 <span style="font-size:11px;color:var(--text4);">Tracked through Seed Queue and WorkCells</span>
               </div>
             </div>
@@ -3794,7 +3622,7 @@ async function loadStatus() {
                 <div class="violation-func">${escapeHtml(item.function || 'unknown')}</div>
                 <div class="violation-locs">${escapeHtml(locs)}</div>
                 <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-                  <button type="button" class="workcell-package-btn" onclick="createFindingFixSeed('${actionId}', this)">Create Fix Seed</button>
+                  <button type="button" class="workcell-package-btn" onclick="createFindingFixSeed('${actionId}', this)">Open in Standard Experience</button>
                   <span style="font-size:11px;color:var(--text4);">Tracked through Seed Queue and WorkCells</span>
                 </div>
               </div>
@@ -3815,7 +3643,7 @@ async function loadStatus() {
                 <div class="violation-func">${escapeHtml(item.function || 'unknown')}</div>
                 <div class="violation-locs">${escapeHtml(item.location || '')}</div>
                 <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-                  <button type="button" class="workcell-package-btn" onclick="createFindingFixSeed('${actionId}', this)">Create Review Seed</button>
+                  <button type="button" class="workcell-package-btn" onclick="createFindingFixSeed('${actionId}', this)">Review in Standard Experience</button>
                   <span style="font-size:11px;color:var(--text4);">Verify before removing public hooks</span>
                 </div>
               </div>
@@ -3832,7 +3660,7 @@ async function loadStatus() {
                   <div class="violation-func">${escapeHtml(item.function || 'unknown')}</div>
                   <div class="violation-locs">${escapeHtml(item.location || '')}</div>
                   <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-                    <button type="button" class="workcell-package-btn" onclick="createFindingFixSeed('${actionId}', this)">Create Review Seed</button>
+                    <button type="button" class="workcell-package-btn" onclick="createFindingFixSeed('${actionId}', this)">Review in Standard Experience</button>
                     <span style="font-size:11px;color:var(--text4);">Verify before removing public hooks</span>
                   </div>
                 </div>
@@ -4012,7 +3840,7 @@ async function loadStatus() {
 // ============================================================
 async function loadWorkCells() {
   try {
-    const r = await fetch(API + '/api/v1/workcells');
+    const r = await fetch(API + '/api/v1/workcells?limit=100');
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     const payload = await r.json();
     renderWorkCells(payload, engineStatus?.active_seed);
@@ -4946,56 +4774,6 @@ async function toggleNudge(enabled) {
   }
 }
 
-let chatHistoryCleared = false;
-async function submitTask() {
-  const input = document.getElementById('taskInput');
-  const text = input?.value.trim();
-  if(!text) return;
-  
-  const history = document.getElementById('chatHistory');
-  const button = document.querySelector('button[data-submit-task]');
-  const originalText = button?.textContent || 'Plant Seed';
-  if(!chatHistoryCleared) {
-    history.innerHTML = '';
-    chatHistoryCleared = true;
-  }
-  
-  // Add user message
-  history.innerHTML += `<div style="padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; border: 1px solid var(--border);">
-    <strong style="color:var(--text);">You:</strong> ${text}
-  </div>`;
-  input.value = '';
-  if (button) {
-    button.disabled = true;
-    button.textContent = 'Planting...';
-  }
-  
-  try {
-    const data = await postFindingSeedPayload({
-      task: text,
-      source: "dashboard",
-      auto_dispatch: false
-    });
-    history.innerHTML += `<div style="padding: 10px; background: rgba(62,207,142,0.1); border-radius: 8px; border: 1px solid rgba(62,207,142,0.3);">
-      <strong style="color:var(--green);">SRT-1:</strong> Seed planted successfully. Review it in the Fix Queue or WorkCell surface. <span style="font-family:var(--mono); font-size:10px; color:var(--text4);">[${escapeHtml(data.queue_seed_id || data.seed_id || 'seed queued')}]</span>
-    </div>`;
-    await Promise.allSettled([loadSeedQueue(), loadWorkCells(), loadStatus()]);
-    setTimeout(loadManifest, 1500);
-  } catch (e) {
-    console.error(e);
-    const message = describeDashboardActionError(e, 'Seed creation failed');
-    history.innerHTML += `<div style="padding: 10px; background: rgba(248,81,73,0.1); border-radius: 8px; border: 1px solid rgba(248,81,73,0.3);">
-      <strong style="color:var(--red);">Error:</strong> ${escapeHtml(message)}
-    </div>`;
-  } finally {
-    if (button) {
-      button.disabled = false;
-      button.textContent = originalText;
-    }
-  }
-  history.scrollTop = history.scrollHeight;
-}
-
 // ============================================================
 // SEED QUEUE — Phase 4: loads all seeds from /seeds endpoint
 // NOTE: Works for the Core BYOAI review flow.
@@ -5129,57 +4907,9 @@ async function runWorkCellWithAssistant(queueSeedId, button) {
 async function createFindingFixSeed(actionId, button) {
   const action = findingFixActions[actionId];
   if (!action) return;
-  const originalText = button ? button.textContent : '';
   const task = buildFindingFixSeed(action);
-  if (button) {
-    button.disabled = true;
-    button.textContent = 'Planting...';
-  }
-
-  try {
-    const data = await postFindingSeedPayload({
-      task,
-      source: 'dashboard_finding',
-      priority: action.type === 'duplicate' ? 8 : 5,
-      auto_dispatch: false,
-      context: {
-        finding_type: action.type,
-        finding: action.item || {}
-      }
-    });
-
-    const queueSeedId = data.queue_seed_id || data.seed_id || 'seed queued';
-    if (button) {
-      button.textContent = `Seed queued: ${queueSeedId}`;
-      button.style.color = 'var(--green)';
-      button.style.borderColor = 'var(--green-border)';
-    }
-
-    const history = document.getElementById('chatHistory');
-    if (history) {
-      if (!chatHistoryCleared) {
-        history.innerHTML = '';
-        chatHistoryCleared = true;
-      }
-      history.innerHTML += `<div style="padding:10px;background:var(--green-bg);border:1px solid var(--green-border);border-radius:8px;">
-        <strong style="color:var(--green);">SRT-1:</strong> Finding converted into tracked work.
-        <span style="font-family:var(--mono);font-size:10px;color:var(--text4);">[${escapeHtml(queueSeedId)}]</span>
-        <button type="button" class="workcell-package-btn" style="margin-left:8px;" onclick="openDashboardPanel('seeds','fix-queue',{ hash:'fix-queue' })">Open Fix Queue</button>
-      </div>`;
-      history.scrollTop = history.scrollHeight;
-    }
-
-    await Promise.allSettled([loadSeedQueue(), loadWorkCells(), loadStatus()]);
-  } catch (e) {
-    console.error('Finding seed creation failed', e);
-    const message = describeDashboardActionError(e, 'Finding seed creation failed');
-    if (button) {
-      button.disabled = false;
-      button.textContent = `Failed: ${message.slice(0, 48)}`;
-      button.style.color = 'var(--red)';
-      button.style.borderColor = 'rgba(239,68,68,0.2)';
-    }
-  }
+  sessionStorage.setItem('srt1_pending_prompt', task);
+  window.location.href = `/experience.html?prompt=${encodeURIComponent(task)}`;
 }
 window.createFindingFixSeed = createFindingFixSeed;
 
@@ -5205,7 +4935,7 @@ function renderFixQueue(seeds) {
     badge.style.borderColor = 'var(--border2)';
     badge.style.background = 'var(--bg3)';
     list.innerHTML = `<div style="padding:20px;text-align:center;color:var(--text4);font-size:13px;line-height:1.6;">
-      No remediation work has been queued yet. Use <strong style="color:var(--text2);">Create Fix Seed</strong> from Active Findings to convert a finding into tracked work.
+      No remediation work has been queued yet. Open a finding in the Standard Experience to review its remediation instruction before creating tracked work.
     </div>`;
     return;
   }
@@ -5365,32 +5095,6 @@ function updateBlueprintPreview() {
     badge.textContent = 'AWAITING SEED';
     if (actions) actions.style.display = 'none';
   }
-}
-
-// Approve/Reject stubs - Core human review only.
-// Private/external execution integrations must be explicitly connected.
-function approveBlueprint() {
-  const actions = document.getElementById('blueprintActions');
-  const badge = document.getElementById('blueprintBadge');
-  if (badge) {
-    badge.textContent = 'APPROVED ✓';
-    badge.style.color = 'var(--green)';
-    badge.style.borderColor = 'var(--green-border)';
-    badge.style.background = 'var(--green-bg)';
-  }
-  if (actions) actions.innerHTML = '<div style="text-align:center;padding:12px;color:var(--green);font-weight:600;font-size:14px;">Review approved - signing remains external unless Seed Signature authority is connected</div>';
-}
-
-function rejectBlueprint() {
-  const actions = document.getElementById('blueprintActions');
-  const badge = document.getElementById('blueprintBadge');
-  if (badge) {
-    badge.textContent = 'REJECTED';
-    badge.style.color = 'var(--red)';
-    badge.style.borderColor = 'rgba(239,68,68,0.2)';
-    badge.style.background = 'rgba(239,68,68,0.06)';
-  }
-  if (actions) actions.innerHTML = '<div style="text-align:center;padding:12px;color:var(--red);font-weight:600;font-size:14px;">✗ Blueprint rejected — seed discarded</div>';
 }
 
 // ============================================================

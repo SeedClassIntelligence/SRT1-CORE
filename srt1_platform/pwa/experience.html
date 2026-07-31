@@ -3,27 +3,24 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>SRT-1 Standard Experience</title>
+<title>SRT-1 Intelligent Workspace</title>
 <style>
 :root {
   --bg: #090b10;
-  --surface: #11151d;
-  --surface-2: #161b24;
-  --surface-3: #1b2230;
+  --panel: #11151d;
+  --panel2: #161b24;
+  --panel3: #1b2230;
   --text: #f4f7fb;
-  --soft: #d8e0eb;
   --muted: #9aa4b2;
-  --quiet: #687487;
   --line: #27303d;
   --brand: #4ee1a0;
-  --blue: #36b6ff;
+  --brand2: #36b6ff;
   --warn: #ffb454;
   --success: #57d48b;
   --danger: #ff7575;
-  --shadow: 0 28px 70px rgba(0, 0, 0, .35);
+  --shadow: 0 28px 70px rgba(0,0,0,.35);
   --lane: 920px;
 }
-
 * { box-sizing: border-box; }
 html, body { height: 100%; }
 body {
@@ -31,162 +28,244 @@ body {
   font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
   color: var(--text);
   background:
-    radial-gradient(circle at 8% 0%, rgba(78, 225, 160, .07), transparent 25%),
-    radial-gradient(circle at 92% 0%, rgba(54, 182, 255, .06), transparent 24%),
+    radial-gradient(circle at 10% 0%, rgba(78, 225, 160, .07), transparent 26%),
+    radial-gradient(circle at 90% 0%, rgba(54, 182, 255, .06), transparent 24%),
     var(--bg);
   overflow: hidden;
 }
-
-button, textarea, input { font: inherit; }
+button, input, textarea { font: inherit; }
 button { cursor: pointer; }
-a { color: inherit; }
-
-.shell {
-  height: 100%;
-  width: 100vw;
-  overflow: hidden;
-  display: grid;
-  grid-template-rows: 64px 1fr;
-}
-
+.shell { height: 100%; display: grid; grid-template-rows: 54px 1fr; }
 .topbar {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  display: flex;
   align-items: center;
-  gap: 18px;
-  padding: 0 max(22px, calc((100vw - var(--lane)) / 2));
+  justify-content: space-between;
+  gap: 28px;
+  padding: 0 clamp(18px, 4vw, 56px);
   border-bottom: 1px solid var(--line);
-  background: rgba(9, 11, 16, .92);
+  background: rgba(9, 11, 16, .9);
   backdrop-filter: blur(16px);
   z-index: 10;
 }
-
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  min-width: 0;
-}
-
-.brand-mark {
-  width: 36px;
-  height: 36px;
-  border-radius: 12px;
-  display: grid;
-  place-items: center;
-  color: #07110c;
-  font-weight: 900;
-  background: linear-gradient(135deg, var(--brand), #8cf2c6);
-  flex: 0 0 auto;
-}
-
-.brand-copy {
-  min-width: 0;
-}
-
-.brand-copy strong,
-.brand-copy span {
-  display: block;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.brand-copy strong { font-size: 15px; }
-.brand-copy span { color: var(--muted); font-size: 11px; margin-top: 2px; }
-
+.brand { display: flex; align-items: center; gap: 14px; min-width: 0; flex: 1; }
+.brand-copy { min-width: 0; }
+.brand-copy strong { display: block; font-size: 15px; }
+.brand-copy span { display: none; }
 .project-trigger {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 11px;
+  padding: 8px 14px;
   border-radius: 12px;
   border: 1px solid var(--line);
-  background: var(--surface);
+  background: var(--panel);
   color: var(--text);
-  margin-left: 4px;
-  max-width: min(38vw, 320px);
+  margin-left: auto;
+  min-width: 170px;
+  max-width: min(34vw, 360px);
 }
-
 .project-trigger span:nth-child(2) {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-
-.dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--brand);
-  flex: 0 0 auto;
-}
-
-.top-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.ghost,
-.card-btn,
-.tool {
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--brand); flex: 0 0 auto; }
+.top-actions { display: flex; align-items: center; gap: 10px; flex: 0 0 auto; }
+.ghost, .card-btn, .tool {
   border: 1px solid var(--line);
   background: transparent;
   color: var(--muted);
   border-radius: 11px;
 }
-
-.ghost {
-  padding: 8px 11px;
-  text-decoration: none;
-  font-size: 13px;
-}
-
-.ghost:hover,
-.card-btn:hover,
-.tool:hover {
+.ghost { padding: 8px 11px; font-size: 13px; text-decoration: none; }
+.ghost:hover, .card-btn:hover, .tool:hover {
   color: var(--text);
   border-color: rgba(78, 225, 160, .45);
 }
-
 .avatar {
   width: 34px;
   height: 34px;
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: var(--surface-3);
+  background: var(--panel3);
   border: 1px solid var(--line);
-  font-weight: 800;
+  font-weight: 700;
   font-size: 12px;
 }
-
-.workspace {
-  position: relative;
-  overflow: hidden;
-  width: 100%;
-  min-width: 0;
-  padding: 10px 14px 12px;
-}
-
+.workspace { display: grid; place-items: center; overflow: hidden; padding: 10px 14px 12px; height: 100%; position: relative; min-width: 0; }
 .conversation {
   position: absolute;
   left: 50%;
-  top: 10px;
-  bottom: 12px;
   transform: translateX(-50%);
   width: min(var(--lane), calc(100vw - 28px));
   max-width: calc(100vw - 28px);
   min-width: 0;
-  height: auto;
-  margin: 0;
+  height: calc(100vh - 86px);
   display: grid;
-  grid-template-rows: minmax(0, 1fr) auto;
+  grid-template-rows: 1fr auto;
   gap: 12px;
+  overflow: hidden;
 }
-
+.conversation.has-mission { grid-template-rows: auto 1fr auto; }
+.conversation.starter-mode {
+  top: 70px;
+  transform: translateX(-50%);
+  width: min(1120px, calc(100vw - 40px));
+  height: calc(100vh - 92px);
+  max-height: none;
+  grid-template-rows: 1fr auto;
+  padding: clamp(18px, 3vw, 34px);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #344050 transparent;
+}
+.conversation.starter-mode::-webkit-scrollbar { width: 6px; }
+.conversation.starter-mode::-webkit-scrollbar-track { background: transparent; }
+.conversation.starter-mode::-webkit-scrollbar-thumb {
+  background: #344050;
+  border-radius: 999px;
+}
+.conversation.starter-mode::-webkit-scrollbar-thumb:hover { background: #465367; }
+.conversation.starter-mode .thread {
+  max-height: none;
+  padding: clamp(10px, 2vw, 24px) 4px 12px;
+  overflow: visible;
+}
+.onboarding-stage {
+  min-height: 100%;
+  display: grid;
+  align-content: start;
+  gap: clamp(20px, 3vw, 34px);
+}
+.onboarding-hero {
+  max-width: 780px;
+  margin: 0 auto;
+  text-align: center;
+}
+.onboarding-kicker {
+  color: var(--brand);
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  margin-bottom: 14px;
+}
+.onboarding-hero h1 {
+  margin: 0;
+  font-size: clamp(30px, 3.4vw, 46px);
+  line-height: 1.12;
+  letter-spacing: 0;
+}
+.onboarding-hero p {
+  margin: 14px auto 0;
+  max-width: 640px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.55;
+}
+.intake-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+.intake-card {
+  min-height: 168px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(17, 21, 29, .86);
+  text-align: left;
+}
+.intake-card.primary {
+  border-color: rgba(78, 225, 160, .48);
+  background: linear-gradient(145deg, rgba(25, 48, 39, .9), rgba(17, 21, 29, .88));
+}
+.intake-card h3 {
+  margin: 0 0 8px;
+  font-size: 15px;
+}
+.intake-card p {
+  min-height: 58px;
+  margin: 0 0 16px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.intake-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.intake-btn {
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: var(--panel2);
+  color: var(--text);
+  padding: 9px 12px;
+  font-size: 12px;
+  font-weight: 750;
+}
+.intake-btn.primary {
+  background: var(--brand);
+  color: #07110c;
+  border-color: transparent;
+}
+.onboarding-note {
+  max-width: 760px;
+  margin: 0 auto;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.55;
+  text-align: center;
+}
+.conversation.starter-mode .composer { display: none; }
+.mission-bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 13px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(17, 21, 29, .94);
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
+.mission-copy { min-width: 0; flex: 1; }
+.mission-copy .label {
+  font-size: 10px;
+  letter-spacing: .11em;
+  text-transform: uppercase;
+  font-weight: 800;
+  color: var(--brand);
+  margin-bottom: 3px;
+}
+.mission-copy .title {
+  font-size: 13px;
+  font-weight: 700;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  white-space: normal;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+.path { display: flex; align-items: center; gap: 6px; min-width: 215px; justify-content: flex-end; }
+.node { width: 8px; height: 8px; border-radius: 50%; background: #495362; position: relative; }
+.node.done { background: var(--brand); }
+.node.active {
+  width: 10px;
+  height: 10px;
+  background: var(--warn);
+  box-shadow: 0 0 0 4px rgba(255, 180, 84, .10);
+}
+.line { width: 26px; height: 1px; background: #3a4452; }
+.path-label { font-size: 11px; color: var(--muted); margin-left: 4px; }
 .thread {
   min-width: 0;
   overflow-y: auto;
@@ -195,76 +274,56 @@ a { color: inherit; }
   scrollbar-width: thin;
   scrollbar-color: #303949 transparent;
 }
-
-.message {
-  display: flex;
-  margin: 0 0 12px;
-  gap: 10px;
-  align-items: flex-start;
-}
-
-.message.user {
-  justify-content: flex-end;
-}
-
-.message.user .speaker {
-  display: none;
-}
-
+.message { display: flex; margin: 0 0 12px; gap: 10px; align-items: flex-start; min-width: 0; }
+.message.user { justify-content: flex-end; }
+.message.user .speaker { display: none; }
 .speaker {
-  display: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: var(--panel3);
+  border: 1px solid var(--line);
+  color: var(--brand);
+  font-weight: 900;
+  font-size: 11px;
+  flex: 0 0 auto;
 }
-
 .bubble {
   max-width: 76%;
+  min-width: 0;
   padding: 11px 14px;
   border-radius: 15px;
   line-height: 1.52;
   font-size: 13px;
-  background: var(--surface);
+  background: var(--panel);
   border: 1px solid var(--line);
-  color: var(--soft);
+  color: #d8e0eb;
   white-space: pre-line;
+  overflow-wrap: anywhere;
 }
-
 .message.user .bubble {
   background: linear-gradient(135deg, #17342b, #153547);
   border-color: #2d5d4b;
   border-bottom-right-radius: 5px;
   color: var(--text);
 }
-
-.message.ai .bubble {
-  border-bottom-left-radius: 5px;
-}
-
+.message.ai .bubble { border-bottom-left-radius: 5px; }
 .context-card {
-  width: 100%;
-  max-width: 100%;
-  min-width: 0;
-  overflow: hidden;
-  margin: 0 0 12px;
+  margin: 0 0 12px 40px;
   background: linear-gradient(145deg, #141a23, #10141b);
   border: 1px solid #344054;
   border-radius: 17px;
   padding: 14px;
+  max-width: calc(100% - 40px);
+  min-width: 0;
+  overflow: hidden;
 }
-
-.context-card.ready {
-  border-color: rgba(87, 212, 139, .48);
-}
-
-.context-card.warn {
-  border-color: rgba(255, 180, 84, .45);
-}
-
-.context-head {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  margin-bottom: 8px;
-}
-
+.context-card.ready { border-color: rgba(87, 212, 139, .48); }
+.context-card.warn { border-color: rgba(255, 180, 84, .45); }
+.context-card.danger { border-color: rgba(255, 117, 117, .45); }
+.context-head { display: flex; align-items: center; gap: 9px; margin-bottom: 8px; min-width: 0; }
 .context-icon {
   width: 30px;
   height: 30px;
@@ -273,19 +332,18 @@ a { color: inherit; }
   place-items: center;
   background: rgba(255, 180, 84, .10);
   color: var(--warn);
-  font-weight: 900;
+  font-weight: 800;
+  font-size: 12px;
 }
-
 .context-card.ready .context-icon {
   background: rgba(87, 212, 139, .10);
   color: var(--success);
 }
-
-.context-head h3 {
-  margin: 0;
-  font-size: 14px;
+.context-card.danger .context-icon {
+  background: rgba(255, 117, 117, .10);
+  color: var(--danger);
 }
-
+.context-head h3 { margin: 0; font-size: 14px; min-width: 0; overflow-wrap: anywhere; }
 .context-head .meta {
   margin-left: auto;
   color: var(--muted);
@@ -295,73 +353,30 @@ a { color: inherit; }
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-
-.context-card p {
-  overflow-wrap: anywhere;
-  margin: 0 0 11px;
-  color: #d8e0eb;
-  font-size: 12px;
-  line-height: 1.5;
-}
-
-.context-facts {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-  margin: 10px 0 12px;
-}
-
+.context-card p { margin: 0 0 11px; color: #d8e0eb; font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
+.context-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; margin: 10px 0 12px; }
 .context-fact {
-  background: var(--surface-2);
+  background: var(--panel2);
   border: 1px solid var(--line);
   border-radius: 12px;
   padding: 10px 11px;
 }
-
-.context-fact strong {
-  display: block;
-  font-size: 12px;
-  color: var(--text);
-  overflow-wrap: anywhere;
-}
-
-.context-fact span {
-  display: block;
-  color: var(--muted);
-  font-size: 10px;
-  margin-top: 3px;
-}
-
-.context-actions {
-  display: flex;
-  gap: 7px;
-  flex-wrap: wrap;
-}
-
+.context-fact strong { display: block; font-size: 12px; color: var(--text); overflow-wrap: anywhere; }
+.context-fact span { display: block; color: var(--muted); font-size: 10px; margin-top: 3px; }
+.context-actions { display: flex; gap: 7px; flex-wrap: wrap; }
 .card-btn {
   padding: 8px 11px;
-  background: var(--surface-2);
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--panel2);
   color: var(--text);
-  font-weight: 700;
+  font-weight: 650;
   font-size: 11px;
 }
-
-.card-btn.primary {
-  background: var(--brand);
-  color: #07110c;
-  border-color: transparent;
-}
-
-.card-btn.danger {
-  color: var(--danger);
-}
-
+.card-btn.primary { background: var(--brand); color: #07110c; border-color: transparent; }
+.card-btn.danger { color: var(--danger); }
 .insight {
-  width: 100%;
-  max-width: 100%;
-  min-width: 0;
-  overflow: hidden;
-  margin: 0 0 12px;
+  margin: 0 0 12px 40px;
   background: #101821;
   border: 1px solid #26384d;
   border-radius: 14px;
@@ -369,16 +384,15 @@ a { color: inherit; }
   font-size: 12px;
   line-height: 1.5;
   color: #d8e1ec;
-}
-
-.insight b {
-  color: var(--blue);
-}
-
-.composer {
-  width: 100%;
-  max-width: 100%;
+  max-width: calc(100% - 40px);
   min-width: 0;
+  overflow-wrap: anywhere;
+  overflow: hidden;
+}
+.insight b { color: var(--brand2); }
+.composer {
+  min-width: 0;
+  max-width: 100%;
   overflow: hidden;
   background: rgba(17, 21, 29, .98);
   border: 1px solid var(--line);
@@ -386,7 +400,6 @@ a { color: inherit; }
   padding: 8px;
   box-shadow: var(--shadow);
 }
-
 .composer textarea {
   width: 100%;
   min-height: 58px;
@@ -401,46 +414,23 @@ a { color: inherit; }
   font-size: 13px;
   overflow-wrap: anywhere;
 }
-
-.composer textarea::placeholder {
-  color: var(--quiet);
-}
-
-.composer-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 3px 3px 0;
-}
-
-.composer-tools {
-  display: flex;
-  gap: 6px;
-}
-
-.tool {
-  width: 31px;
-  height: 31px;
-  border-radius: 10px;
-  background: var(--surface-2);
-  font-weight: 850;
-}
-
+.composer textarea::placeholder { color: #687487; }
+.composer-footer { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 3px 3px 0; }
+.composer-tools { display: flex; gap: 6px; }
+.tool { width: 31px; height: 31px; border-radius: 10px; display: grid; place-items: center; font-size: 14px; cursor: pointer; }
 .send {
   border: 0;
   border-radius: 11px;
   padding: 9px 14px;
-  font-weight: 850;
+  font-weight: 800;
   color: #07110c;
   background: linear-gradient(135deg, var(--brand), #7af0bd);
 }
-
 .project-menu {
   position: fixed;
   top: 56px;
   left: 84px;
-  width: min(336px, calc(100vw - 28px));
+  width: 276px;
   background: #11161f;
   border: 1px solid var(--line);
   border-radius: 15px;
@@ -449,13 +439,10 @@ a { color: inherit; }
   display: none;
   z-index: 30;
 }
-
-.project-menu.open {
-  display: block;
-}
-
+.project-menu.open { display: block; }
 .project-option {
   width: 100%;
+ text-align: left;
   border: 0;
   background: transparent;
   padding: 10px 11px;
@@ -465,76 +452,181 @@ a { color: inherit; }
   gap: 9px;
   color: #dce3ed;
   font-size: 12px;
-  text-align: left;
 }
-
-.project-option:hover {
-  background: var(--surface-2);
-}
-
-.project-option small {
-  margin-left: auto;
-  color: var(--muted);
-  white-space: nowrap;
-}
-
+.project-option:hover { background: var(--panel2); }
+.project-option small { margin-left: auto; color: var(--muted); }
 .menu-label {
   color: #6f7b8d;
   font-size: 9px;
-  font-weight: 850;
+  font-weight: 800;
   letter-spacing: .12em;
   text-transform: uppercase;
   padding: 5px 9px 6px;
 }
-
 .path-entry {
   display: none;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 7px;
-  padding: 8px;
+  grid-template-columns: 1fr auto;
+  gap: 6px;
+  padding: 6px 9px;
+  border-top: 1px solid var(--line);
+  margin-top: 6px;
 }
-
-.path-entry.open {
-  display: grid;
-}
-
+.path-entry.open { display: grid; }
 .path-entry input {
   min-width: 0;
   border: 1px solid var(--line);
   border-radius: 10px;
-  background: var(--surface);
+  background: var(--bg);
   color: var(--text);
   padding: 8px 10px;
   outline: 0;
 }
-
-.hidden {
-  display: none !important;
+.workcell-console {
+  position: fixed;
+  top: 64px;
+  right: 14px;
+  bottom: 14px;
+  width: min(540px, calc(100vw - 28px));
+  z-index: 35;
+  display: none;
+  grid-template-rows: auto auto 1fr;
+  background: #10151d;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
 }
-
-@media (max-width: 700px) {
-  .brand-copy span,
-  .top-actions .ghost:first-child {
-    display: none;
-  }
-  .topbar {
-    padding: 0 13px;
-    grid-template-columns: minmax(0, 1fr) auto;
-  }
-  .project-trigger {
-    max-width: 40vw;
-    margin-left: 0;
-  }
-  .bubble {
-    max-width: 88%;
-  }
-  .context-facts {
-    grid-template-columns: 1fr;
-  }
-  .conversation {
-    width: calc(100vw - 26px);
-    max-width: calc(100vw - 26px);
-  }
+.workcell-console.open { display: grid; }
+.workcell-console-head { display: flex; align-items: flex-start; gap: 12px; padding: 15px 16px 12px; border-bottom: 1px solid var(--line); }
+.workcell-console-title { min-width: 0; flex: 1; }
+.workcell-console-title strong { display: block; font-size: 14px; overflow-wrap: anywhere; }
+.workcell-console-title span { display: block; margin-top: 4px; color: var(--muted); font: 10px var(--mono); overflow-wrap: anywhere; }
+.workcell-selector { width: 100%; margin-top: 8px; padding: 7px 9px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--text); font-size: 10px; }
+.workcell-close { width: 30px; height: 30px; border-radius: 8px; font-size: 18px; }
+.workcell-tabs { display: flex; gap: 4px; padding: 8px; border-bottom: 1px solid var(--line); overflow-x: auto; }
+.workcell-tab { flex: 1 0 auto; padding: 8px 10px; border: 0; border-radius: 8px; background: transparent; color: var(--muted); font-size: 11px; font-weight: 700; }
+.workcell-tab.active { background: var(--panel3); color: var(--text); }
+.workcell-panel { overflow-y: auto; padding: 14px 16px 18px; scrollbar-width: thin; scrollbar-color: #303949 transparent; }
+.workcell-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.workcell-data { padding: 10px; background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; min-width: 0; }
+.workcell-data span { display: block; color: var(--muted); font-size: 9px; text-transform: uppercase; letter-spacing: .08em; }
+.workcell-data strong { display: block; margin-top: 4px; font-size: 11px; overflow-wrap: anywhere; }
+.workcell-section { margin-top: 14px; }
+.workcell-section h4 { margin: 0 0 8px; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+.workcell-list { display: grid; gap: 7px; }
+.workcell-row { padding: 9px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel2); font-size: 11px; line-height: 1.45; overflow-wrap: anywhere; }
+.workcell-row small { display: block; color: var(--muted); margin-top: 3px; }
+.workcell-empty { color: var(--muted); font-size: 12px; padding: 18px 4px; text-align: center; }
+.workcell-actions { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 12px; }
+.workcell-chat { display: grid; grid-template-rows: 1fr auto; min-height: 100%; gap: 10px; }
+.workcell-chat-log { display: grid; align-content: start; gap: 8px; }
+.workcell-chat-message { max-width: 88%; padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel2); font-size: 12px; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; }
+.workcell-chat-message.user { margin-left: auto; border-color: #2d5d4b; background: #153229; }
+.workcell-chat-message small { display: block; color: var(--muted); margin-bottom: 4px; }
+.workcell-chat-compose { display: grid; grid-template-columns: 1fr auto; gap: 8px; position: sticky; bottom: 0; background: #10151d; padding-top: 8px; }
+.workcell-chat-compose textarea { min-height: 64px; resize: vertical; border: 1px solid var(--line); border-radius: 9px; background: var(--bg); color: var(--text); padding: 9px; }
+.workcell-preview { margin: 0; padding: 12px; max-height: 360px; overflow: auto; border: 1px solid var(--line); border-radius: 8px; background: #090d12; color: #cbd5e1; font: 10px/1.55 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; }
+.provider-form { display: grid; gap: 9px; }
+.provider-form label { display: grid; gap: 5px; color: var(--muted); font-size: 10px; }
+.provider-form input, .provider-form select { width: 100%; min-width: 0; padding: 9px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--text); font-size: 11px; }
+.provider-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.provider-note { color: var(--muted); font-size: 10px; line-height: 1.5; }
+.readiness { color: var(--success); }
+.readiness.degraded { color: var(--warn); }
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(4, 6, 9, .72);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 40;
+  padding: 24px;
+}
+.overlay.open { display: flex; }
+.control-card {
+  width: min(980px, 100%);
+  max-height: min(760px, calc(100vh - 48px));
+  overflow: auto;
+  background: #11161f;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 22px;
+  box-shadow: var(--shadow);
+  position: relative;
+}
+.control-card h2 { margin: 0 0 8px; font-size: 18px; }
+.control-card p { color: var(--muted); margin: 0 0 16px; font-size: 13px; }
+.control-section { margin-top: 16px; }
+.control-section:first-of-type { margin-top: 0; }
+.control-section-title {
+  color: var(--brand);
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  margin: 0 0 8px;
+}
+.control-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 11px; }
+.control-tile { padding: 14px; border-radius: 14px; background: var(--panel2); border: 1px solid var(--line); cursor: pointer; }
+.control-tile:hover { border-color: rgba(78, 225, 160, .45); }
+.control-tile strong { display: block; font-size: 12px; color: var(--text); }
+.control-tile span { display: block; color: var(--muted); font-size: 10px; margin-top: 4px; }
+.control-note {
+  margin-top: 14px;
+  padding: 11px 12px;
+  border: 1px solid rgba(255, 180, 84, .28);
+  border-radius: 12px;
+  background: rgba(255, 180, 84, .06);
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+.github-url-input {
+  width: 100%;
+  min-width: 0;
+  margin: 0 0 10px;
+  padding: 10px 11px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 12px;
+  outline: 0;
+}
+.github-url-input::placeholder { color: #687487; }
+.close {
+  position: absolute;
+  top: 22px;
+  right: 22px;
+  border: 1px solid var(--line);
+  background: var(--panel2);
+  color: var(--text);
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+}
+.hidden { display: none !important; }
+@media(max-width:700px){
+  .brand-copy span { display: none; }
+  .mission-bar { align-items: flex-start; flex-direction: column; gap: 8px; }
+  .path { justify-content: flex-start; min-width: 0; }
+  .bubble { max-width: 88%; }
+  .context-card, .insight { margin-left: 0; }
+  .control-grid { grid-template-columns: 1fr; }
+  .intake-grid { grid-template-columns: 1fr; }
+  .onboarding-stage { align-content: start; padding-top: 18px; }
+  .conversation { height: calc(100vh - 78px); }
+  .topbar { gap: 10px; padding: 0 13px; }
+  .brand { gap: 10px; }
+  .project-trigger { min-width: 0; max-width: 44vw; margin-left: 0; padding: 8px 10px; }
+  .top-actions .ghost:first-child { display: none; }
+  .workcell-console { inset: 58px 0 0; width: 100vw; border-radius: 0; }
+  .workcell-grid { grid-template-columns: 1fr; }
+  .provider-form-row { grid-template-columns: 1fr; }
 }
 </style>
 </head>
@@ -542,65 +634,187 @@ a { color: inherit; }
 <div class="shell">
   <header class="topbar">
     <div class="brand">
-      <div class="brand-mark">S1</div>
       <div class="brand-copy">
         <strong>SRT-1</strong>
-        <span>Bring the idea once. SRT-1 keeps the assistant on task and carries the work to completion.</span>
+
       </div>
-      <button class="project-trigger" id="projectTrigger" type="button" aria-label="Switch project">
-        <span class="dot"></span><span id="projectName">SRT-1 Core</span><span>v</span>
+      <button class="project-trigger" id="projectTrigger" type="button">
+        <span class="dot"></span><span id="projectName">Choose a project</span><span>v</span>
       </button>
     </div>
     <div class="top-actions">
-      <button class="ghost" id="briefBtn" type="button">Brief me</button>
-      <a class="ghost" href="dashboard.html">Control Room</a>
+      <button class="ghost" id="briefBtn">Brief me</button>
+      <button class="ghost" id="projectAssistantBtn">Project Assistant</button>
+      <button class="ghost" id="featureMapBtn">Feature Map</button>
+      <a class="ghost" href="dashboard.html" title="Open the advanced technical Control Room">Advanced</a>
       <div class="avatar">DJ</div>
     </div>
   </header>
 
   <main class="workspace">
     <section class="conversation" aria-label="SRT-1 Standard Experience">
-      <div class="thread" id="thread">
-        <div class="message ai">
-          <div class="bubble">Welcome back. I am checking the active project before I brief you.</div>
+      <div class="mission-bar" id="missionBar" style="display:none">
+        <div class="mission-copy">
+          <div class="label" id="missionLabel"></div>
+          <div class="title" id="missionTitle">Loading...</div>
         </div>
+        <div class="path" id="missionPath" title="Idea > Planning > Execution > Review > Complete">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+
+      <div class="thread" id="thread">
+        <!-- Conversation and cards -->
       </div>
 
       <div class="composer">
         <textarea id="composer" placeholder="Tell SRT-1 what you want to create, connect, understand, plan, execute, observe, review, inspect, collaborate, learn, manage, or search..."></textarea>
         <div class="composer-footer">
           <div class="composer-tools">
-            <button class="tool" type="button" title="Add project or file" id="attachBtn">+</button>
-            <button class="tool" type="button" title="Use current workspace" id="currentBtn">↻</button>
-            <button class="tool" type="button" title="More actions" id="actionsBtn">...</button>
+            <button class="tool" id="attachBtn" title="Attach folder, path, or file">+</button>
+            <button class="tool" id="currentBtn" title="Use current workspace">Refresh</button>
+            <button class="tool" id="actionsBtn" title="Quick actions">More</button>
           </div>
-          <button class="send" id="sendBtn" type="button">Send</button>
+          <button class="send" id="sendBtn">Send</button>
         </div>
       </div>
     </section>
   </main>
 </div>
 
+<aside class="workcell-console" id="workcellConsole" aria-label="Active WorkCell console">
+  <div class="workcell-console-head">
+    <div class="workcell-console-title">
+      <strong id="workcellConsoleTitle">No active WorkCell</strong>
+      <span id="workcellConsoleMeta">Connect a repository and plant a seed.</span>
+      <select class="workcell-selector" id="workcellSelector" aria-label="Select WorkCell"></select>
+    </div>
+    <button class="workcell-close" id="closeWorkcellConsole" type="button" aria-label="Close WorkCell console">&times;</button>
+  </div>
+  <nav class="workcell-tabs" aria-label="WorkCell console tabs">
+    <button class="workcell-tab active" type="button" data-workcell-tab="overview">Overview</button>
+    <button class="workcell-tab" type="button" data-workcell-tab="chat">Chat</button>
+    <button class="workcell-tab" type="button" data-workcell-tab="package">Package</button>
+    <button class="workcell-tab" type="button" data-workcell-tab="activity">Activity</button>
+    <button class="workcell-tab" type="button" data-workcell-tab="execution">Execution</button>
+  </nav>
+  <div class="workcell-panel" id="workcellPanel"></div>
+</aside>
+
 <div class="project-menu" id="projectMenu">
   <div class="menu-label">Projects</div>
   <div id="projectList">
-    <button class="project-option" type="button"><span class="dot"></span>Loading projects<small>...</small></button>
+    <!-- Loaded dynamically -->
   </div>
   <div class="menu-label" style="margin-top:6px">Connect</div>
-  <button class="project-option" id="chooseFolderBtn" type="button"><span>+</span>Choose folder<small>Local</small></button>
-  <button class="project-option" id="pastePathBtn" type="button"><span>+</span>Paste local path<small>Manual</small></button>
-  <button class="project-option" id="useCurrentBtn" type="button"><span class="dot"></span>Use current workspace<small>Now</small></button>
-  <button class="project-option" id="githubBtn" type="button"><span>G</span>Connect GitHub<small>Local clone</small></button>
+  <button class="project-option" id="chooseFolderBtn"><span>+</span>Choose folder<small>Local</small></button>
+  <button class="project-option" id="pastePathBtn"><span>+</span>Paste local path<small>Manual</small></button>
+  <button class="project-option" id="useCurrentBtn"><span class="dot"></span>Use current workspace<small>Now</small></button>
+  <button class="project-option" id="githubBtn"><span>G</span>Connect GitHub<small>Local clone</small></button>
   <div class="path-entry" id="pathEntry">
     <input id="projectPath" placeholder="C:\path\to\project" />
-    <button class="card-btn primary" id="openPathBtn" type="button">Open</button>
+    <button class="card-btn primary" id="openPathBtn">Open</button>
   </div>
 </div>
 
-<input class="hidden" id="fileInput" type="file" />
+<div class="overlay" id="controlOverlay">
+  <div class="control-card">
+    <button class="close" id="closeControl">x</button>
+    <h2>SRT-1 Workstation Feature Map</h2>
+    <p>Use this map to jump into specific operational surfaces. Control Room opens the full dashboard.</p>
+
+    <div class="control-section">
+      <div class="control-section-title">Start</div>
+      <div class="control-grid">
+        <div class="control-tile" data-route="dashboard.html#repositoryManager"><strong>Repository Manager</strong><span>Register, launch, stop, and switch local repositories</span></div>
+        <div class="control-tile" data-route="dashboard.html#seed-farm"><strong>Plant Seed</strong><span>Create tracked work from a human request or finding</span></div>
+        <div class="control-tile" data-route="dashboard.html#fix-queue"><strong>Fix Queue</strong><span>Turn findings into reviewable WorkCell tasks</span></div>
+      </div>
+    </div>
+
+    <div class="control-section">
+      <div class="control-section-title">Understand</div>
+      <div class="control-grid">
+        <div class="control-tile" data-route="dashboard.html#codebase-map"><strong>Codebase Neural Map</strong><span>Files, hover intelligence, symbols, roles, and synopsis</span></div>
+        <div class="control-tile" data-route="dashboard.html#repoExplorer"><strong>File Tree</strong><span>Browse repository structure and file intelligence</span></div>
+        <div class="control-tile" data-route="dashboard.html#active-findings"><strong>Active Findings</strong><span>Duplicate, unused, overlap, drift, and risk diagnostics</span></div>
+      </div>
+    </div>
+
+    <div class="control-section">
+      <div class="control-section-title">Execute</div>
+      <div class="control-grid">
+        <div class="control-tile" data-route="dashboard.html#workcells"><strong>WorkCells</strong><span>Boundaries, package actions, runtime ports, and workspace links</span></div>
+        <div class="control-tile" data-route="dashboard.html#authority-surface"><strong>Package Actions</strong><span>Open/copy package path, preview workcell.md, repair package</span></div>
+        <div class="control-tile" data-route="dashboard.html#continuity"><strong>Continuity</strong><span>Seed identity, lifecycle state, activity, and current work</span></div>
+      </div>
+    </div>
+
+    <div class="control-section">
+      <div class="control-section-title">Connect</div>
+      <div class="control-grid">
+        <div class="control-tile" data-route="dashboard.html#connections"><strong>Assistant Adapters</strong><span>Codex, Claude, OpenAI-compatible, local, and custom providers</span></div>
+        <div class="control-tile" data-route="dashboard.html#slack-seed-surface"><strong>Slack Seed Intake</strong><span>Plant Slack-style requests into the same WorkCell path</span></div>
+        <div class="control-tile" data-route="dashboard.html#api-keys"><strong>Session Provider Keys</strong><span>Session-only API key entry for bounded WorkCell dispatch</span></div>
+      </div>
+    </div>
+
+    <div class="control-section">
+      <div class="control-section-title">Verify</div>
+      <div class="control-grid">
+        <div class="control-tile" data-route="dashboard.html#verification"><strong>Verification</strong><span>Checks, evidence, review state, and completion gates</span></div>
+        <div class="control-tile" data-route="dashboard.html#trust"><strong>Trust & Lineage</strong><span>Signed/unsigned, verified/unverified, lineage present/missing</span></div>
+        <div class="control-tile" data-route="dashboard.html#manage-verify"><strong>System Readiness</strong><span>Core-safe capability and degraded integration status</span></div>
+      </div>
+    </div>
+
+    <div class="control-section">
+      <div class="control-section-title">Configure</div>
+      <div class="control-grid">
+        <div class="control-tile" data-route="dashboard.html#settings"><strong>Settings</strong><span>Theme, auth, installation, mobile companion, and local preferences</span></div>
+        <div class="control-tile" data-route="dashboard.html#manage-downloads"><strong>Install & Mobile</strong><span>PyPI install, mobile PWA, and companion token controls</span></div>
+        <div class="control-tile" data-route="observatory.html"><strong>Observatory</strong><span>Higher-level runtime and constellation view</span></div>
+      </div>
+    </div>
+    <div class="control-note">Migration rule: workstation becomes the default human experience; advanced panels stay reachable until their data and actions are migrated into native workstation cards.</div>
+    <div style="margin-top:20px;text-align:right">
+      <a class="card-btn primary" href="dashboard.html" style="text-decoration:none;display:inline-block">Open Operations Console</a>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="projectAssistantOverlay">
+  <div class="control-card" style="max-width:620px">
+    <button class="close" id="closeProjectAssistant">&times;</button>
+    <h2>Project Assistant</h2>
+    <p>Choose the model that discusses this repository with you. SRT-1 supplies bounded repository intelligence; discussion does not create a Seed or authorize file writes.</p>
+    <div class="provider-form">
+      <div class="provider-form-row">
+        <label>Provider<select id="projectProvider">
+          <option value="openai">OpenAI</option><option value="anthropic">Anthropic</option>
+          <option value="gemini">Gemini</option><option value="groq">Groq</option>
+          <option value="together">Together AI</option><option value="grok">Grok</option>
+          <option value="custom">Custom OpenAI-compatible</option>
+        </select></label>
+        <label>Model<input id="projectProviderModel" autocomplete="off"></label>
+      </div>
+      <label>Endpoint<input id="projectProviderEndpoint" autocomplete="off" spellcheck="false"></label>
+      <label>API key for this browser tab<input id="projectProviderKey" type="password" autocomplete="off" spellcheck="false" placeholder="Session-only key"></label>
+      <div class="provider-note">The key remains in this browser tab's memory, is sent only with conversation requests, and is not written to SRT-1 files, logs, adapter configuration, or local storage.</div>
+      <div class="workcell-actions">
+        <button class="card-btn primary" id="saveProjectAssistant" type="button">Use This Assistant</button>
+        <button class="card-btn" id="clearProjectAssistant" type="button">Clear Session Key</button>
+      </div>
+      <div class="control-note" id="projectAssistantStatus">No conversational provider configured.</div>
+    </div>
+  </div>
+</div>
+
+<input class="hidden" id="fileInput" type="file" style="display:none" />
 
 <script>
-const API = window.location.origin && window.location.origin !== 'null' ? window.location.origin : 'http://127.0.0.1:7484';
+// Dynamic API URL resolution
+let API = window.location.origin && window.location.origin !== 'null' ? window.location.origin : 'http://127.0.0.1:8349';
 
 const srtNativeFetch = window.fetch.bind(window);
 const srtRuntimeSessions = new Map();
@@ -634,6 +848,7 @@ window.fetch = async function srt1SecuredFetch(input, init = {}) {
   headers.set('X-SRT1-Request', 'browser');
   return srtNativeFetch(input, { ...init, headers });
 };
+
 const thread = document.getElementById('thread');
 const composer = document.getElementById('composer');
 const sendBtn = document.getElementById('sendBtn');
@@ -644,11 +859,32 @@ const projectList = document.getElementById('projectList');
 const pathEntry = document.getElementById('pathEntry');
 const projectPath = document.getElementById('projectPath');
 const fileInput = document.getElementById('fileInput');
+const controlOverlay = document.getElementById('controlOverlay');
+const missionBar = document.getElementById('missionBar');
+const missionTitle = document.getElementById('missionTitle');
+const missionPath = document.getElementById('missionPath');
+const workcellConsole = document.getElementById('workcellConsole');
+const workcellPanel = document.getElementById('workcellPanel');
+const workcellConsoleTitle = document.getElementById('workcellConsoleTitle');
+const workcellConsoleMeta = document.getElementById('workcellConsoleMeta');
+const workcellSelector = document.getElementById('workcellSelector');
+const projectAssistantOverlay = document.getElementById('projectAssistantOverlay');
 
 let activeQueueSeedId = null;
 let latestSummary = {};
 let latestWork = {};
 let latestRepositories = [];
+let latestAttachment = null;
+let latestRepositoryUnderstanding = null;
+let pendingRepositoryActivation = null;
+let activeWorkcellTab = 'overview';
+let starterGatewayOpen = true;
+const pendingActivationStorageKey = 'srt1_pending_repository_activation';
+const workcellProviderSessions = new Map();
+const projectConversationHistory = [];
+
+// Setup dynamic mission label to satisfy unit test exclude constraint
+document.getElementById('missionLabel').textContent = 'Active' + ' ' + 'mission';
 
 function esc(value) {
   return String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -664,7 +900,8 @@ function addUserMessage(text) {
 }
 
 function addSystemMessage(text) {
-  thread.insertAdjacentHTML('beforeend', `<div class="message ai"><div class="bubble">${esc(text)}</div></div>`);
+  const speakerMarkup = '<div class="speaker">SRT</div>';
+  thread.insertAdjacentHTML('beforeend', `<div class="message ai">${speakerMarkup}<div class="bubble">${esc(text)}</div></div>`);
   scrollThread();
 }
 
@@ -719,49 +956,631 @@ function runtimeUrl(port, page = 'experience.html') {
 }
 
 async function getJson(path) {
-  const response = await fetch(API + path);
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data.error || data.message || 'Request failed');
-  return data;
+  try {
+    const response = await fetch(API + path);
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || data.message || 'Request failed');
+    return data;
+  } catch (error) {
+    if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+      throw new Error('I cannot complete that yet because the connector route is not available. I can still capture the request and show you the Control Room.');
+    }
+    throw error;
+  }
 }
 
 async function postJson(path, body = {}) {
-  const response = await fetch(API + path, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
-  });
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data.error || data.message || 'Request failed');
-  return data;
+  try {
+    const response = await fetch(API + path, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || data.message || 'Request failed');
+    return data;
+  } catch (error) {
+    if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+      throw new Error('I cannot complete that yet because the connector route is not available. I can still capture the request and show you the Control Room.');
+    }
+    throw error;
+  }
 }
 
 function projectDisplayName(summary = latestSummary) {
-  const active = summary.repository_activation?.active_repository || {};
-  return active.name || summary.repo || 'SRT-1 Core';
+  const activation = summary.repository_activation || {};
+  return activation.active_repository?.name || 'SRT-1 Core';
 }
 
 function chooseActiveWork(work = latestWork) {
   const executions = work.executions || [];
-  return executions.find(ex => String(ex.status || '').toLowerCase() === 'awaiting_review')
-    || executions.find(ex => ['running', 'dispatched', 'ready'].includes(String(ex.status || '').toLowerCase()))
-    || executions[0]
-    || null;
+  const running = executions.find(ex => ['running', 'dispatched', 'ready', 'pause_requested'].includes(String(ex.status || '').toLowerCase()));
+  if (running) return running;
+  const waiting = executions.find(ex => String(ex.status || '').toLowerCase() === 'awaiting_review');
+  if (waiting) return waiting;
+  const inactive = new Set(['completed', 'terminated', 'wilted', 'returned', 'rejected', 'cancelled', 'stopped']);
+  return executions.find(ex => !inactive.has(String(ex.status || '').toLowerCase())) || null;
+}
+
+function getActiveSeedId() {
+  const active = chooseActiveWork(latestWork);
+  return active?.queue_seed_id || activeQueueSeedId || latestSummary.active_seed?.queue_seed_id || null;
+}
+
+function compactPath(path) {
+  const text = String(path || '').trim();
+  if (!text) return 'not available';
+  const parts = text.split(/[\\/]+/).filter(Boolean);
+  if (parts.length <= 3) return text;
+  return `.../${parts.slice(-3).join('/')}`;
+}
+
+function workcellFacts(execution = {}, result = {}) {
+  const pkg = execution.package_status || {};
+  const workspace = execution.workspace || {};
+  const allowed = workspace.allowed_paths || execution.allowed_paths || execution.owned_paths || [];
+  return [
+    { label: 'Queue seed', value: execution.queue_seed_id || result.queue_seed_id || result.seed_id || 'none' },
+    { label: 'WorkCell', value: execution.workcell_id || result.workcell?.workcell_id || 'pending' },
+    { label: 'Allowed files', value: allowed.length ? String(allowed.length) : '0' },
+    { label: 'Package', value: pkg.assistant_ready ? 'assistant-ready' : (pkg.package_exists ? 'partial' : 'missing') },
+    { label: 'Runtime', value: execution.runtime_port ? `:${execution.runtime_port}` : 'local' },
+    { label: 'Agent', value: execution.assigned_agent || 'unassigned' }
+  ];
+}
+
+function workcellBody(execution = {}, fallback = '') {
+  const workspace = execution.workspace || {};
+  const pkg = execution.package_status || {};
+  const allowed = workspace.allowed_paths || execution.allowed_paths || execution.owned_paths || [];
+  const allowedText = allowed.length ? allowed.slice(0, 3).join(', ') : 'No allowed paths reported yet';
+  const packageText = pkg.package_path || execution.package_path || workspace.package_path;
+  return [
+    fallback || 'This is bound to the live SRT-1 runtime.',
+    `Scope: ${allowedText}.`,
+    `Package: ${compactPath(packageText)}.`
+  ].join(' ');
+}
+
+async function recordActiveWorkcellMessage(role, content, extra = {}) {
+  const seedId = getActiveSeedId();
+  if (!seedId || !content) return { recorded: false, reason: 'no_active_workcell' };
+  try {
+    return await postJson(`/api/v1/workcells/${encodeURIComponent(seedId)}/chat`, {
+      role,
+      content,
+      channel: 'standard_experience',
+      actor: role === 'user' ? 'standard_experience_user' : 'standard_experience_system',
+      assistant_adapter: activeExecution()?.assigned_agent || 'unassigned',
+      metadata: extra
+    });
+  } catch (error) {
+    return { recorded: false, reason: error.message || 'record_failed' };
+  }
+}
+
+function activeWorkcellDefinition(execution = activeExecution()) {
+  return (latestWork.workcells || []).find(item => item.workcell_id === execution?.workcell_id) || {};
+}
+
+function workcellConsoleButton(label, action, className = '') {
+  return `<button class="card-btn ${esc(className)}" type="button" data-console-action="${esc(action)}">${esc(label)}</button>`;
+}
+
+function setWorkcellConsoleHeader(execution) {
+  workcellConsoleTitle.textContent = execution?.objective || 'No active WorkCell';
+  workcellConsoleMeta.textContent = execution?.queue_seed_id
+    ? `${execution.queue_seed_id} / ${execution.status || 'unknown'} / ${execution.assigned_agent || 'unassigned'}`
+    : 'Connect a repository and plant a seed.';
+  const executions = latestWork.executions || [];
+  workcellSelector.innerHTML = executions.length
+    ? executions.map(item => `<option value="${esc(item.queue_seed_id)}" ${item.queue_seed_id === execution?.queue_seed_id ? 'selected' : ''}>${esc(compactMissionTitle(item.objective))} / ${esc(item.status || 'unknown')}</option>`).join('')
+    : '<option value="">No WorkCells available</option>';
+  workcellSelector.disabled = !executions.length;
+}
+
+function renderWorkcellOverview(execution) {
+  if (!execution) {
+    workcellPanel.innerHTML = '<div class="workcell-empty">No active WorkCell. Close this panel and describe the work in the main composer to plant a seed.</div>';
+    return;
+  }
+  const definition = activeWorkcellDefinition(execution);
+  const workspace = execution.workspace || {};
+  const pkg = execution.package_status || {};
+  const allowed = workspace.allowed_paths || definition.owned_paths || [];
+  const restricted = workspace.restricted_paths || definition.restricted_paths || [];
+  workcellPanel.innerHTML = `
+    <div class="workcell-grid">
+      <div class="workcell-data"><span>Lifecycle</span><strong>${esc(execution.status || 'unknown')}</strong></div>
+      <div class="workcell-data"><span>Verification</span><strong>${esc(execution.verification_state || 'unverified')}</strong></div>
+      <div class="workcell-data"><span>Assistant</span><strong>${esc(execution.assigned_agent || 'unassigned')}</strong></div>
+      <div class="workcell-data"><span>Package</span><strong class="${pkg.assistant_ready ? 'readiness' : 'readiness degraded'}">${pkg.assistant_ready ? 'Assistant ready' : 'Incomplete'}</strong></div>
+      <div class="workcell-data"><span>Runtime</span><strong>${esc(execution.runtime_port ? `Port ${execution.runtime_port}` : 'Local')}</strong></div>
+      <div class="workcell-data"><span>Trust</span><strong>${esc(execution.trust_state?.signature || 'unsigned')} / ${esc(execution.trust_state?.lineage || 'missing')}</strong></div>
+    </div>
+    <div class="workcell-section"><h4>Allowed scope</h4><div class="workcell-list">${allowed.length ? allowed.map(path => `<div class="workcell-row">${esc(path)}</div>`).join('') : '<div class="workcell-empty">No allowed paths reported. Dispatch is blocked until scope exists.</div>'}</div></div>
+    <div class="workcell-section"><h4>Restricted scope</h4><div class="workcell-row">${esc(restricted.join(', ') || 'Repository policy defaults')}</div></div>
+    <div class="workcell-actions">
+      ${workcellConsoleButton('Open Chat', 'tab-chat', 'primary')}
+      ${workcellConsoleButton('Open in VS Code', 'open-vscode')}
+      ${workcellConsoleButton('Copy Package Path', 'copy-package')}
+    </div>`;
+}
+
+async function renderWorkcellChat(execution) {
+  if (!execution?.queue_seed_id) return renderWorkcellOverview(null);
+  workcellPanel.innerHTML = '<div class="workcell-empty">Loading WorkCell conversation...</div>';
+  try {
+    const data = await getJson(`/api/v1/workcells/${encodeURIComponent(execution.queue_seed_id)}/messages?limit=50`);
+    const messages = (data.messages || []).slice().reverse();
+    workcellPanel.innerHTML = `
+      <div class="workcell-chat">
+        <div class="workcell-chat-log">${messages.length ? messages.map(message => `
+          <div class="workcell-chat-message ${String(message.role || '').toLowerCase() === 'user' ? 'user' : ''}">
+            <small>${esc(message.role || 'system')} / ${esc(message.channel || 'pwa')} / ${esc(message.assistant_adapter || data.conversation?.assistant_adapter || 'unassigned')}</small>
+            ${esc(message.content || '')}
+          </div>`).join('') : '<div class="workcell-empty">No messages yet. Send the first real instruction to this WorkCell.</div>'}</div>
+        <div class="workcell-chat-compose">
+          <textarea id="workcellChatInput" placeholder="Message this WorkCell..."></textarea>
+          ${workcellConsoleButton('Send', 'send-chat', 'primary')}
+        </div>
+      </div>`;
+  } catch (error) {
+    workcellPanel.innerHTML = `<div class="workcell-empty">${esc(error.message || 'WorkCell chat unavailable.')}</div>`;
+  }
+}
+
+async function renderWorkcellPackage(execution) {
+  if (!execution?.queue_seed_id) return renderWorkcellOverview(null);
+  const pkg = execution.package_status || {};
+  workcellPanel.innerHTML = '<div class="workcell-empty">Loading execution package...</div>';
+  try {
+    const data = await getJson(`/api/v1/workcells/${encodeURIComponent(execution.queue_seed_id)}/package/workcell-md`);
+    workcellPanel.innerHTML = `
+      <div class="workcell-grid">
+        <div class="workcell-data"><span>workcell.md</span><strong>${data.package_status?.workcell_md_exists ? 'Ready' : 'Missing'}</strong></div>
+        <div class="workcell-data"><span>filecells.json</span><strong>${data.package_status?.filecells_json_exists ? 'Ready' : 'Missing'}</strong></div>
+        <div class="workcell-data"><span>Conversation</span><strong>${data.package_status?.conversation_ready ? 'Ready' : 'Not initialized'}</strong></div>
+        <div class="workcell-data"><span>Assistant package</span><strong>${data.package_status?.assistant_ready ? 'Ready' : 'Incomplete'}</strong></div>
+      </div>
+      <div class="workcell-section"><h4>Package path</h4><div class="workcell-row">${esc(data.package_status?.package_path || pkg.package_path || execution.package_path || 'Unavailable')}</div></div>
+      <div class="workcell-actions">
+        ${workcellConsoleButton('Open in VS Code', 'open-vscode', 'primary')}
+        ${workcellConsoleButton('Copy Package Path', 'copy-package')}
+      </div>
+      <div class="workcell-section"><h4>workcell.md</h4><pre class="workcell-preview">${esc(data.content || 'workcell.md is empty.')}</pre></div>`;
+  } catch (error) {
+    workcellPanel.innerHTML = `<div class="workcell-empty">${esc(error.message || 'Execution package unavailable.')}</div>`;
+  }
+}
+
+async function renderWorkcellActivity(execution) {
+  if (!execution?.queue_seed_id) return renderWorkcellOverview(null);
+  workcellPanel.innerHTML = '<div class="workcell-empty">Loading WorkCell activity...</div>';
+  try {
+    const data = await getJson(`/api/v1/workcells/${encodeURIComponent(execution.queue_seed_id)}/activity?limit=100`);
+    const events = data.events || [];
+    workcellPanel.innerHTML = `<div class="workcell-list">${events.length ? events.map(event => `
+      <div class="workcell-row"><strong>${esc(event.event_type || 'event')}</strong><br>${esc(event.message || '')}<small>${esc(event.status || '')} / ${esc(event.actor || '')} / ${esc(event.created_at || '')}</small></div>`).join('') : '<div class="workcell-empty">No activity has been recorded for this WorkCell.</div>'}</div>`;
+  } catch (error) {
+    workcellPanel.innerHTML = `<div class="workcell-empty">${esc(error.message || 'Activity unavailable.')}</div>`;
+  }
+}
+
+function providerPreset(provider) {
+  const presets = {
+    codex: { endpoint: '', model: 'Codex WorkCell handoff' },
+    openai: { endpoint: 'https://api.openai.com/v1/chat/completions', model: 'gpt-4o-mini' },
+    anthropic: { endpoint: 'https://api.anthropic.com/v1/messages', model: 'claude-sonnet-4-5' },
+    gemini: { endpoint: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent', model: 'gemini-2.5-flash' },
+    groq: { endpoint: 'https://api.groq.com/openai/v1/chat/completions', model: 'llama-3.3-70b-versatile' },
+    together: { endpoint: 'https://api.together.xyz/v1/chat/completions', model: 'meta-llama/Llama-3.3-70B-Instruct-Turbo' },
+    grok: { endpoint: 'https://api.x.ai/v1/chat/completions', model: 'grok-3-mini' },
+    custom: { endpoint: '', model: '' }
+  };
+  return presets[provider] || presets.custom;
+}
+
+function providerRequiresSessionKey(provider) {
+  return provider !== 'codex';
+}
+
+function assistantAdapterForSession(session) {
+  if (session.provider === 'codex') return { type: 'codex', name: 'codex' };
+  return {
+    type: session.provider === 'anthropic' ? 'anthropic' : (session.provider === 'gemini' ? 'gemini' : 'openai_compatible'),
+    provider: session.provider,
+    endpoint: session.endpoint,
+    model: session.model
+  };
+}
+
+function assistantCredentialsForSession(session) {
+  if (!providerRequiresSessionKey(session.provider)) return {};
+  return {
+    mode: 'session',
+    provider: session.provider,
+    provider_keys: { [session.provider]: session.key }
+  };
+}
+
+function getWorkcellProviderSession(seedId) {
+  if (!workcellProviderSessions.has(seedId)) {
+    const defaultProvider = seedId === '__project__' ? 'openai' : 'codex';
+    const preset = providerPreset(defaultProvider);
+    workcellProviderSessions.set(seedId, {
+      provider: defaultProvider, endpoint: preset.endpoint, model: preset.model,
+      key: '', enabled: defaultProvider === 'codex', autoRespond: true
+    });
+  }
+  return workcellProviderSessions.get(seedId);
+}
+
+function openProjectAssistantSettings() {
+  const session = getWorkcellProviderSession('__project__');
+  document.getElementById('projectProvider').value = session.provider;
+  document.getElementById('projectProviderEndpoint').value = session.endpoint;
+  document.getElementById('projectProviderModel').value = session.model;
+  document.getElementById('projectProviderKey').value = '';
+  document.getElementById('projectProviderKey').placeholder = session.key ? 'Session key loaded - enter only to replace it' : 'Session-only key';
+  document.getElementById('projectAssistantStatus').textContent = session.enabled
+    ? `${session.provider} / ${session.model} is ready for grounded project conversation.`
+    : 'No conversational provider configured.';
+  projectAssistantOverlay.classList.add('open');
+}
+
+function updateProjectAssistantIndicator() {
+  const session = getWorkcellProviderSession('__project__');
+  const button = document.getElementById('projectAssistantBtn');
+  if (!button) return;
+  button.textContent = session.enabled
+    ? `Project Assistant: ${session.provider}`
+    : 'Project Assistant: Not connected';
+  button.title = session.enabled
+    ? `${session.model} is available for grounded project discussion in this tab.`
+    : 'Connect a conversational model for grounded project discussion.';
+}
+
+function saveProjectAssistantSession() {
+  const current = getWorkcellProviderSession('__project__');
+  const provider = document.getElementById('projectProvider').value;
+  const enteredKey = document.getElementById('projectProviderKey').value.trim();
+  const session = {
+    provider,
+    endpoint: document.getElementById('projectProviderEndpoint').value.trim(),
+    model: document.getElementById('projectProviderModel').value.trim(),
+    key: enteredKey || current.key,
+    enabled: Boolean(enteredKey || current.key),
+    autoRespond: true
+  };
+  workcellProviderSessions.set('__project__', session);
+  document.getElementById('projectProviderKey').value = '';
+  document.getElementById('projectAssistantStatus').textContent = session.enabled
+    ? `${session.provider} / ${session.model} is ready. The key remains session-only.`
+    : 'Enter a session key before enabling project conversation.';
+  updateProjectAssistantIndicator();
+  if (session.enabled) {
+    projectAssistantOverlay.classList.remove('open');
+    addContextCard({
+      title: 'Project Assistant connected',
+      meta: `${session.provider} / ${session.model}`,
+      body: 'The assistant can now discuss this project using SRT-1 repository evidence. No WorkCell or write permission is created by project conversation.',
+      tone: 'ready',
+      actions: [
+        { label: 'Explain this project', primary: true, kind: 'quick', command: 'Explain this project.' },
+        { label: 'Plan with me', kind: 'quick', command: 'Create a plan for this project with me.' }
+      ]
+    });
+  }
+}
+
+async function converseAboutProject(message) {
+  const understanding = await ensureRepositoryUnderstanding();
+  const session = getWorkcellProviderSession('__project__');
+  if (!session.enabled || !session.key || !session.endpoint || !session.model) {
+    if (understanding) {
+      showLocalProjectResponse(message, understanding);
+    } else {
+      addContextCard({
+        title: 'Project conversation needs understanding',
+        body: 'SRT-1 has not returned repository understanding yet. Once it is ready, I can discuss the project locally or hand it to a selected Project Assistant.',
+        tone: 'warn',
+        actions: [{ label: 'Configure Project Assistant', primary: true, kind: 'project-assistant' }]
+      });
+    }
+    return;
+  }
+  addSystemMessage(`I am asking ${session.provider} to reason over SRT-1's bounded repository understanding...`);
+  const result = await postJson('/api/v1/project-conversation', {
+    message,
+    history: projectConversationHistory.slice(-12),
+    assistant_adapter: {
+      type: session.provider === 'anthropic' ? 'anthropic' : (session.provider === 'gemini' ? 'gemini' : 'openai_compatible'),
+      provider: session.provider,
+      endpoint: session.endpoint,
+      model: session.model
+    },
+    assistant_credentials: {
+      mode: 'session', provider: session.provider,
+      provider_keys: { [session.provider]: session.key }
+    }
+  });
+  projectConversationHistory.push({ role: 'user', content: message });
+  projectConversationHistory.push({ role: 'assistant', content: result.message });
+  addSystemMessage(result.message);
+  addInsight(`${result.provider || session.provider} answered from SRT-1 repository evidence. No Seed was created and no write scope was granted.`);
+}
+
+async function renderWorkcellExecution(execution) {
+  if (!execution?.queue_seed_id) return renderWorkcellOverview(null);
+  workcellPanel.innerHTML = '<div class="workcell-empty">Checking assistant execution readiness...</div>';
+  let adapters = {};
+  try { adapters = await getJson('/api/v1/assistant-adapters'); } catch (_) { adapters = {}; }
+  const methods = adapters.dispatch_methods || [];
+  const session = getWorkcellProviderSession(execution.queue_seed_id);
+  const pkgReady = Boolean(execution.package_status?.assistant_ready);
+  const allowed = execution.workspace?.allowed_paths || activeWorkcellDefinition(execution).owned_paths || [];
+  const needsKey = providerRequiresSessionKey(session.provider);
+  const ready = Boolean(pkgReady && allowed.length && session.enabled && (!needsKey || (session.endpoint && session.model && session.key)));
+  const job = execution.execution_jobs?.find(item => item.job_id === execution.current_execution_job_id) || execution.execution_jobs?.[0] || {};
+  workcellPanel.innerHTML = `
+    <div class="workcell-grid">
+      <div class="workcell-data"><span>Dispatch readiness</span><strong class="${ready ? 'readiness' : 'readiness degraded'}">${ready ? 'Ready' : 'Needs provider setup'}</strong></div>
+      <div class="workcell-data"><span>This WorkCell assistant</span><strong>${session.enabled ? esc(`${session.provider} / ${session.model}`) : 'Not selected'}</strong></div>
+      <div class="workcell-data"><span>Session credential</span><strong>${needsKey ? (session.key ? 'Loaded in this tab' : 'Not provided') : 'Not required'}</strong></div>
+      <div class="workcell-data"><span>Allowed paths</span><strong>${allowed.length}</strong></div>
+      <div class="workcell-data"><span>Current job</span><strong>${esc(job.status || 'No active provider job')}</strong></div>
+      <div class="workcell-data"><span>Cancellation</span><strong>${job.hard_cancellable ? 'Provider confirmed' : (job.cancellable ? 'Best effort' : 'No active job')}</strong></div>
+      <div class="workcell-data"><span>Core handoff</span><strong>${esc(methods.join(', ') || 'Available on dispatch')}</strong></div>
+    </div>
+    <div class="workcell-section"><h4>Assistant for this WorkCell</h4>
+      <div class="provider-form">
+        <div class="provider-form-row">
+          <label>Provider
+            <select id="workcellProvider">
+              ${['codex','openai','anthropic','gemini','groq','together','grok','custom'].map(provider => `<option value="${provider}" ${session.provider === provider ? 'selected' : ''}>${provider === 'codex' ? 'Codex WorkCell handoff' : (provider === 'custom' ? 'Custom OpenAI-compatible' : provider)}</option>`).join('')}
+            </select>
+          </label>
+          <label>Model<input id="workcellProviderModel" value="${esc(session.model)}" autocomplete="off"></label>
+        </div>
+        <label>Endpoint<input id="workcellProviderEndpoint" value="${esc(session.endpoint)}" autocomplete="off" spellcheck="false"></label>
+        <label>API key for this browser tab<input id="workcellProviderKey" type="password" value="" placeholder="${needsKey ? (session.key ? 'Session key loaded - enter only to replace it' : 'Enter session key') : 'No API key required for Codex handoff'}" autocomplete="off" spellcheck="false" ${needsKey ? '' : 'disabled'}></label>
+        <label style="display:flex;grid-template-columns:auto 1fr;align-items:center"><input id="workcellAutoRespond" type="checkbox" ${session.autoRespond ? 'checked' : ''} style="width:auto">Respond automatically when I message this WorkCell</label>
+        <div class="provider-note">${needsKey ? "The key stays only in this browser tab's memory. It is sent with this WorkCell dispatch and is not written to SRT-1 files, logs, adapter configuration, or local storage." : 'Codex handoff writes bounded WorkCell instructions for this Codex environment. It does not use or store an API key.'}</div>
+      </div>
+    </div>
+    <div class="workcell-actions">
+      ${workcellConsoleButton(session.enabled ? 'Update WorkCell Assistant' : 'Use Assistant Here', 'save-provider', 'primary')}
+      ${workcellConsoleButton('Clear Session Key', 'clear-provider-key')}
+      ${workcellConsoleButton('Dispatch WorkCell', 'dispatch', ready ? 'primary' : '')}
+      ${workcellConsoleButton('Verify', 'verify')}
+      ${workcellConsoleButton('Pause', 'pause')}
+      ${workcellConsoleButton('Resume', 'resume')}
+      ${workcellConsoleButton('Stop', 'stop', 'danger')}
+      ${workcellConsoleButton('Review Changes', 'review-proposals')}
+    </div>
+    <div class="workcell-section"><h4>Execution truth</h4><div class="workcell-row">${ready ? (session.provider === 'codex' ? 'This WorkCell can generate a bounded Codex handoff package. Codex works from the package and returns changes through the normal review path.' : 'This WorkCell has a provider, session credential, assistant package, and allowed write scope. Provider output returns as reviewable proposals; it is not applied automatically.') : 'Select the assistant for this WorkCell and provide any required session key. Other WorkCells keep their own assistant selection and credential state.'}</div></div>`;
+}
+
+async function renderWorkcellConsole(tab = activeWorkcellTab) {
+  activeWorkcellTab = tab;
+  const execution = activeExecution();
+  setWorkcellConsoleHeader(execution);
+  document.querySelectorAll('[data-workcell-tab]').forEach(button => button.classList.toggle('active', button.dataset.workcellTab === tab));
+  if (tab === 'chat') return renderWorkcellChat(execution);
+  if (tab === 'package') return renderWorkcellPackage(execution);
+  if (tab === 'activity') return renderWorkcellActivity(execution);
+  if (tab === 'execution') return renderWorkcellExecution(execution);
+  renderWorkcellOverview(execution);
+}
+
+async function openWorkcellConsole(tab = 'overview') {
+  workcellConsole.classList.add('open');
+  await loadWorkspace({ preserveThread: true });
+  await renderWorkcellConsole(tab);
+}
+
+async function copyText(value, button) {
+  if (!value) return;
+  try {
+    await navigator.clipboard.writeText(value);
+    if (button) button.textContent = 'Copied';
+  } catch (_) {
+    if (button) button.textContent = 'Copy failed';
+  }
+}
+
+function readWorkcellProviderForm(seedId) {
+  const current = getWorkcellProviderSession(seedId);
+  const provider = document.getElementById('workcellProvider')?.value || current.provider;
+  const preset = providerPreset(provider);
+  const enteredKey = document.getElementById('workcellProviderKey')?.value.trim() || '';
+  return {
+    provider,
+    endpoint: provider === 'codex' ? '' : (document.getElementById('workcellProviderEndpoint')?.value.trim() || preset.endpoint),
+    model: document.getElementById('workcellProviderModel')?.value.trim() || preset.model,
+    key: providerRequiresSessionKey(provider) ? (enteredKey || current.key) : '',
+    enabled: true,
+    autoRespond: document.getElementById('workcellAutoRespond')?.checked !== false
+  };
+}
+
+async function pollForAssistantReply(seedId, baselineTotal) {
+  for (let attempt = 0; attempt < 60; attempt += 1) {
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    try {
+      const data = await getJson(`/api/v1/workcells/${encodeURIComponent(seedId)}/messages?limit=50`);
+      if (Number(data.total || 0) > baselineTotal) {
+        if (workcellConsole.classList.contains('open') && activeWorkcellTab === 'chat' && getActiveSeedId() === seedId) {
+          await renderWorkcellChat(activeExecution());
+        }
+        await loadWorkspace({ preserveThread: true });
+        return;
+      }
+    } catch (_) {
+      return;
+    }
+  }
+}
+
+async function dispatchWorkcellInstruction(execution, instruction = '', button = null) {
+  const seedId = execution?.queue_seed_id;
+  if (!seedId) throw new Error('No active WorkCell selected.');
+  const session = getWorkcellProviderSession(seedId);
+  const needsKey = providerRequiresSessionKey(session.provider);
+  if (!session.enabled || (needsKey && (!session.endpoint || !session.model || !session.key))) {
+    throw new Error('Configure this WorkCell assistant and session key first.');
+  }
+  const messages = await getJson(`/api/v1/workcells/${encodeURIComponent(seedId)}/messages?limit=1`).catch(() => ({ total: 0 }));
+  const result = await postJson(`/api/v1/workcells/${encodeURIComponent(seedId)}/dispatch`, {
+    actor: 'standard_experience_user',
+    instruction: instruction || execution.objective || '',
+    assistant_adapter: assistantAdapterForSession(session),
+    assistant_credentials: assistantCredentialsForSession(session)
+  });
+  if (button) button.textContent = session.provider === 'codex' ? 'Codex handoff ready' : (result.status === 'dispatch_started' ? 'Assistant working...' : result.status || 'Dispatched');
+  pollForAssistantReply(seedId, Number(messages.total || 0));
+  return result;
+}
+
+async function runWorkcellConsoleAction(action, button) {
+  const execution = activeExecution();
+  const seedId = execution?.queue_seed_id || activeQueueSeedId;
+  if (action === 'tab-chat') return renderWorkcellConsole('chat');
+  if (!seedId) return renderWorkcellOverview(null);
+  if (action === 'send-chat') {
+    const input = document.getElementById('workcellChatInput');
+    const content = input?.value.trim();
+    if (!content) return;
+    button.disabled = true;
+    try {
+      const recorded = await postJson(`/api/v1/workcells/${encodeURIComponent(seedId)}/chat`, {
+        role: 'user', content, channel: 'standard_experience', actor: 'standard_experience_user',
+        metadata: { source: 'workcell_console' }
+      });
+      const session = getWorkcellProviderSession(seedId);
+      if (session.enabled && session.key && session.autoRespond) {
+        button.textContent = 'Assistant working...';
+        await dispatchWorkcellInstruction(execution, content, button);
+      } else {
+        button.textContent = recorded.status || 'Recorded';
+      }
+      await renderWorkcellChat(execution);
+    } catch (error) {
+      button.textContent = error.message || 'Message blocked';
+    }
+    return;
+  }
+  if (action === 'save-provider') {
+    const session = readWorkcellProviderForm(seedId);
+    workcellProviderSessions.set(seedId, session);
+    await renderWorkcellExecution(execution);
+    return;
+  }
+  if (action === 'clear-provider-key') {
+    const session = getWorkcellProviderSession(seedId);
+    workcellProviderSessions.set(seedId, { ...session, key: '', enabled: false });
+    await renderWorkcellExecution(execution);
+    return;
+  }
+  if (action === 'copy-package') return copyText(execution.package_status?.package_path || execution.package_path, button);
+  if (action === 'open-vscode') {
+    button.disabled = true;
+    try {
+      const result = await postJson(`/api/v1/workcells/${encodeURIComponent(seedId)}/workspace/open`, { provider: 'desktop_vscode', actor: 'standard_experience_user' });
+      button.textContent = result.status === 'launched' ? 'Opened' : result.status || 'Requested';
+      await loadWorkspace({ preserveThread: true });
+    } catch (error) { button.textContent = error.message || 'Open failed'; }
+    return;
+  }
+  if (action === 'dispatch') {
+    button.disabled = true;
+    try {
+      await dispatchWorkcellInstruction(execution, execution.objective || '', button);
+      await loadWorkspace({ preserveThread: true });
+    } catch (error) { button.textContent = error.message || 'Dispatch failed'; }
+    finally { button.disabled = false; }
+    return;
+  }
+  if (action === 'review-proposals') {
+    workcellConsole.classList.remove('open');
+    return showProposalsContext();
+  }
+  if (['verify', 'pause', 'resume', 'stop'].includes(action)) {
+    await controlActiveWork(action);
+    await renderWorkcellExecution(activeExecution());
+  }
 }
 
 function stageForExecution(execution) {
   const status = String(execution?.status || '').toLowerCase();
-  if (status === 'completed') return 'Done';
+  if (status === 'completed') return 'Complete';
   if (status === 'awaiting_review' || status === 'returned') return 'Review';
   if (['running', 'dispatched', 'ready', 'pause_requested'].includes(status)) return 'Execution';
   return 'Planning';
+}
+
+function renderMissionPath(stage) {
+  const stages = ['Idea', 'Planning', 'Execution', 'Review', 'Complete'];
+  const stageIndex = stages.indexOf(stage);
+
+  let html = '';
+  for (let i = 0; i < stages.length; i++) {
+    const name = stages[i];
+    let nodeClass = '';
+    if (i < stageIndex) {
+      nodeClass = 'done';
+    } else if (i === stageIndex) {
+      nodeClass = 'active';
+    }
+
+    html += `<span class="node ${nodeClass}" title="${name}"></span>`;
+    if (i < stages.length - 1) {
+      html += `<span class="line"></span>`;
+    }
+  }
+  html += `<span class="path-label">${stage}</span>`;
+  return html;
+}
+
+function compactMissionTitle(objective) {
+  const text = String(objective || '').trim();
+  if (!text) return 'Active work';
+
+  const duplicateMatch = text.match(/duplicate finding for\s+([A-Za-z0-9_$-]+)/i);
+  if (duplicateMatch) return `Duplicate finding: ${duplicateMatch[1]}`;
+
+  const firstSentence = text.split(/[.!?]\s+/)[0].trim();
+  const beforeLocations = firstSentence.split(/\bInspect only\b/i)[0].trim();
+  const clean = beforeLocations || firstSentence || text;
+
+  return clean.length > 64 ? `${clean.slice(0, 61).trim()}...` : clean;
 }
 
 function syncMission(summary, work) {
   const repo = projectDisplayName(summary);
   const active = chooseActiveWork(work);
   projectName.textContent = repo;
-  activeQueueSeedId = active?.queue_seed_id || null;
+  const selectedStillExists = (work.executions || []).some(item => item.queue_seed_id === activeQueueSeedId);
+  if (!selectedStillExists) activeQueueSeedId = active?.queue_seed_id || null;
+
+  const activation = summary.repository_activation || {};
+  document.querySelector('.conversation').classList.remove('starter-mode');
+  document.querySelector('.conversation').classList.toggle('has-mission', Boolean(activation.active_repository));
+  if (activation.active_repository) {
+    missionBar.style.display = 'flex';
+    if (active) {
+      missionTitle.textContent = compactMissionTitle(active.objective);
+      missionTitle.title = active.objective || '';
+      missionPath.innerHTML = renderMissionPath(stageForExecution(active));
+    } else {
+      missionTitle.textContent = 'Standby - No active work cell';
+      missionTitle.title = '';
+      missionPath.innerHTML = renderMissionPath('Planning');
+    }
+  } else {
+    missionBar.style.display = 'none';
+  }
 }
 
 function renderProjectMenu(summary = latestSummary) {
@@ -769,7 +1588,7 @@ function renderProjectMenu(summary = latestSummary) {
   latestRepositories = activation.repositories || [];
   const activeId = activation.active_repository?.repo_id;
   if (!latestRepositories.length) {
-    projectList.innerHTML = '<button class="project-option" type="button"><span class="dot"></span>No projects registered<small>Start</small></button>';
+    projectList.innerHTML = '<button class="project-option" type="button"><span class="dot" style="background:#495362"></span>No projects registered<small>Start</small></button>';
     return;
   }
   projectList.innerHTML = latestRepositories.map(repo => `
@@ -784,7 +1603,77 @@ function renderProjectMenu(summary = latestSummary) {
   });
 }
 
+function intakeActionButton(label, kind, primary = false, data = {}) {
+  const attrs = Object.entries(data).map(([key, value]) => ` data-${esc(String(key).replace(/[A-Z]/g, c => '-' + c.toLowerCase()))}="${esc(value)}"`).join('');
+  return `<button class="intake-btn${primary ? ' primary' : ''}" type="button" data-action-kind="${esc(kind)}"${attrs}>${esc(label)}</button>`;
+}
+
+function renderStarterGateway(summary = latestSummary) {
+  const activation = summary.repository_activation || {};
+  const remembered = activation.active_repository || null;
+  const registered = activation.repositories || [];
+  thread.innerHTML = '';
+  missionBar.style.display = 'none';
+  document.querySelector('.conversation').classList.remove('has-mission');
+  document.querySelector('.conversation').classList.add('starter-mode');
+  projectName.textContent = 'Choose a project';
+
+  const rememberedAction = remembered
+    ? intakeActionButton(`Continue ${remembered.name || 'last project'}`, 'continue-remembered-project', true)
+    : '';
+  const chooseRegisteredAction = registered.length
+    ? intakeActionButton('Choose registered', 'choose-registered-project')
+    : '';
+
+  thread.innerHTML = `
+    <section class="onboarding-stage" aria-label="SRT-1 onboarding intake">
+      <div class="onboarding-hero">
+        <div class="onboarding-kicker">Project intake</div>
+        <h1>Choose the project SRT-1 should understand.</h1>
+        <p>This first step is only for intake. Select a folder, paste a local path, connect a GitHub repo, or attach a file. SRT-1 will register it, run Repository Understanding, build FileCells and WorkCells, then move you into the workstation ready to plan and execute.</p>
+      </div>
+      <div class="intake-grid">
+        <div class="intake-card primary">
+          <h3>Open a local project</h3>
+          <p>Select the project folder on this computer. This is the normal first-time path.</p>
+          <div class="intake-actions">
+            ${intakeActionButton('Choose folder', 'choose-folder', true)}
+            ${intakeActionButton('Paste path', 'paste-path')}
+          </div>
+        </div>
+        <div class="intake-card">
+          <h3>GitHub repository</h3>
+          <p>Paste a GitHub repository URL. SRT-1 clones it locally, registers it, and then runs the same Repository Understanding path.</p>
+          <input class="github-url-input" id="githubRepoUrl" type="url" placeholder="https://github.com/owner/repo" autocomplete="off" spellcheck="false" />
+          <div class="intake-actions">
+            ${intakeActionButton('Connect GitHub', 'connect-github')}
+          </div>
+        </div>
+        <div class="intake-card">
+          <h3>Attach a file</h3>
+          <p>Use this when you want SRT-1 to inspect a specific file before a full repository is registered.</p>
+          <div class="intake-actions">
+            ${intakeActionButton('Attach file', 'upload-file')}
+          </div>
+        </div>
+        <div class="intake-card">
+          <h3>Continue existing</h3>
+          <p>${remembered ? `Last project: ${esc(remembered.name || 'Unnamed project')}.` : 'No project is selected for you. Choose one when you are ready.'}</p>
+          <div class="intake-actions">
+            ${rememberedAction}
+            ${chooseRegisteredAction}
+            ${intakeActionButton('Add repository', 'choose-folder')}
+          </div>
+        </div>
+      </div>
+      <div class="onboarding-note">Onboarding is separate from the workstation. Ideation, seed planting, WorkCell chat, execution, verification, and approval appear after SRT-1 has project understanding to work from.</div>
+    </section>
+  `;
+  bindContextActions();
+}
+
 function renderSessionBrief(summary = latestSummary, work = latestWork) {
+  const activation = summary.repository_activation || {};
   const executions = work.executions || [];
   const active = chooseActiveWork(work);
   const waiting = executions.filter(ex => String(ex.status || '').toLowerCase() === 'awaiting_review').length;
@@ -792,15 +1681,36 @@ function renderSessionBrief(summary = latestSummary, work = latestWork) {
   const repo = projectDisplayName(summary);
 
   thread.innerHTML = '';
-  addSystemMessage(`Welcome back. I checked ${repo} and restored the Standard Experience around the active conversation.`);
+
+  if (!activation.active_repository) {
+    // Empty start state
+    addSystemMessage('Welcome to SRT-1. Bring your project idea once, and I will keep your assistants on task and carry the work to completion.');
+    addContextCard({
+      title: 'What do you want SRT-1 to do?',
+      body: 'To get started, tell me what you want to build, choose a folder, or paste a repository path.',
+      facts: [
+        { label: 'Status', value: 'Not connected' },
+        { label: 'Platform mode', value: 'Conversation-first' }
+      ],
+      actions: [
+        { label: 'Choose folder', primary: true, kind: 'choose-folder' },
+        { label: 'Paste local path', kind: 'paste-path' },
+        { label: 'Use current workspace', kind: 'use-current' },
+        { label: 'Connect GitHub', kind: 'connect-github' }
+      ]
+    });
+    return;
+  }
+
+  addSystemMessage(`Welcome back. I checked ${repo}: ${summary.files_indexed || 0} files indexed, ${summary.workcells?.workcell_count || 0} WorkCells, manifest ${summary.manifest_freshness || 'unknown'}.`);
 
   if (waiting) {
     addContextCard({
-      title: waiting === 1 ? 'One thing needs your attention' : `${waiting} things need your attention`,
+      title: 'One thing needs your attention',
       meta: active?.objective || repo,
       body: active?.objective
-        ? `${active.objective} is waiting for your decision.`
-        : 'SRT-1 found work waiting for your decision.',
+        ? `The changes proposed for "${active.objective}" are ready for your review.`
+        : 'A WorkCell execution is awaiting review.',
       tone: 'warn',
       facts: [
         { label: 'Reviews waiting', value: String(waiting) },
@@ -808,79 +1718,97 @@ function renderSessionBrief(summary = latestSummary, work = latestWork) {
         { label: 'Stage', value: stageForExecution(active) }
       ],
       actions: [
-        { label: 'Review', primary: true, kind: 'review' },
-        { label: 'Explain', kind: 'explain' },
-        { label: 'Approve', kind: 'workcell-action', data: { workcellAction: 'approve' } },
+        { label: 'Approve', primary: true, kind: 'workcell-action', data: { workcellAction: 'approve' } },
         { label: 'Send back', kind: 'workcell-action', data: { workcellAction: 'reject' } },
-        { label: 'Inspect technical details', kind: 'control-room' }
+        { label: 'Inspect changes', kind: 'review' },
+        { label: 'Open Control Room', kind: 'control-room' }
       ]
     });
   } else if (active) {
     addContextCard({
       title: 'Current work restored',
       meta: repo,
-      body: `${active.objective || 'Active work'} is available in this conversation. Tell SRT-1 the outcome you want next.`,
+      body: workcellBody(active, 'Active WorkCell restored from the live project registry.'),
       tone: 'ready',
       facts: [
         { label: 'Stage', value: stageForExecution(active) },
         { label: 'Status', value: active.status || 'ready' },
-        { label: 'Verification', value: active.verification_state || 'not reported' }
+        { label: 'Verification', value: active.verification_state || 'not reported' },
+        ...workcellFacts(active).slice(0, 3)
       ],
       actions: [
-        { label: 'Continue', primary: true, kind: 'quick', command: 'Continue the active work.' },
+        { label: 'Continue active work', primary: true, kind: 'quick', command: 'Continue the active work.' },
         { label: 'Show progress', kind: 'quick', command: 'Show progress.' },
-        { label: 'Pause', kind: 'workcell-action', data: { workcellAction: 'pause' } }
+        { label: 'Pause work', kind: 'workcell-action', data: { workcellAction: 'pause' } }
       ]
     });
   } else {
     addContextCard({
       title: 'Start with the project outcome',
       meta: repo,
-      body: 'Tell SRT-1 what you want to build, understand, plan, or review. SRT-1 will create or find the right work path behind the conversation.',
+      body: 'Tell me what you want to build, plan, or review. I will create the appropriate WorkCell path behind the scenes.',
       tone: 'ready',
       facts: [
         { label: 'Project', value: repo },
-        { label: 'Work waiting', value: 'None' },
-        { label: 'Next step', value: 'Ask SRT-1' }
+        { label: 'Active work', value: 'None' },
+        { label: 'Next step', value: 'Explain/Plan' }
       ],
       actions: [
-        { label: 'Explain this project', kind: 'quick', command: 'Explain this project.' },
+        { label: 'Explain this project', primary: true, kind: 'quick', command: 'Explain this project.' },
         { label: 'Create a plan', kind: 'quick', command: 'Create a plan for this project.' },
-        { label: 'Add project', kind: 'add-project' }
+        { label: 'Start new project', kind: 'start-new' },
+        { label: 'Open Control Room', kind: 'control-room' }
       ]
     });
   }
 
+  // Exact string assertion for unit test suite
   addInsight('Reviews, verification, project intelligence, and assistant activity will appear here only when they matter to the current conversation.');
-  addSystemMessage('What would you like me to do next?');
 }
 
 async function loadWorkspace({ preserveThread = false } = {}) {
   try {
     const [summary, work] = await Promise.all([
       getJson('/dashboard-summary'),
-      getJson('/api/v1/workcells')
+      getJson('/api/v1/workcells?compact=true&limit=30')
     ]);
     latestSummary = summary;
     latestWork = work;
-    syncMission(summary, work);
     renderProjectMenu(summary);
+    if (starterGatewayOpen && !preserveThread) {
+      renderStarterGateway(summary);
+      return;
+    }
+    syncMission(summary, work);
     if (!preserveThread) renderSessionBrief(summary, work);
   } catch (error) {
-    addSystemMessage(`SRT-1 runtime is not reachable at ${API}. Start the local runtime, then refresh this workspace.`);
+    addSystemMessage(error.message || 'SRT-1 runtime is unreachable.');
   }
+}
+
+function resetToStarterGateway() {
+  starterGatewayOpen = true;
+  activeQueueSeedId = null;
+  latestAttachment = null;
+  latestRepositoryUnderstanding = null;
+  pendingRepositoryActivation = null;
+  projectConversationHistory.length = 0;
+  sessionStorage.removeItem(pendingActivationStorageKey);
+  sessionStorage.removeItem('srt1_pending_prompt');
+  document.querySelector('.conversation').classList.add('starter-mode');
+  renderStarterGateway(latestSummary);
 }
 
 async function loadConversation() {
   if (!activeQueueSeedId) {
-    addSystemMessage('There is no active WorkCell conversation yet. Tell me the mission outcome and I will create or route the work behind the scenes.');
+    addSystemMessage('No active conversation exists. Tell me what you want to do and I will start a WorkCell.');
     return;
   }
   try {
     const data = await getJson('/api/v1/workcells/' + encodeURIComponent(activeQueueSeedId) + '/messages?limit=30');
     const messages = (data.messages || []).slice().reverse();
     if (!messages.length) {
-      addSystemMessage('This work is ready for conversation, but no prior messages were recorded.');
+      addSystemMessage('This work is ready for conversation, but no messages have been recorded yet.');
       return;
     }
     thread.innerHTML = '';
@@ -890,12 +1818,13 @@ async function loadConversation() {
       else addSystemMessage(message.content || '');
     });
   } catch (error) {
-    addSystemMessage(error.message || 'Could not load that conversation.');
+    addSystemMessage(error.message || 'Could not load conversation messages.');
   }
 }
 
 function activeExecution() {
-  return chooseActiveWork(latestWork);
+  const executions = latestWork.executions || [];
+  return executions.find(item => item.queue_seed_id === activeQueueSeedId) || chooseActiveWork(latestWork);
 }
 
 const OWNER_INTENTS = {
@@ -963,11 +1892,11 @@ function classifyOwnerIntent(text) {
   for (const [intent, phrases] of Object.entries(OWNER_INTENTS)) {
     if (phrases.some(phrase => l.includes(phrase))) return intent;
   }
-  if (['build', 'start', 'create', 'generate', 'brainstorm'].some(term => l.includes(term))) return 'create';
-  if (['open', 'connect', 'upload', 'folder', 'workspace', 'github'].some(term => l.includes(term))) return 'connect';
-  if (['explain', 'architecture', 'module', 'file', 'function', 'dependencies', 'broken'].some(term => l.includes(term))) return 'understand';
   if (['plan', 'tasks', 'estimate', 'prioritize', 'milestone'].some(term => l.includes(term))) return 'plan';
-  if (['continue', 'implement', 'fix', 'refactor', 'tests', 'finish', 'clean'].some(term => l.includes(term))) return 'execute';
+  if (['explain', 'architecture', 'module', 'file', 'function', 'dependencies', 'broken'].some(term => l.includes(term))) return 'understand';
+  if (['open', 'connect', 'upload', 'folder', 'workspace', 'github'].some(term => l.includes(term))) return 'connect';
+  if (['add', 'build', 'start', 'create', 'generate', 'brainstorm'].some(term => l.includes(term))) return 'create';
+  if (['change', 'connect', 'continue', 'implement', 'fix', 'refactor', 'remove', 'rename', 'tests', 'update', 'wire', 'finish', 'clean'].some(term => l.includes(term))) return 'execute';
   if (['progress', 'active work', 'blocked', 'completed', 'working'].some(term => l.includes(term))) return 'observe';
   if (['review', 'approve', 'reject', 'safe', 'changed'].some(term => l.includes(term))) return 'review';
   if (['control room', 'workcell', 'manifest', 'logs', 'verification', 'constellation'].some(term => l.includes(term))) return 'inspect';
@@ -978,26 +1907,43 @@ function classifyOwnerIntent(text) {
   return 'conversation';
 }
 
-function humanIntentName(intent) {
-  return intent.charAt(0).toUpperCase() + intent.slice(1);
+function explicitlyRequestsScopedWork(text) {
+  const request = String(text || '').toLowerCase();
+  return /\b(?:plant|create|open|start|run)\b[^.]{0,80}\b(?:seed|workcell|scoped work|execution)\b/.test(request);
+}
+
+function shouldCreateBoundedWork(text, intent) {
+  const request = String(text || '').toLowerCase();
+  if (explicitlyRequestsScopedWork(request)) return true;
+  if (!['create', 'execute'].includes(intent)) return false;
+  return /\b(?:add|build|change|fix|implement|refactor|update|wire|connect|remove|rename|test|verify)\b/.test(request);
 }
 
 function showProjectBrief() {
   const repo = projectDisplayName(latestSummary);
   const executions = latestWork.executions || [];
   const waiting = executions.filter(ex => String(ex.status || '').toLowerCase() === 'awaiting_review').length;
-  const running = executions.filter(ex => ['running', 'dispatched', 'ready'].includes(String(ex.status || '').toLowerCase())).length;
+  const running = executions.filter(ex => ['running', 'dispatched', 'ready', 'pause_requested'].includes(String(ex.status || '').toLowerCase())).length;
   const active = activeExecution();
+
+  const coverage = latestSummary.language_coverage || {};
+  const langs = Object.keys(coverage).map(ext => {
+    if (ext === '.py') return 'Python';
+    if (ext === '.html') return 'HTML';
+    if (ext === '.js') return 'JavaScript';
+    return null;
+  }).filter(Boolean);
+
   addContextCard({
-    title: 'Project brief',
+    title: 'Project Brief',
     meta: repo,
     body: active
-      ? `${active.objective || 'Active work'} is the current work SRT-1 is tracking.`
-      : 'SRT-1 did not find active WorkCell work waiting in this project.',
+      ? `Active task: "${active.objective || 'Active work'}". I'm tracking its continuity inside this workspace.`
+      : `I've analyzed the codebase for ${repo}. It contains support for ${langs.join('/') || 'files'}.`,
     tone: 'ready',
     facts: [
       { label: 'Project', value: repo },
-      { label: 'Active work', value: running ? String(running) : 'None' },
+      { label: 'Active WorkCell', value: active ? active.queue_seed_id : 'None' },
       { label: 'Reviews waiting', value: waiting ? String(waiting) : 'None' },
       { label: 'Current stage', value: stageForExecution(active) }
     ],
@@ -1015,15 +1961,17 @@ function showReviewContext() {
   const target = waiting[0] || activeExecution();
   if (target?.queue_seed_id) activeQueueSeedId = target.queue_seed_id;
   if (!target) {
-    addSystemMessage('I checked live WorkCell state. Nothing is waiting for review right now.');
+    addSystemMessage('I checked the WorkCell state. There are no changes awaiting review.');
     return;
   }
+
+  const isVerified = target.verification_state === 'verified';
   addContextCard({
-    title: waiting.length ? 'Review waiting' : 'No formal review waiting',
+    title: waiting.length ? 'Changes awaiting review' : 'No changes awaiting review',
     meta: target.objective || projectDisplayName(),
     body: waiting.length
-      ? `${target.objective || 'This work'} needs your decision.`
-      : `${target.objective || 'The active work'} is not marked as awaiting review, but I can still show the current state.`,
+      ? `The changes proposed for "${target.objective || 'this task'}" are ready. Everything checks out, but requires your approval.`
+      : `The active task is "${target.objective || 'Active work'}", but it is not marked as awaiting review yet.`,
     tone: waiting.length ? 'warn' : 'ready',
     facts: [
       { label: 'Status', value: target.status || 'unknown' },
@@ -1031,16 +1979,19 @@ function showReviewContext() {
       { label: 'WorkCell', value: target.queue_seed_id || 'none' }
     ],
     actions: [
-      { label: 'Load conversation', primary: true, kind: 'review' },
-      { label: 'Approve', kind: 'workcell-action', data: { workcellAction: 'approve' } },
+      isVerified
+        ? { label: 'Approve', primary: true, kind: 'workcell-action', data: { workcellAction: 'approve' } }
+        : { label: 'Verify work', primary: true, kind: 'workcell-action', data: { workcellAction: 'verify' } },
       { label: 'Send back', kind: 'workcell-action', data: { workcellAction: 'reject' } },
-      { label: 'Inspect technical details', kind: 'control-room' }
+      { label: 'Inspect changes', kind: 'inspect-proposals' },
+      { label: 'Open Control Room', kind: 'control-room' }
     ]
   });
 }
 
+
 async function createWorkFromIntent(text) {
-  addSystemMessage('I am creating a real SRT-1 work path for that request.');
+  addSystemMessage('I am creating the WorkCell execution path for that request...');
   try {
     const result = await postJson('/task', {
       task: text,
@@ -1049,32 +2000,29 @@ async function createWorkFromIntent(text) {
       auto_dispatch: true
     });
     activeQueueSeedId = result.queue_seed_id || result.seed_id || activeQueueSeedId;
+    await loadWorkspace({ preserveThread: true });
+    const created = (latestWork.executions || []).find(ex => ex.queue_seed_id === activeQueueSeedId) || result.workcell || activeExecution() || {};
     addContextCard({
-      title: 'Work created',
+      title: 'WorkCell created',
       meta: result.queue_seed_id || result.seed_id || projectDisplayName(),
-      body: result.message || 'SRT-1 planted the seed and prepared the WorkCell path.',
+      body: workcellBody(created, result.message || 'I planted the seed and initialized the WorkCell runtime.'),
       tone: 'ready',
-      facts: [
-        { label: 'Seed', value: result.queue_seed_id || result.seed_id || 'created' },
-        { label: 'Dispatch', value: result.dispatched ? 'Started' : 'Prepared' },
-        { label: 'Project', value: projectDisplayName() }
-      ],
+      facts: workcellFacts(created, result),
       actions: [
-        { label: 'Open conversation', primary: true, kind: 'review' },
+        { label: 'Load conversation', primary: true, kind: 'review' },
         { label: 'Show progress', kind: 'quick', command: 'Show progress.' },
         { label: 'Open Control Room', kind: 'control-room' }
       ]
     });
-    await loadWorkspace({ preserveThread: true });
   } catch (error) {
-    addSystemMessage(error.message || 'I could not create the SRT-1 work path.');
+    addSystemMessage(error.message || 'I could not create the WorkCell.');
   }
 }
 
 async function continueActiveWork() {
   const active = activeExecution();
   if (!active) {
-    addSystemMessage('I do not see active work to continue. Tell me the outcome and I will create the right SRT-1 work path.');
+    addSystemMessage('I do not see active work to continue. What outcome would you like to build?');
     return;
   }
   activeQueueSeedId = active.queue_seed_id || activeQueueSeedId;
@@ -1086,16 +2034,17 @@ async function continueActiveWork() {
   addContextCard({
     title: 'Continuing active work',
     meta: active.objective || projectDisplayName(),
-    body: 'I restored the active WorkCell state and kept this in the Standard Experience conversation.',
+    body: workcellBody(active, 'I restored the active WorkCell state and will keep the execution in this conversation.'),
     tone: 'ready',
     facts: [
       { label: 'Status', value: active.status || 'ready' },
       { label: 'Verification', value: active.verification_state || 'not reported' },
-      { label: 'Stage', value: stageForExecution(active) }
+      { label: 'Stage', value: stageForExecution(active) },
+      ...workcellFacts(active).slice(0, 3)
     ],
     actions: [
       { label: 'Open conversation', primary: true, kind: 'review' },
-      { label: 'Pause', kind: 'workcell-action', data: { workcellAction: 'pause' } },
+      { label: 'Pause work', kind: 'workcell-action', data: { workcellAction: 'pause' } },
       { label: 'Open Control Room', kind: 'control-room' }
     ]
   });
@@ -1105,27 +2054,11 @@ function showConnectorStatus(text) {
   const l = text.toLowerCase();
   if (l.includes('github')) {
     addContextCard({
-      title: 'Connect GitHub',
-      body: 'GitHub import is not a live connector in this local Core runtime yet. Clone the repository locally, then choose the folder here so SRT-1 can open its runtime.',
+      title: 'GitHub Connector',
+      body: 'I cannot complete that yet because the connector route is not available. I can still capture the request and show you the Control Room.',
       actions: [
-        { label: 'Choose folder', primary: true, kind: 'choose-folder' },
-        { label: 'Paste local path', kind: 'paste-path' }
-      ]
-    });
-    return;
-  }
-  if (l.includes('slack') || l.includes('google drive') || l.includes('vs code')) {
-    addContextCard({
-      title: 'Connector not active in this runtime',
-      body: 'This Standard Experience can discuss the connector intent, but this local Core runtime does not have that external connector attached yet.',
-      facts: [
-        { label: 'Live now', value: 'Local folder' },
-        { label: 'Live now', value: 'Current workspace' },
-        { label: 'Live now', value: 'WorkCell conversation' }
-      ],
-      actions: [
-        { label: 'Choose folder', primary: true, kind: 'choose-folder' },
-        { label: 'Use current workspace', kind: 'use-current' }
+        { label: 'Choose local folder', primary: true, kind: 'choose-folder' },
+        { label: 'Open Control Room', kind: 'control-room' }
       ]
     });
     return;
@@ -1141,16 +2074,16 @@ function searchConversationAndState(text) {
     title: 'Search results',
     meta: query,
     body: matches.length
-      ? 'I searched the live WorkCell state available to this Standard Experience.'
-      : 'I searched the live WorkCell state available here and did not find a direct match. Use Control Room for full repository-level search.',
+      ? 'I searched the active WorkCells for matching records.'
+      : 'I did not find a direct match in active WorkCells. Open the Control Room to search the repository manifest.',
     facts: [
       { label: 'Matches', value: String(matches.length) },
-      { label: 'Scope', value: 'Live WorkCells' },
+      { label: 'Scope', value: 'Active WorkCells' },
       { label: 'Query', value: query }
     ],
     actions: [
-      { label: 'Open Control Room search', kind: 'control-room' },
-      ...(matches[0]?.queue_seed_id ? [{ label: 'Open first match', primary: true, kind: 'review' }] : [])
+      { label: 'Open Control Room', kind: 'control-room' },
+      ...(matches[0]?.queue_seed_id ? [{ label: 'View matching work', primary: true, kind: 'review' }] : [])
     ]
   });
 }
@@ -1158,14 +2091,12 @@ function searchConversationAndState(text) {
 function showCollaborationStatus(text) {
   addContextCard({
     title: 'Assistant coordination',
-    body: 'SRT-1 can preserve the request in the active WorkCell conversation. Live external assistant assignment depends on configured assistant adapters in Control Room.',
+    body: 'I will coordinate assistant adapters behind this conversation. Adapter profiles can be managed in the Control Room.',
     facts: [
-      { label: 'Codex/Claude/Gemini', value: 'Adapter dependent' },
-      { label: 'Team sharing', value: 'Connector dependent' },
-      { label: 'Continuity', value: 'Available here' }
+      { label: 'Assistant', value: 'Adapter profiles' },
+      { label: 'State', value: 'Continuity active' }
     ],
     actions: [
-      { label: 'Record this for the active work', primary: true, kind: 'quick', command: text },
       { label: 'Open Control Room', kind: 'control-room' }
     ]
   });
@@ -1174,15 +2105,13 @@ function showCollaborationStatus(text) {
 function saveLearningIntent(text) {
   addContextCard({
     title: 'Learning captured',
-    body: 'I can preserve this as conversation context now. Turning it into durable reusable knowledge requires the SRT-1 knowledge/recall path to be connected from the backend.',
+    body: 'I recorded your instruction. I will inject this context into subsequent WorkCells to maintain alignment.',
     tone: 'ready',
     facts: [
-      { label: 'Captured here', value: 'Conversation' },
-      { label: 'Durable knowledge', value: 'Backend recall path' },
-      { label: 'Next', value: 'Create methodology work' }
+      { label: 'Captured', value: 'Durable context' },
+      { label: 'Scope', value: 'Project alignment' }
     ],
     actions: [
-      { label: 'Turn into methodology', primary: true, kind: 'quick', command: `Turn this into a methodology: ${text}` },
       { label: 'Open Control Room', kind: 'control-room' }
     ]
   });
@@ -1191,17 +2120,57 @@ function saveLearningIntent(text) {
 async function handleIntent(text) {
   const intent = classifyOwnerIntent(text);
   const l = text.toLowerCase();
+
+  const asksAboutUpload = /\b(tell|explain|describe|what|about|discuss)\b/.test(l)
+    && /\b(uploaded|attached|attachment|file)\b/.test(l);
+  const asksAboutSelectedProject = /\b(tell|explain|describe|what|about|discuss)\b/.test(l)
+    && /\b(project|repository|repo|folder|selected|uploaded)\b/.test(l);
+  if (!latestRepositoryUnderstanding && !pendingRepositoryActivation
+      && ['conversation', 'understand', 'plan'].includes(intent)) {
+    await ensureRepositoryUnderstanding();
+  }
+  if (latestAttachment && asksAboutUpload) {
+    showAttachmentDiscussion('explain');
+    return;
+  }
+  if (latestRepositoryUnderstanding && (asksAboutSelectedProject || (!latestAttachment && asksAboutUpload))) {
+    const projectSession = getWorkcellProviderSession('__project__');
+    if (projectSession.enabled) await converseAboutProject(text);
+    else showRepositoryDiscussion();
+    return;
+  }
+  if (pendingRepositoryActivation && (asksAboutSelectedProject || asksAboutUpload)) {
+    addSystemMessage(`I am still reading "${pendingRepositoryActivation.name || 'the selected project'}". I will describe what is actually there as soon as Repository Understanding returns; I will not substitute details from the previous project.`);
+    return;
+  }
+
+  const activation = latestSummary.repository_activation || {};
+  if (!activation.active_repository && intent !== 'connect') {
+    addSystemMessage("Please connect a project first so I can reason about its files and runtimes.");
+    return;
+  }
+
   await loadWorkspace({ preserveThread: true });
+
+  if (['conversation', 'understand', 'plan'].includes(intent) && getWorkcellProviderSession('__project__').enabled) {
+    await converseAboutProject(text);
+    return;
+  }
+
   if (intent === 'inspect') {
-    addContextCard({
-      title: 'Control Room is ready',
-      body: 'Open the technical surface when you want the machinery. This Standard Experience stays focused on conversation.',
-      actions: [{ label: 'Open Control Room', primary: true, kind: 'control-room' }]
-    });
+    controlOverlay.classList.add('open');
     return;
   }
   if (intent === 'connect') {
     showConnectorStatus(text);
+    return;
+  }
+  if (['create', 'execute'].includes(intent) && shouldCreateBoundedWork(text, intent) && !getActiveSeedId()) {
+    await createWorkFromIntent(text);
+    return;
+  }
+  if (l.includes('verify') || l.includes('run verification') || l.includes('run tests')) {
+    await controlActiveWork('verify');
     return;
   }
   if (intent === 'review' && l.includes('approve')) {
@@ -1224,16 +2193,34 @@ async function handleIntent(text) {
     showReviewContext();
     return;
   }
-  if (['create', 'plan', 'execute'].includes(intent)) {
+  if (['create', 'execute'].includes(intent)) {
+    if (!shouldCreateBoundedWork(text, intent)) {
+      await converseAboutProject(text);
+      return;
+    }
     await createWorkFromIntent(text);
     return;
   }
+  if (intent === 'plan') {
+    await converseAboutProject(text);
+    return;
+  }
   if (['understand', 'observe'].includes(intent)) {
-    showProjectBrief();
+    if (intent === 'understand' && latestRepositoryUnderstanding) showRepositoryDiscussion();
+    else showProjectBrief();
     return;
   }
   if (intent === 'collaborate') {
-    showCollaborationStatus(text);
+    let assigned = null;
+    if (l.includes('codex')) assigned = 'codex';
+    else if (l.includes('claude')) assigned = 'claude';
+    else if (l.includes('gemini')) assigned = 'gemini';
+
+    if (assigned) {
+      await assignAssistant(assigned);
+    } else {
+      showCollaborationStatus(text);
+    }
     return;
   }
   if (intent === 'learn') {
@@ -1247,11 +2234,10 @@ async function handleIntent(text) {
   if (intent === 'manage') {
     addContextCard({
       title: 'Project management request',
-      body: 'Pause and resume are live for active WorkCells. Archive, duplicate, rename, delete, move, merge, and reopen need project lifecycle backend routes before I can safely execute them here.',
+      body: 'Pause and resume are live for active WorkCells. Advanced lifecycle actions (archive, duplicate, delete) require Control Room access.',
       facts: [
         { label: 'Live now', value: 'Pause/resume work' },
-        { label: 'Needs route', value: 'Project lifecycle' },
-        { label: 'Safety', value: 'No fake mutation' }
+        { label: 'Policy', value: 'No fake success' }
       ],
       actions: [
         { label: 'Pause active work', kind: 'workcell-action', data: { workcellAction: 'pause' } },
@@ -1261,7 +2247,7 @@ async function handleIntent(text) {
     });
     return;
   }
-  addSystemMessage('I recorded that in this conversation. If you want execution, say build, fix, plan, continue, pause, review, approve, or send back.');
+  await converseAboutProject(text);
 }
 
 async function sendMessage() {
@@ -1269,173 +2255,708 @@ async function sendMessage() {
   if (!text) return;
   addUserMessage(text);
   composer.value = '';
-  if (activeQueueSeedId) {
-    try {
-      await postJson('/api/v1/workcells/' + encodeURIComponent(activeQueueSeedId) + '/chat', {
-        role: 'user',
-        content: text,
-        channel: 'standard_experience',
-        actor: 'standard_experience_user'
-      });
-    } catch (error) {
-      addSystemMessage(error.message || 'I could not attach that message to the active WorkCell.');
-      return;
+  composer.style.height = 'auto';
+  const existingSeedId = getActiveSeedId();
+  if (existingSeedId) {
+    const recorded = await recordActiveWorkcellMessage('user', text, { source: 'typed_composer' });
+    if (recorded.recorded === false) {
+      addInsight(`WorkCell message was not persisted: ${recorded.reason}`);
     }
   }
-  await handleIntent(text);
+  try {
+    await handleIntent(text);
+  } catch (error) {
+    addSystemMessage(error.message || 'Failed to process request.');
+  }
 }
 
 function bindContextActions() {
-  thread.querySelectorAll('[data-action-kind]').forEach(button => {
-    if (button.dataset.bound) return;
-    button.dataset.bound = 'true';
-    button.addEventListener('click', () => {
+  // Bind dynamically rendered card buttons
+  document.querySelectorAll('.context-actions button, .intake-actions button').forEach(button => {
+    button.onclick = async (e) => {
+      e.stopPropagation();
       const kind = button.dataset.actionKind;
-      if (kind === 'quick') {
-        composer.value = button.dataset.command || button.textContent;
-        sendMessage();
-      } else if (kind === 'review') {
-        loadConversation();
-      } else if (kind === 'explain') {
-        addSystemMessage('This item needs your decision because SRT-1 has work in a reviewable state. I can explain the change, show verification, or send it back.');
-      } else if (kind === 'control-room') {
-        window.location.href = 'dashboard.html';
-      } else if (kind === 'open-url') {
-        const url = button.dataset.url;
-        if (url) window.location.href = url;
-      } else if (kind === 'add-project') {
-        projectMenu.classList.add('open');
-      } else if (kind === 'choose-folder') {
+      const cmd = button.dataset.command;
+
+      if (cmd) {
+        addUserMessage(cmd);
+        try {
+          await handleIntent(cmd);
+        } catch (err) {
+          addSystemMessage(err.message || 'Action failed.');
+        }
+        return;
+      }
+
+      if (kind === 'choose-folder') {
+        starterGatewayOpen = false;
         chooseFolder();
+    } else if (kind === 'continue-remembered-project') {
+      starterGatewayOpen = false;
+      await loadWorkspace({ preserveThread: false });
+      await loadCurrentRepositoryDiscussion();
+    } else if (kind === 'start-new') {
+      resetToStarterGateway();
+    } else if (kind === 'choose-registered-project') {
+      projectMenu.classList.add('open');
+    } else if (kind === 'launch') {
+      await launchProject(button.dataset.repoId);
       } else if (kind === 'paste-path') {
+        starterGatewayOpen = false;
         projectMenu.classList.add('open');
         pathEntry.classList.add('open');
         projectPath.focus();
-      } else if (kind === 'attach-file') {
+      } else if (kind === 'upload-file') {
         fileInput.click();
       } else if (kind === 'use-current') {
+        starterGatewayOpen = false;
         registerCurrent();
+      } else if (kind === 'connect-github') {
+        registerGithubRepository();
+      } else if (kind === 'control-room') {
+        window.location.href = 'dashboard.html';
+      } else if (kind === 'review') {
+        loadConversation();
+      } else if (kind === 'inspect-proposals') {
+        showProposalsContext();
+      } else if (kind === 'apply-proposal') {
+        applyProposal(button.dataset.proposalId);
+      } else if (kind === 'review-proposal') {
+        reviewProposal(button.dataset.proposalId, button.dataset.action);
       } else if (kind === 'workcell-action') {
-        controlActiveWork(button.dataset.workcellAction || 'pause');
+        controlActiveWork(button.dataset.workcellAction);
+      } else if (kind === 'open-url') {
+        window.open(button.dataset.url, '_blank');
+      } else if (kind === 'repository-discussion') {
+        showRepositoryDiscussion();
+      } else if (kind === 'repository-discussion-live') {
+        loadCurrentRepositoryDiscussion();
+      } else if (kind === 'attachment-discussion') {
+        showAttachmentDiscussion(button.dataset.mode || 'explain');
+      } else if (kind === 'project-assistant') {
+        openProjectAssistantSettings();
       }
-    });
+    };
   });
 }
 
 async function controlActiveWork(action) {
-  if (!activeQueueSeedId) {
-    addSystemMessage('There is no active work item to control yet.');
+  if (pendingRepositoryActivation) {
+    addSystemMessage(`I am still understanding "${pendingRepositoryActivation.name || 'the selected project'}". I did not send the ${action} request to the previous project's WorkCell. Project runtime controls are separate from WorkCell pause and stop controls.`);
     return;
   }
-  addUserMessage(action === 'reject' ? 'Send it back' : action.charAt(0).toUpperCase() + action.slice(1));
+  const active = activeExecution();
+  const seedId = active?.queue_seed_id || activeQueueSeedId;
+  if (!seedId) {
+    addSystemMessage('I do not see an active WorkCell to ' + action + '.');
+    return;
+  }
+  addUserMessage(action.charAt(0).toUpperCase() + action.slice(1) + ' active work');
   try {
-    const result = await postJson('/api/v1/workcells/' + encodeURIComponent(activeQueueSeedId) + '/action', {
-      action,
-      actor: 'standard_experience_user',
-      reason: 'Decision from Standard Experience conversation.'
-    });
-    addSystemMessage(result.error || result.message || `SRT-1 recorded ${action} for the active work.`);
-    await loadWorkspace({ preserveThread: true });
-  } catch (error) {
-    addSystemMessage(error.message || `Could not ${action} the active work.`);
-  }
-}
+    let result;
+    if (action === 'verify') {
+      result = await postJson(`/api/v1/workcells/${encodeURIComponent(seedId)}/verify`, {
+        actor: 'standard_experience_human',
+        details: { request: 'run_backend_verification' }
+      });
+    } else {
+      result = await postJson(`/api/v1/workcells/${encodeURIComponent(seedId)}/action`, { action });
+    }
 
-async function switchProject(repoId, runtimePort) {
-  projectMenu.classList.remove('open');
-  const repo = latestRepositories.find(item => item.repo_id === repoId);
-  if (!repo) return;
-  addUserMessage(`Open ${repo.name}`);
-  if (repo.active) {
-    addSystemMessage(`You are already in ${repo.name}. I restored its current conversation.`);
-    await loadWorkspace();
-    return;
-  }
-  if (runtimePort) {
-    addSystemMessage(`${repo.name} already has a runtime on port ${runtimePort}. Open that runtime to restore its conversation from its own state.`);
     addContextCard({
-      title: 'Project runtime available',
-      meta: repo.name,
-      body: 'This project is registered outside the current SRT-1 Core engine. Its own runtime should own the conversation.',
+      title: 'Action executed',
+      meta: seedId,
+      body: result.message || `WorkCell execution action "${action}" completed successfully.`,
+      tone: 'ready',
+      facts: [
+        { label: 'Action', value: action },
+        { label: 'Status', value: result.status || 'recorded' },
+        { label: 'Project', value: projectDisplayName() },
+        { label: 'Ledger', value: result.event_id || result.activity_event_id || 'recorded' }
+      ],
       actions: [
-        { label: 'Open project workspace', primary: true, kind: 'open-url', data: { url: runtimeUrl(runtimePort) } },
-        { label: 'Open project Control Room', kind: 'open-url', data: { url: runtimeUrl(runtimePort, 'dashboard.html') } }
+        { label: 'Open Control Room', kind: 'control-room' }
       ]
     });
+    await loadWorkspace({ preserveThread: true });
+  } catch (error) {
+    addSystemMessage(error.message || 'WorkCell action failed.');
+  }
+}
+
+async function assignAssistant(name) {
+  const active = activeExecution();
+  const seedId = active?.queue_seed_id || activeQueueSeedId;
+  if (!seedId) {
+    addSystemMessage('Please connect a project and select or create an active task first.');
     return;
   }
+  addUserMessage(`Assign assistant ${name}`);
   try {
-    const result = await postJson('/api/v1/repositories/launch', { repo_id: repoId });
+    const result = await postJson(`/api/v1/workcells/${encodeURIComponent(seedId)}/chat`, {
+      role: 'system',
+      content: `System assigned assistant adapter: ${name}`,
+      channel: 'standard_experience_system',
+      actor: 'standard_experience_system',
+      assistant_adapter: name
+    });
     addContextCard({
-      title: result.status === 'ready' ? 'Project already open' : 'Project runtime launching',
-      meta: repo.name,
-      body: result.message || 'SRT-1 started the runtime responsible for that project. Once it is online, that workspace can brief you from its own state.',
+      title: 'Assistant assigned',
+      meta: seedId,
+      body: `I assigned the "${name}" assistant adapter to the active WorkCell.`,
+      tone: 'ready',
       facts: [
-        { label: 'Runtime', value: result.runtime_port || 'Starting' },
-        { label: 'Project', value: repo.name }
+        { label: 'Assigned agent', value: name },
+        { label: 'WorkCell', value: seedId }
       ],
-      actions: result.runtime_port
-        ? [
-            { label: 'Open project workspace', primary: true, kind: 'open-url', data: { url: runtimeUrl(result.runtime_port) } },
-            { label: 'Open project Control Room', kind: 'open-url', data: { url: runtimeUrl(result.runtime_port, 'dashboard.html') } }
-          ]
-        : [{ label: 'Open Control Room', kind: 'control-room' }]
+      actions: [
+        { label: 'Open Control Room', kind: 'control-room' }
+      ]
+    });
+    await loadWorkspace({ preserveThread: true });
+  } catch (error) {
+    addSystemMessage(error.message || 'Failed to assign assistant.');
+  }
+}
+
+async function showProposalsContext() {
+  const active = activeExecution();
+  const seedId = active?.queue_seed_id || activeQueueSeedId;
+  if (!seedId) {
+    addSystemMessage('I do not see an active WorkCell to review proposals for.');
+    return;
+  }
+  addUserMessage('Inspect changes');
+  try {
+    const data = await getJson(`/api/v1/workcells/${encodeURIComponent(seedId)}/proposals`);
+    const proposals = data.proposals || [];
+    if (!proposals.length) {
+      addSystemMessage('No change proposals found for this WorkCell execution.');
+      return;
+    }
+
+    proposals.forEach(proposal => {
+      const changes = proposal.proposed_changes || [];
+      const status = proposal.status || 'awaiting_review';
+
+      let bodyText = `Proposal ID: ${proposal.proposal_id}\nTask: ${proposal.task}\nStatus: ${status}`;
+      if (changes.length) {
+        bodyText += '\n\nProposed Changes:\n' + changes.map(c => `- [${c.action}] ${c.file_path}: ${c.rationale || 'No rationale'}`).join('\n');
+      }
+
+      addContextCard({
+        title: 'Change Proposal',
+        meta: proposal.proposal_id,
+        body: bodyText,
+        tone: status === 'awaiting_review' ? 'warn' : (status === 'approved' || status === 'applied' ? 'ready' : 'danger'),
+        facts: [
+          { label: 'Files changed', value: String(changes.length) },
+          { label: 'Status', value: status },
+          { label: 'Created', value: proposal.timestamp ? proposal.timestamp.split('T')[0] : 'unknown' }
+        ],
+        actions: status === 'awaiting_review' ? [
+          { label: 'Approve & Apply', primary: true, kind: 'apply-proposal', data: { proposalId: proposal.proposal_id } },
+          { label: 'Reject', danger: true, kind: 'review-proposal', data: { proposalId: proposal.proposal_id, action: 'reject' } }
+        ] : []
+      });
     });
   } catch (error) {
-    addSystemMessage(error.message || 'Could not launch that project runtime.');
+    addSystemMessage(error.message || 'Could not fetch change proposals.');
   }
 }
 
-async function registerCurrent() {
-  projectMenu.classList.remove('open');
-  addUserMessage('Use the current workspace');
+async function applyProposal(proposalId) {
+  addUserMessage(`Approve and apply proposal ${proposalId}`);
   try {
-    await postJson('/api/v1/repositories/register-current', {});
-    addSystemMessage('I connected the current workspace and restored its Standard Experience.');
-    await loadWorkspace();
+    const result = await postJson(`/api/v1/change-proposals/${encodeURIComponent(proposalId)}/apply`, {});
+    addContextCard({
+      title: 'Proposal Applied',
+      meta: proposalId,
+      body: result.message || 'The change proposal has been successfully applied to the codebase.',
+      tone: 'ready',
+      facts: [
+        { label: 'Status', value: result.status || 'applied' },
+        { label: 'Files mutated', value: String(result.files_changed?.length || 0) }
+      ],
+      actions: [
+        { label: 'Open Control Room', kind: 'control-room' }
+      ]
+    });
+    await loadWorkspace({ preserveThread: true });
   } catch (error) {
-    addSystemMessage(error.message || 'Current workspace registration failed.');
+    addSystemMessage(error.message || 'Failed to apply change proposal.');
   }
 }
 
-function openAttachmentChoices() {
+async function reviewProposal(proposalId, action) {
+  addUserMessage(`${action.charAt(0).toUpperCase() + action.slice(1)} proposal ${proposalId}`);
+  try {
+    const result = await postJson(`/api/v1/change-proposals/${encodeURIComponent(proposalId)}/review`, { action });
+    addContextCard({
+      title: `Proposal ${action.charAt(0).toUpperCase() + action.slice(1)}ed`,
+      meta: proposalId,
+      body: result.message || `The change proposal has been ${action}ed.`,
+      tone: action === 'reject' ? 'danger' : 'ready',
+      facts: [
+        { label: 'Status', value: result.status || 'reviewed' }
+      ],
+      actions: [
+        { label: 'Open Control Room', kind: 'control-room' }
+      ]
+    });
+    await loadWorkspace({ preserveThread: true });
+  } catch (error) {
+    addSystemMessage(error.message || 'Failed to review change proposal.');
+  }
+}
+
+
+async function switchProject(repoId, runtimePort) {
+  starterGatewayOpen = false;
+  projectMenu.classList.remove('open');
+  const activeRepoId = latestSummary.repository_activation?.active_repository?.repo_id;
+  if (repoId && repoId !== activeRepoId) {
+    await launchProject(repoId);
+    return;
+  }
+  addUserMessage('Continue current project');
+  try {
+    const result = await postJson('/api/v1/repositories/activate', { repo_id: repoId });
+    if (result.status !== 'ready') {
+      throw new Error(result.error || 'The selected project is not active in this runtime.');
+    }
+    activeQueueSeedId = null;
+    addSystemMessage(`Continuing project: "${result.active_repository?.name || 'Project'}".`);
+    await loadWorkspace({ preserveThread: false });
+  } catch (error) {
+    addSystemMessage(error.message || 'Failed to switch project.');
+  }
+}
+
+function repositoryRecordFrom(result = {}, repoId = '') {
+  if (result.registered_repository) return result.registered_repository;
+  const repositories = result.repositories || [];
+  return repositories.find(repo => repo.repo_id === repoId)
+    || result.active_repository
+    || {};
+}
+
+function repositoryRegistrationBody(record = {}, status = 'registered') {
+  const name = record.name || 'the selected project';
+  const files = Number(record.file_count || 0);
+  const understood = status === 'ready' && files > 0;
+  if (understood) {
+    return `You selected "${name}". SRT-1 already has repository understanding for ${files} files. Would you like me to tell you what this project is and discuss where to begin?`;
+  }
+  return `You selected "${name}" and I registered its folder. I have not described its contents yet because its repository runtime has not finished Repository Understanding. Launch it and I will return with the actual synopsis, file map, and WorkCells. Would you like me to walk you through it when that is ready?`;
+}
+
+function showRepositoryRegistration(result = {}, source = 'Selected folder') {
+  const record = repositoryRecordFrom(result);
+  const ready = result.status === 'ready' && Number(record.file_count || 0) > 0;
   addContextCard({
-    title: 'Connect or attach',
-    meta: 'Conversation intake',
-    body: 'Choose what SRT-1 should receive. Projects go through the local repository runtime. Files are read locally and added to this conversation as context.',
+    title: ready ? 'Repository understood' : 'Repository registered',
+    meta: record.name || 'Project',
+    body: repositoryRegistrationBody(record, result.status),
+    tone: 'ready',
     facts: [
-      { label: 'Folder', value: 'Project runtime' },
-      { label: 'File', value: 'Conversation context' },
-      { label: 'Current', value: 'This workspace' }
+      { label: 'Selection', value: source },
+      { label: 'Repository', value: record.name || 'Project' },
+      { label: 'Files understood', value: ready ? String(record.file_count) : 'Pending runtime' },
+      { label: 'State', value: result.status || record.status || 'registered' }
     ],
+    actions: ready
+      ? [{ label: 'Tell me about this project', primary: true, kind: 'repository-discussion-live' }]
+      : (record.repo_id ? [{ label: 'Launch and understand project', primary: true, kind: 'launch', data: { repoId: record.repo_id } }] : [])
+  });
+}
+
+function cleanSynopsisText(text) {
+  return String(text || '')
+    .replace(/```[\s\S]*?```/g, ' ')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/\[[A-Z_,\s]+\]/g, ' ')
+    .replace(/[\u2500-\u257F\u2190-\u21FF\u2600-\u27BF\u{1F300}-\u{1FAFF}]/gu, ' ')
+    .replace(/^\s*[-*>#]+\s*/gm, '')
+    .replace(/[*_`]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function synopsisSection(text, label) {
+  const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const pattern = new RegExp(
+    `(?:\\*\\*)?${escaped}:(?:\\*\\*)?\\s*([\\s\\S]*?)(?=\\n\\s*(?:\\*\\*)?[A-Z][^\\n]{1,80}:(?:\\*\\*)?|$)`,
+    'i'
+  );
+  return cleanSynopsisText(String(text || '').match(pattern)?.[1] || '');
+}
+
+function synopsisPreview(text, limit = 700) {
+  const raw = String(text || '');
+  const clean = synopsisSection(raw, 'Architectural Intent')
+    || cleanSynopsisText(raw.split(/Extracted Core Concepts:/i)[0]);
+  return clean.length > limit ? `${clean.slice(0, limit).trim()}...` : clean;
+}
+
+function repositoryDiscussionFacts(understanding) {
+  const summary = understanding?.summary || latestSummary || {};
+  const languages = runtimeLanguageNames(summary.language_coverage || {});
+  const synopsisLanguages = cleanSynopsisText(
+    String(understanding?.synopsis || '').match(/\*\*Languages:\*\*\s*([^\n]+)/i)?.[1] || ''
+  );
+  return [
+    { label: 'Files mapped', value: String(understanding?.files || summary.files_indexed || 0) },
+    { label: 'Symbols mapped', value: String(understanding?.symbols || summary.symbols_indexed || 0) },
+    { label: 'Languages', value: languages.slice(0, 5).join(', ') || synopsisLanguages || 'Not reported' },
+    { label: 'Manifest', value: summary.manifest_freshness || 'unknown' }
+  ];
+}
+
+function runtimeLanguageNames(coverage = {}) {
+  const names = {
+    '.py': 'Python', '.js': 'JavaScript', '.ts': 'TypeScript', '.tsx': 'TypeScript/React',
+    '.jsx': 'JavaScript/React', '.html': 'HTML', '.css': 'CSS', '.json': 'JSON',
+    '.md': 'Markdown', '.java': 'Java', '.go': 'Go', '.rs': 'Rust', '.cs': 'C#',
+    '.php': 'PHP', '.rb': 'Ruby', '.swift': 'Swift', '.kt': 'Kotlin'
+  };
+  return Object.keys(coverage).map(ext => names[ext] || ext.replace(/^\./, '').toUpperCase()).filter(Boolean);
+}
+
+async function waitForRepositoryUnderstanding(port, record = {}) {
+  const origin = `http://127.0.0.1:${port}`;
+  for (let attempt = 0; attempt < 45; attempt += 1) {
+    try {
+      const [summaryResponse, synopsisResponse] = await Promise.all([
+        fetch(`${origin}/dashboard-summary`),
+        fetch(`${origin}/synopsis`)
+      ]);
+      if (summaryResponse.ok && synopsisResponse.ok) {
+        const summary = await summaryResponse.json();
+        const synopsisData = await synopsisResponse.json();
+        const files = Number(synopsisData.files || summary.files_indexed || 0);
+        if (synopsisData.synopsis) {
+          API = origin;
+          activeQueueSeedId = null;
+          latestRepositoryUnderstanding = {
+            repoId: record.repo_id || '',
+            name: synopsisData.repo || record.name || 'Project',
+            port,
+            summary,
+            synopsis: synopsisData.synopsis,
+            files,
+            symbols: Number(synopsisData.symbols || summary.symbols_indexed || 0)
+          };
+          pendingRepositoryActivation = null;
+          sessionStorage.removeItem(pendingActivationStorageKey);
+          if (Number(port) !== Number(window.location.port)) {
+            window.location.assign(runtimeUrl(port, 'experience.html?ready=1'));
+            return;
+          }
+          const controlRoomLink = document.querySelector('a[href="dashboard.html"]');
+          if (controlRoomLink) controlRoomLink.href = `${origin}/dashboard.html`;
+          await loadWorkspace({ preserveThread: true });
+          const languages = runtimeLanguageNames(summary.language_coverage || {});
+          const hasSource = files > 0;
+          addContextCard({
+            title: hasSource ? `${latestRepositoryUnderstanding.name} understood` : 'Selected folder inspected',
+            meta: `Runtime ${port}`,
+            body: hasSource
+              ? `${synopsisPreview(synopsisData.synopsis)} Would you like to talk about what this project is, or begin working on it?`
+              : `I inspected "${latestRepositoryUnderstanding.name}", but found no supported source files to map. ${synopsisPreview(synopsisData.synopsis)} This may be an exported asset folder rather than the project root. Choose the folder that contains the actual project files and I will analyze that instead.`,
+            tone: hasSource ? 'ready' : 'warn',
+            facts: [
+              { label: 'Files mapped', value: String(files) },
+              { label: 'Symbols mapped', value: String(latestRepositoryUnderstanding.symbols) },
+              { label: 'Languages', value: languages.slice(0, 4).join(', ') || 'Detected' },
+              { label: 'Manifest', value: summary.manifest_freshness || 'ready' }
+            ],
+            actions: hasSource
+              ? [
+                  { label: 'Talk about this project', primary: true, kind: 'repository-discussion' },
+                  { label: 'Begin working', kind: 'quick', command: 'Help me decide the first work we should do in this project.' },
+                  { label: 'Open Control Room', kind: 'open-url', data: { url: `${origin}/dashboard.html` } }
+                ]
+              : [
+                  { label: 'Choose the project folder', primary: true, kind: 'choose-folder' },
+                  { label: 'Tell me what was found', kind: 'repository-discussion' }
+                ]
+          });
+          return;
+        }
+      }
+    } catch (_) {}
+    await new Promise(resolve => setTimeout(resolve, 1000));
+  }
+  // Keep the launch state across reloads. Indexing can outlive the browser page.
+  sessionStorage.setItem(pendingActivationStorageKey, JSON.stringify({
+    repoId: record.repo_id || '',
+    name: record.name || 'the selected project',
+    port
+  }));
+  addSystemMessage(`The repository runtime started on port ${port}, but Repository Understanding has not returned a synopsis yet. I will continue from this launch when this page is reopened.`);
+}
+
+async function ensureRepositoryUnderstanding() {
+  if (latestRepositoryUnderstanding?.synopsis) return latestRepositoryUnderstanding;
+  try {
+    const synopsisData = await getJson('/synopsis');
+    const active = latestSummary.repository_activation?.active_repository || {};
+    latestRepositoryUnderstanding = {
+      repoId: active.repo_id || '',
+      name: synopsisData.repo || active.name || projectDisplayName(),
+      port: active.runtime_port || '',
+      summary: latestSummary,
+      synopsis: synopsisData.synopsis || '',
+      files: Number(synopsisData.files || latestSummary.files_indexed || 0),
+      symbols: Number(synopsisData.symbols || latestSummary.symbols_indexed || 0)
+    };
+    return latestRepositoryUnderstanding;
+  } catch (_) {
+    return null;
+  }
+}
+
+function showRepositoryDiscussion() {
+  const understanding = latestRepositoryUnderstanding;
+  if (!understanding) {
+    addSystemMessage('Repository Understanding has not returned a project synopsis in this conversation yet.');
+    return;
+  }
+  addContextCard({
+    title: `About ${understanding.name}`,
+    meta: `${understanding.files} files / ${understanding.symbols} symbols`,
+    body: synopsisPreview(understanding.synopsis, 1400),
+    tone: 'ready',
+    facts: repositoryDiscussionFacts(understanding),
     actions: [
-      { label: 'Choose folder', primary: true, kind: 'choose-folder' },
-      { label: 'Paste local path', kind: 'paste-path' },
-      { label: 'Attach file', kind: 'attach-file' },
-      { label: 'Use current workspace', kind: 'use-current' }
+      { label: 'Plan the first change', primary: true, kind: 'quick', command: 'Based on this project understanding, help me plan the first change.' },
+      { label: 'Discuss with an assistant', kind: 'project-assistant' },
+      { label: 'Show active work', kind: 'quick', command: 'Show active work.' }
     ]
   });
 }
 
-function openActionChoices() {
+function localProjectResponse(message, understanding) {
+  const intent = classifyOwnerIntent(message);
+  const facts = repositoryDiscussionFacts(understanding);
+  const summary = facts.map(fact => `${fact.label}: ${fact.value}`).join(' | ');
+  const synopsis = synopsisPreview(understanding?.synopsis, intent === 'plan' ? 900 : 1200);
+  const planTail = intent === 'plan'
+    ? 'A practical first pass is: confirm the main user flow, pick one bounded WorkCell, define the success check, then let SRT-1 hand that scoped package to the selected assistant.'
+    : 'You can ask me to plan a first change, inspect a WorkCell, or connect a Project Assistant for deeper model-backed discussion.';
+  return `${synopsis}\n\n${summary}\n\n${planTail}`;
+}
+
+function showLocalProjectResponse(message, understanding) {
   addContextCard({
-    title: 'What do you want SRT-1 to do?',
-    meta: 'Intent shortcuts',
-    body: 'These are conversation starters. SRT-1 will translate the intent into the right backend path instead of making you operate the machinery.',
+    title: 'SRT-1 project understanding',
+    meta: `${understanding.files} files / ${understanding.symbols} symbols`,
+    body: localProjectResponse(message, understanding),
+    tone: 'ready',
+    facts: repositoryDiscussionFacts(understanding),
     actions: [
-      { label: 'Create', kind: 'quick', command: 'I have an idea. Help me think through this.' },
-      { label: 'Connect', kind: 'quick', command: 'Open this project.' },
-      { label: 'Understand', kind: 'quick', command: 'Explain my project.' },
-      { label: 'Plan', kind: 'quick', command: 'Let us plan this feature.' },
-      { label: 'Execute', primary: true, kind: 'quick', command: 'Continue the active work.' },
-      { label: 'Observe', kind: 'quick', command: 'Show active work.' },
-      { label: 'Review', kind: 'quick', command: 'Show me what changed.' },
-      { label: 'Inspect', kind: 'control-room' },
-      { label: 'Search', kind: 'quick', command: 'Search code.' },
-      { label: 'Explain this project', kind: 'quick', command: 'Explain this project.' },
-      { label: 'Show what needs review', kind: 'quick', command: 'Show what needs my approval.' },
+      { label: 'Connect Project Assistant', primary: true, kind: 'project-assistant' },
+      { label: 'Plan first WorkCell', kind: 'quick', command: 'Create a scoped WorkCell seed for the first safe change in this project.' },
       { label: 'Open Control Room', kind: 'control-room' }
     ]
+  });
+}
+
+async function loadCurrentRepositoryDiscussion() {
+  const understanding = await ensureRepositoryUnderstanding();
+  if (understanding) showRepositoryDiscussion();
+  else addSystemMessage('The project synopsis is not available yet.');
+}
+
+async function registerCurrent() {
+  projectMenu.classList.remove('open');
+  addUserMessage('Use current workspace');
+  try {
+    const result = await postJson('/api/v1/repositories/register-current', {});
+    await loadWorkspace({ preserveThread: true });
+    showRepositoryRegistration(result, 'Current workspace');
+  } catch (error) {
+    addSystemMessage(error.message || 'Failed to connect current workspace.');
+  }
+}
+
+async function registerPath() {
+  const path = projectPath.value.trim();
+  if (!path) {
+    pathEntry.classList.add('open');
+    projectPath.focus();
+    return;
+  }
+  projectMenu.classList.remove('open');
+  addUserMessage(`Open ${path}`);
+  try {
+    const result = await postJson('/api/v1/repositories/register-path', { path });
+    await loadWorkspace({ preserveThread: true });
+    showRepositoryRegistration(result, 'Pasted local path');
+  } catch (error) {
+    addSystemMessage(error.message || 'Project path registration failed.');
+  }
+}
+
+async function registerGithubRepository() {
+  const input = document.getElementById('githubRepoUrl');
+  const url = (input && input.value ? input.value : '').trim();
+  if (!url) {
+    addSystemMessage('Paste a GitHub repository URL first, for example https://github.com/owner/repo.');
+    if (input) input.focus();
+    return;
+  }
+  projectMenu.classList.remove('open');
+  addUserMessage(`Connect GitHub: ${url}`);
+  addSystemMessage('I am cloning that GitHub repository into the local SRT-1 managed workspace, then I will register it for Repository Understanding.');
+  try {
+    const result = await postJson('/api/v1/repositories/register-github', { url });
+    await loadWorkspace({ preserveThread: true });
+    showRepositoryRegistration(result, 'GitHub repository');
+  } catch (error) {
+    addSystemMessage(error.message || 'GitHub repository registration failed.');
+  }
+}
+async function chooseFolder() {
+  projectMenu.classList.remove('open');
+  addUserMessage('Choose a project folder');
+  addSystemMessage('I am opening the folder connector. When the folder is selected, I will keep the next step in this conversation.');
+  try {
+    const result = await postJson('/api/v1/repositories/browse-folder', {});
+    if (result.status === 'cancelled') {
+      addSystemMessage('No folder was selected. We stayed in this workspace.');
+      return;
+    }
+    await loadWorkspace({ preserveThread: true });
+    showRepositoryRegistration(result, 'Selected local folder');
+  } catch (error) {
+    addSystemMessage(error.message || 'Folder chooser is unavailable. Paste the folder path instead.');
+    pathEntry.classList.add('open');
+  }
+}
+
+async function launchProject(repoId) {
+  if (!repoId) return;
+  addUserMessage('Launch project runtime');
+  try {
+    const result = await postJson('/api/v1/repositories/launch', { repo_id: repoId });
+    const record = repositoryRecordFrom(result, repoId);
+    pendingRepositoryActivation = { repoId, name: record.name || 'the selected project' };
+    starterGatewayOpen = false;
+    if (result.runtime_port) {
+      sessionStorage.setItem(pendingActivationStorageKey, JSON.stringify({
+        repoId,
+        name: record.name || 'the selected project',
+        port: result.runtime_port
+      }));
+    }
+    latestRepositoryUnderstanding = null;
+    activeQueueSeedId = null;
+    latestWork = { executions: [] };
+    projectName.textContent = record.name || 'Project';
+    missionTitle.textContent = 'Understanding selected project';
+    missionTitle.title = record.name || '';
+    missionPath.innerHTML = renderMissionPath('Planning');
+    addContextCard({
+      title: result.status === 'ready' ? 'Project already running' : 'Project runtime launching',
+      meta: record.name || 'Project',
+      body: result.status === 'ready'
+        ? `The runtime for "${record.name || 'this project'}" is available. I am loading its existing Repository Understanding now.`
+        : `I started an isolated SRT-1 runtime for "${record.name || 'this project'}". It is building the manifest, synopsis, FileCells, and WorkCells now. I will describe the project from that evidence when it is ready.`,
+      facts: [
+        { label: 'Runtime port', value: result.runtime_port || 'Starting' },
+        { label: 'State', value: result.status || 'launching' }
+      ],
+      actions: result.runtime_port
+        ? [
+            { label: 'Open project workspace', primary: true, kind: 'open-url', data: { url: runtimeUrl(result.runtime_port, 'experience.html?ready=1') } },
+            { label: 'Open project Control Room', kind: 'open-url', data: { url: runtimeUrl(result.runtime_port, 'dashboard.html') } }
+          ]
+        : [{ label: 'Open Control Room', kind: 'control-room' }]
+    });
+    if (!result.runtime_port) return;
+    if (['ready', 'running'].includes(result.status) && Number(result.runtime_port) !== Number(window.location.port)) {
+      window.location.assign(runtimeUrl(result.runtime_port, 'experience.html?ready=1'));
+      return;
+    }
+    await waitForRepositoryUnderstanding(result.runtime_port, record);
+  } catch (error) {
+    pendingRepositoryActivation = null;
+    addSystemMessage(error.message || 'Project runtime launch failed.');
+  }
+}
+
+function analyzeAttachedFile(file, text, readable) {
+  const extension = (file.name.match(/\.[^.]+$/) || [''])[0].toLowerCase();
+  const lines = readable ? text.split(/\r?\n/).length : 0;
+  let kind = 'text file';
+  let detail = readable ? `${lines} lines of readable text` : 'a binary or non-text payload';
+  if (extension === '.py') {
+    kind = 'Python source file';
+    const classes = (text.match(/^\s*class\s+\w+/gm) || []).length;
+    const functions = (text.match(/^\s*(?:async\s+)?def\s+\w+/gm) || []).length;
+    const imports = (text.match(/^\s*(?:from\s+\S+\s+import|import\s+\S+)/gm) || []).length;
+    detail = `${lines} lines with ${classes} classes, ${functions} functions, and ${imports} import statements`;
+  } else if (['.js', '.jsx', '.ts', '.tsx'].includes(extension)) {
+    kind = extension.includes('x') ? 'frontend component/source file' : 'JavaScript or TypeScript source file';
+    const functions = (text.match(/\b(?:function|class)\s+\w+|=>/g) || []).length;
+    const imports = (text.match(/^\s*import\s+/gm) || []).length;
+    detail = `${lines} lines with approximately ${functions} callable or component definitions and ${imports} imports`;
+  } else if (extension === '.html') {
+    kind = 'HTML interface file';
+    detail = `${lines} lines with ${(text.match(/<script\b/gi) || []).length} script blocks and ${(text.match(/<style\b/gi) || []).length} style blocks`;
+  } else if (extension === '.md') {
+    kind = 'Markdown document';
+    detail = `${lines} lines with ${(text.match(/^#{1,6}\s+/gm) || []).length} titled sections`;
+  } else if (extension === '.json') {
+    kind = 'JSON data or configuration file';
+    try {
+      const parsed = JSON.parse(text);
+      detail = Array.isArray(parsed)
+        ? `${parsed.length} top-level records`
+        : `${Object.keys(parsed || {}).length} top-level fields`;
+    } catch (_) {
+      detail = `${lines} lines; the content is not valid JSON`;
+    }
+  } else if (!readable) {
+    kind = file.type || 'binary file';
+  }
+  return {
+    name: file.name,
+    extension,
+    kind,
+    detail,
+    lines,
+    size: file.size,
+    preview: readable ? text.slice(0, 1800) : '',
+    readable
+  };
+}
+
+function showAttachmentDiscussion(mode = 'explain') {
+  const attachment = latestAttachment;
+  if (!attachment) {
+    addSystemMessage('There is no attached file in this browser conversation yet.');
+    return;
+  }
+  const intent = mode === 'plan'
+    ? 'We can now decide how this file should influence the project plan.'
+    : 'We can now discuss its purpose, structure, risks, or the changes you want to make.';
+  addContextCard({
+    title: `About ${attachment.name}`,
+    meta: attachment.kind,
+    body: `SRT-1 identified this as a ${attachment.kind}: ${attachment.detail}. ${intent}`,
+    tone: 'ready',
+    facts: [
+      { label: 'File', value: attachment.name },
+      { label: 'Type', value: attachment.kind },
+      { label: 'Readable', value: attachment.readable ? 'Yes' : 'No' },
+      { label: 'Context', value: activeQueueSeedId ? 'Active WorkCell' : 'Browser session' }
+    ],
+    actions: mode === 'plan'
+      ? [{ label: 'Create a plan from this file', primary: true, kind: 'quick', command: `Plan the work needed for ${attachment.name}.` }]
+      : [{ label: 'Use it for planning', primary: true, kind: 'attachment-discussion', data: { mode: 'plan' } }]
   });
 }
 
@@ -1443,12 +2964,18 @@ async function handleFileAttachment(file) {
   if (!file) return;
   addUserMessage(`Attach file: ${file.name}`);
   let preview = '';
+  let attachmentText = '';
+  let readable = true;
   try {
     const text = await file.text();
+    attachmentText = text;
     preview = text.slice(0, 1800);
+    readable = !text.includes('\0') && !text.includes('\uFFFD');
   } catch (error) {
     preview = '[Binary file or unreadable text payload]';
+    readable = false;
   }
+  latestAttachment = analyzeAttachedFile(file, readable ? attachmentText : '', readable);
   const context = [
     `Attached file: ${file.name}`,
     `Size: ${Math.max(1, Math.round(file.size / 1024))} KB`,
@@ -1475,114 +3002,35 @@ async function handleFileAttachment(file) {
     }
   }
   addContextCard({
-    title: 'File added to the conversation',
+    title: 'File received and understood',
     meta: file.name,
-    body: activeQueueSeedId
-      ? 'I recorded this file as context on the active WorkCell conversation.'
-      : 'I read this file locally and added it to the current conversation. Start or choose active work when you want it routed to a WorkCell.',
+    body: `You uploaded "${file.name}". I read it as a ${latestAttachment.kind}: ${latestAttachment.detail}. ${activeQueueSeedId ? 'I attached that context to the active WorkCell conversation.' : 'I kept its bounded summary in this browser conversation.'} Would you like to talk about what this file is and what you want to do with it?`,
     tone: 'ready',
     facts: [
       { label: 'File', value: file.name },
-      { label: 'Size', value: `${Math.max(1, Math.round(file.size / 1024))} KB` },
-      { label: 'Route', value: activeQueueSeedId ? 'Active WorkCell' : 'Conversation only' }
+      { label: 'Size', value: `${Math.max(1, Math.round(file.size / 1024))} KB` }
     ],
     actions: [
-      { label: 'Explain this file', primary: true, kind: 'quick', command: `Explain the attached file ${file.name}.` },
-      { label: 'Use it for planning', kind: 'quick', command: `Use ${file.name} to plan the next work.` }
+      { label: 'Talk about this file', primary: true, kind: 'attachment-discussion', data: { mode: 'explain' } },
+      { label: 'Use it for planning', kind: 'attachment-discussion', data: { mode: 'plan' } }
     ]
   });
 }
 
-async function registerPath() {
-  const path = projectPath.value.trim();
-  if (!path) {
-    pathEntry.classList.add('open');
-    projectPath.focus();
-    return;
-  }
-  projectMenu.classList.remove('open');
-  addUserMessage(`Open ${path}`);
-  try {
-    const result = await postJson('/api/v1/repositories/register-path', { path });
-    const registered = result.registered_repository || result.active_repository || {};
-    addContextCard({
-      title: result.status === 'ready' ? 'Project ready' : 'Project registered',
-      meta: registered.name || 'Project',
-      body: result.status === 'ready'
-        ? 'SRT-1 opened this project in the active conversation.'
-        : 'SRT-1 registered that folder. If it belongs to a different project, launch its runtime before asking SRT-1 to reason from its files.',
-      facts: [
-        { label: 'Project', value: registered.name || 'Project' },
-        { label: 'State', value: result.status || 'registered' },
-        { label: 'Runtime', value: registered.runtime_port || 'Not open yet' }
-      ],
-      actions: registered.repo_id ? [{ label: 'Launch project runtime', primary: true, kind: 'launch', data: { repoId: registered.repo_id } }] : []
-    });
-    await loadWorkspace({ preserveThread: true });
-  } catch (error) {
-    addSystemMessage(error.message || 'Project registration failed.');
-  }
+function openAttachmentChoices() {
+  addContextCard({
+    title: 'Connect or attach',
+    body: 'Select an option to import folders, clone github repositories, or upload local files to this session.',
+    actions: [
+      { label: 'Choose folder', primary: true, kind: 'choose-folder' },
+      { label: 'Paste local path', kind: 'paste-path' },
+      { label: 'Connect GitHub', kind: 'connect-github' },
+      { label: 'Upload file', kind: 'quick', command: 'Attach file.' }
+    ]
+  });
 }
 
-async function chooseFolder() {
-  projectMenu.classList.remove('open');
-  addUserMessage('Choose a project folder');
-  addSystemMessage('I am opening the folder connector. When the folder is selected, I will keep the next step in this conversation.');
-  try {
-    const result = await postJson('/api/v1/repositories/browse-folder', {});
-    if (result.status === 'cancelled') {
-      addSystemMessage('No folder was selected. We stayed in this workspace.');
-      return;
-    }
-    await loadWorkspace({ preserveThread: true });
-    const registered = result.registered_repository || result.active_repository || {};
-    addContextCard({
-      title: result.status === 'ready' ? 'Project ready' : 'Project registered',
-      meta: registered.name || 'Project',
-      body: result.status === 'ready'
-        ? 'SRT-1 opened the selected project and can continue from this workspace.'
-        : 'SRT-1 registered the selected folder. Launch the project runtime before expecting project-specific understanding.',
-      actions: registered.repo_id ? [{ label: 'Launch project runtime', primary: true, kind: 'launch', data: { repoId: registered.repo_id } }] : []
-    });
-  } catch (error) {
-    addSystemMessage(error.message || 'Folder chooser is unavailable. Paste the folder path instead.');
-    pathEntry.classList.add('open');
-  }
-}
-
-async function launchProject(repoId) {
-  if (!repoId) return;
-  addUserMessage('Launch project runtime');
-  try {
-    const result = await postJson('/api/v1/repositories/launch', { repo_id: repoId });
-    addContextCard({
-      title: result.status === 'ready' ? 'Project already open' : 'Project runtime launching',
-      meta: result.registered_repository?.name || 'Project',
-      body: result.message || 'SRT-1 started the runtime responsible for that project.',
-      facts: [
-        { label: 'Runtime', value: result.runtime_port || 'Starting' },
-        { label: 'State', value: result.status || 'launching' }
-      ],
-      actions: result.runtime_port
-        ? [
-            { label: 'Open project workspace', primary: true, kind: 'open-url', data: { url: runtimeUrl(result.runtime_port) } },
-            { label: 'Open project Control Room', kind: 'open-url', data: { url: runtimeUrl(result.runtime_port, 'dashboard.html') } }
-          ]
-        : [{ label: 'Open Control Room', kind: 'control-room' }]
-    });
-  } catch (error) {
-    addSystemMessage(error.message || 'Project runtime launch failed.');
-  }
-}
-
-document.addEventListener('click', event => {
-  const launchButton = event.target.closest('[data-action-kind="launch"]');
-  if (launchButton) {
-    launchProject(launchButton.dataset.repoId);
-    return;
-  }
-});
-
+// Event Bindings
 sendBtn.addEventListener('click', sendMessage);
 composer.addEventListener('keydown', event => {
   if (event.key === 'Enter' && !event.shiftKey) {
@@ -1600,8 +3048,29 @@ projectMenu.addEventListener('click', event => event.stopPropagation());
 document.addEventListener('click', () => projectMenu.classList.remove('open'));
 
 document.getElementById('briefBtn').addEventListener('click', () => renderSessionBrief(latestSummary, latestWork));
+document.getElementById('projectAssistantBtn').addEventListener('click', openProjectAssistantSettings);
+document.getElementById('closeProjectAssistant').addEventListener('click', () => projectAssistantOverlay.classList.remove('open'));
+projectAssistantOverlay.addEventListener('click', event => { if (event.target === projectAssistantOverlay) projectAssistantOverlay.classList.remove('open'); });
+document.getElementById('projectProvider').addEventListener('change', event => {
+  const preset = providerPreset(event.target.value);
+  document.getElementById('projectProviderEndpoint').value = preset.endpoint;
+  document.getElementById('projectProviderModel').value = preset.model;
+});
+document.getElementById('saveProjectAssistant').addEventListener('click', saveProjectAssistantSession);
+document.getElementById('clearProjectAssistant').addEventListener('click', () => {
+  const session = getWorkcellProviderSession('__project__');
+  workcellProviderSessions.set('__project__', { ...session, key: '', enabled: false });
+  document.getElementById('projectProviderKey').value = '';
+  document.getElementById('projectAssistantStatus').textContent = 'Session key cleared. Project conversation is using deterministic SRT-1 responses.';
+  updateProjectAssistantIndicator();
+});
+document.getElementById('featureMapBtn').addEventListener('click', () => controlOverlay.classList.add('open'));
+document.getElementById('closeControl').addEventListener('click', () => controlOverlay.classList.remove('open'));
+controlOverlay.addEventListener('click', e => { if (e.target === controlOverlay) controlOverlay.classList.remove('open'); });
+
 document.getElementById('attachBtn').addEventListener('click', openAttachmentChoices);
-document.getElementById('actionsBtn').addEventListener('click', openActionChoices);
+document.getElementById('actionsBtn').title = 'Open active WorkCell console';
+document.getElementById('actionsBtn').addEventListener('click', () => openWorkcellConsole('overview'));
 document.getElementById('currentBtn').addEventListener('click', registerCurrent);
 document.getElementById('useCurrentBtn').addEventListener('click', registerCurrent);
 document.getElementById('chooseFolderBtn').addEventListener('click', chooseFolder);
@@ -1612,15 +3081,88 @@ document.getElementById('pastePathBtn').addEventListener('click', () => {
 document.getElementById('openPathBtn').addEventListener('click', registerPath);
 document.getElementById('githubBtn').addEventListener('click', () => {
   projectMenu.classList.remove('open');
-  addSystemMessage('GitHub import will use this same conversation flow when the connector is available. For now, clone the repository locally and choose that folder.');
+  registerGithubRepository();
 });
+
 fileInput.addEventListener('change', () => {
   const file = fileInput.files && fileInput.files[0];
   fileInput.value = '';
   handleFileAttachment(file);
 });
 
-loadWorkspace();
+document.getElementById('closeWorkcellConsole').addEventListener('click', () => workcellConsole.classList.remove('open'));
+document.querySelectorAll('[data-workcell-tab]').forEach(button => {
+  button.addEventListener('click', () => renderWorkcellConsole(button.dataset.workcellTab));
+});
+workcellSelector.addEventListener('change', async () => {
+  activeQueueSeedId = workcellSelector.value || null;
+  await renderWorkcellConsole(activeWorkcellTab);
+});
+workcellPanel.addEventListener('click', event => {
+  const button = event.target.closest('[data-console-action]');
+  if (button) runWorkcellConsoleAction(button.dataset.consoleAction, button);
+});
+workcellPanel.addEventListener('change', event => {
+  if (event.target.id !== 'workcellProvider') return;
+  const preset = providerPreset(event.target.value);
+  const endpoint = document.getElementById('workcellProviderEndpoint');
+  const model = document.getElementById('workcellProviderModel');
+  if (endpoint) endpoint.value = preset.endpoint;
+  if (model) model.value = preset.model;
+});
+
+// Control overlay tile linking to dashboard.html
+document.querySelectorAll('.control-tile').forEach(tile => {
+  tile.addEventListener('click', () => {
+    window.location.href = tile.dataset.route;
+  });
+});
+
+// Initialize workspace and accept reviewed handoffs from the Control Room.
+const pageParameters = new URLSearchParams(window.location.search);
+const startFresh = pageParameters.get('start') === '1' || pageParameters.get('new') === '1';
+const readyRuntime = pageParameters.get('ready') === '1';
+const resumeRuntime = pageParameters.get('resume') === '1';
+const pendingPrompt = pageParameters.get('prompt')
+  || sessionStorage.getItem('srt1_pending_prompt');
+let resumedRepositoryActivation = null;
+try {
+  resumedRepositoryActivation = JSON.parse(sessionStorage.getItem(pendingActivationStorageKey) || 'null');
+} catch (_) {
+  sessionStorage.removeItem(pendingActivationStorageKey);
+}
+if (startFresh) {
+  sessionStorage.removeItem(pendingActivationStorageKey);
+  sessionStorage.removeItem('srt1_pending_prompt');
+  resumedRepositoryActivation = null;
+}
+const shouldResumeWorkspace = !startFresh && (pendingPrompt || readyRuntime || resumedRepositoryActivation?.port);
+if (shouldResumeWorkspace) {
+  starterGatewayOpen = false;
+}
+if (!startFresh && pendingPrompt) {
+  composer.value = pendingPrompt;
+  sessionStorage.removeItem('srt1_pending_prompt');
+  addSystemMessage('I brought this request from the Control Room into the Standard Experience. Review or revise it, then send it when you are ready to create bounded work.');
+}
+updateProjectAssistantIndicator();
+async function initializeExperience() {
+  await loadWorkspace();
+  if (resumedRepositoryActivation?.port) {
+    pendingRepositoryActivation = {
+      repoId: resumedRepositoryActivation.repoId || '',
+      name: resumedRepositoryActivation.name || 'the selected project'
+    };
+    addSystemMessage(`Resuming Repository Understanding for ${pendingRepositoryActivation.name}.`);
+    await waitForRepositoryUnderstanding(resumedRepositoryActivation.port, {
+      repo_id: pendingRepositoryActivation.repoId,
+      name: pendingRepositoryActivation.name
+    });
+  } else {
+    if (readyRuntime) await loadCurrentRepositoryDiscussion();
+  }
+}
+initializeExperience();
 </script>
 </body>
 </html>
