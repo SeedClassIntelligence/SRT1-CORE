@@ -55,6 +55,7 @@ import webbrowser
 import sqlite3
 import uuid
 import secrets
+import hmac
 import ipaddress
 import glob
 import re
@@ -3759,6 +3760,28 @@ class SRT1Engine:
             "assistant_adapters": clean,
             "dispatch_methods": list(bridge.dispatch_methods),
         }
+    def _verify_slack_request(self, headers: Dict[str, Any], raw_body: bytes) -> Dict[str, Any]:
+        """Verify Slack signing-secret provenance and reject replayed requests."""
+        signing_secret = str(os.getenv("SRT1_SLACK_SIGNING_SECRET") or "")
+        if not signing_secret:
+            return {
+                "verified": False,
+                "error": "Slack signing secret is not configured; Slack intake fails closed",
+            }
+        timestamp = str(headers.get("X-Slack-Request-Timestamp") or headers.get("x-slack-request-timestamp") or "")
+        supplied = str(headers.get("X-Slack-Signature") or headers.get("x-slack-signature") or "")
+        try:
+            request_time = int(timestamp)
+        except (TypeError, ValueError):
+            return {"verified": False, "error": "Slack request timestamp is missing or invalid"}
+        if abs(int(time.time()) - request_time) > 300:
+            return {"verified": False, "error": "Slack request timestamp is outside the replay window"}
+        base = b"v0:" + timestamp.encode("utf-8") + b":" + bytes(raw_body or b"")
+        expected = "v0=" + hmac.new(signing_secret.encode("utf-8"), base, hashlib.sha256).hexdigest()
+        if not supplied or not hmac.compare_digest(supplied, expected):
+            return {"verified": False, "error": "Slack request signature is invalid"}
+        return {"verified": True, "team_id": headers.get("X-Slack-Team-Id")}
+
     def _plant_slack_seed(self, body: Dict[str, Any]) -> Dict[str, Any]:
         """Plant a Slack-originated seed through the canonical queue-first path."""
         task = (
@@ -4626,8 +4649,11 @@ class SRT1Engine:
             def _body(self):
                 length = int(self.headers.get("Content-Length", 0))
                 if not length:
+                    self._raw_body = b""
                     return {}
-                raw = self.rfile.read(length).decode("utf-8", errors="replace")
+                raw_bytes = self.rfile.read(length)
+                self._raw_body = raw_bytes
+                raw = raw_bytes.decode("utf-8", errors="replace")
                 content_type = self.headers.get("Content-Type", "")
                 if "application/x-www-form-urlencoded" in content_type:
                     parsed = parse_qs(raw, keep_blank_values=True)
@@ -5912,7 +5938,17 @@ class SRT1Engine:
                     return self._json(result, status_code)
 
                 elif path in {"/api/v1/slack/seed", "/api/v1/slack/command"}:
+                    slack_verification = engine._verify_slack_request(
+                        dict(self.headers),
+                        getattr(self, "_raw_body", b""),
+                    )
+                    if not slack_verification.get("verified"):
+                        return self._json({
+                            "status": "blocked",
+                            "error": slack_verification.get("error"),
+                        }, 401)
                     result = engine._plant_slack_seed(body)
+                    result["slack_request_verified"] = True
                     status_code = 200 if result.get("status") == "seed_planted" else 400
                     return self._json(result, status_code)
 

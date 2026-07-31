@@ -1,3 +1,7 @@
+import time
+import os
+import hmac
+import hashlib
 import tempfile
 import unittest
 from pathlib import Path
@@ -127,6 +131,36 @@ class AssistantAdapterSurfaceTests(unittest.TestCase):
             queue_seed_id="seed_queue_1",
             auto_dispatch=True,
         )
+
+    def test_slack_request_verification_rejects_replay(self):
+        engine = engine_module.SRT1Engine.__new__(engine_module.SRT1Engine)
+        body = b"text=%2Fsrt1+fix+the+test"
+        timestamp = str(int(time.time()))
+        secret = "test-signing-secret"
+        signature = "v0=" + hmac.new(
+            secret.encode("utf-8"),
+            b"v0:" + timestamp.encode("utf-8") + b":" + body,
+            hashlib.sha256,
+        ).hexdigest()
+        previous = os.environ.get("SRT1_SLACK_SIGNING_SECRET")
+        try:
+            os.environ["SRT1_SLACK_SIGNING_SECRET"] = secret
+            verified = engine._verify_slack_request({
+                "X-Slack-Request-Timestamp": timestamp,
+                "X-Slack-Signature": signature,
+            }, body)
+            replayed = engine._verify_slack_request({
+                "X-Slack-Request-Timestamp": str(int(time.time()) - 600),
+                "X-Slack-Signature": signature,
+            }, body)
+        finally:
+            if previous is None:
+                os.environ.pop("SRT1_SLACK_SIGNING_SECRET", None)
+            else:
+                os.environ["SRT1_SLACK_SIGNING_SECRET"] = previous
+
+        self.assertTrue(verified["verified"])
+        self.assertFalse(replayed["verified"])
 
     def test_dashboard_contains_assistant_adapter_and_slack_wiring(self):
         dashboard = (
