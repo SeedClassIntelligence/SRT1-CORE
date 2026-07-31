@@ -1278,9 +1278,20 @@ async function converseAboutProject(message) {
   const understanding = await ensureRepositoryUnderstanding();
   const session = getWorkcellProviderSession('__project__');
   if (!session.enabled || !session.key || !session.endpoint || !session.model) {
-    if (understanding) {
-      showLocalProjectResponse(message, understanding);
-    } else {
+    try {
+      const result = await postJson('/api/v1/project-conversation', {
+        message,
+        history: projectConversationHistory.slice(-12)
+      });
+      projectConversationHistory.push({ role: 'user', content: message });
+      projectConversationHistory.push({ role: 'assistant', content: result.message });
+      addSystemMessage(result.message);
+      addInsight(`${result.provider || 'srt1_core'} answered from SRT-1 repository evidence. No Seed was created and no write scope was granted.`);
+    } catch (_) {
+      if (understanding) {
+        showLocalProjectResponse(message, understanding);
+        return;
+      }
       addContextCard({
         title: 'Project conversation needs understanding',
         body: 'SRT-1 has not returned repository understanding yet. Once it is ready, I can discuss the project locally or hand it to a selected Project Assistant.',
@@ -2134,9 +2145,7 @@ async function handleIntent(text) {
     return;
   }
   if (latestRepositoryUnderstanding && (asksAboutSelectedProject || (!latestAttachment && asksAboutUpload))) {
-    const projectSession = getWorkcellProviderSession('__project__');
-    if (projectSession.enabled) await converseAboutProject(text);
-    else showLocalProjectResponse(text, latestRepositoryUnderstanding);
+    await converseAboutProject(text);
     return;
   }
   if (pendingRepositoryActivation && (asksAboutSelectedProject || asksAboutUpload)) {
@@ -2206,7 +2215,7 @@ async function handleIntent(text) {
     return;
   }
   if (['understand', 'observe'].includes(intent)) {
-    if (intent === 'understand' && latestRepositoryUnderstanding) showLocalProjectResponse(text, latestRepositoryUnderstanding);
+    if (intent === 'understand' && latestRepositoryUnderstanding) await converseAboutProject(text);
     else showProjectBrief();
     return;
   }

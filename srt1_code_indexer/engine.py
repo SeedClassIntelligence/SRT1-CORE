@@ -3897,6 +3897,7 @@ class SRT1Engine:
                 f"SRT-1 has registered {os.path.basename(self.repo_path)} and indexed "
                 f"{file_count} files with {symbol_count} symbols."
             )
+        synopsis = self._project_synopsis_preview(synopsis)
         file_lines = [
             f"- {item.get('path')} ({item.get('role') or 'unknown role'})"
             for item in relevant[:5]
@@ -3929,6 +3930,41 @@ class SRT1Engine:
             "write_scope_granted": False,
             "secret_persisted": False,
         }
+
+    def _project_synopsis_preview(self, synopsis: str, limit: int = 1200) -> str:
+        """Return a concise consumer-facing project synopsis without raw audit dumps."""
+        text = str(synopsis or "").strip()
+        if not text:
+            return ""
+        intent_match = re.search(
+            r"(?:\*\*)?Architectural Intent:(?:\*\*)?\s*([\s\S]*?)(?=\n\s*(?:\*\*)?[A-Z][^:\n]{1,80}:(?:\*\*)?|$)",
+            text,
+            flags=re.IGNORECASE,
+        )
+        if intent_match:
+            text = intent_match.group(1).strip()
+        stop_patterns = [
+            r"\n\s*\*\*Risk Profile:\*\*",
+            r"\n\s*\*\*⚠️?\s*Code Duplication:\*\*",
+            r"\n\s*\*\*Code Duplication:\*\*",
+            r"\n\s*\*\*Architecture:\*\*",
+            r"\n\s*\*\*Repository Statistics:\*\*",
+        ]
+        stop_at = len(text)
+        for pattern in stop_patterns:
+            match = re.search(pattern, text, flags=re.IGNORECASE)
+            if match:
+                stop_at = min(stop_at, match.start())
+        text = text[:stop_at]
+        text = re.sub(r"```[\s\S]*?```", " ", text)
+        text = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", text)
+        text = re.sub(r"[\u2500-\u257F\u2190-\u21FF\u2600-\u27BF]", " ", text)
+        text = re.sub(r"^\s*[-*>#]+\s*", "", text, flags=re.MULTILINE)
+        text = re.sub(r"[*_`]", "", text)
+        text = re.sub(r"\s+", " ", text).strip()
+        if len(text) > limit:
+            text = text[:limit].rsplit(" ", 1)[0].rstrip() + "..."
+        return text
 
     def _configure_assistant_adapters(
         self, adapters: Optional[List[Dict[str, Any]]]

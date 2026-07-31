@@ -167,7 +167,10 @@ class PublicWebsiteMessagingTests(unittest.TestCase):
         self.assertIn("Project Assistant: Not connected", experience)
         self.assertIn("await loadCurrentRepositoryDiscussion()", experience)
         self.assertIn("briefBtn').addEventListener('click', () => converseAboutProject('Explain this project.'))", experience)
-        self.assertIn("else showLocalProjectResponse(text, latestRepositoryUnderstanding)", experience)
+        self.assertIn("const result = await postJson('/api/v1/project-conversation'", experience)
+        self.assertIn("srt1_core'} answered from SRT-1 repository evidence", experience)
+        self.assertIn("showLocalProjectResponse(message, understanding)", experience)
+        self.assertIn("await converseAboutProject(text)", experience)
         self.assertLess(
             experience.index("if (['plan', 'tasks', 'estimate', 'prioritize', 'milestone']"),
             experience.index("if (['add', 'build', 'start', 'create', 'generate', 'brainstorm']"),

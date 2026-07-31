@@ -47,6 +47,38 @@ class TaskResponseIdentityTests(unittest.TestCase):
         self.assertFalse(result["write_scope_granted"])
         self.assertFalse(result["secret_persisted"])
 
+    def test_project_conversation_compacts_raw_audit_sections(self):
+        engine = engine_module.SRT1Engine.__new__(engine_module.SRT1Engine)
+        engine.repo_path = "C:/project"
+        engine.synopsis = (
+            "## Project Synopsis\n\n"
+            "**Architectural Intent:**\n"
+            "Useful project synopsis for the owner.\n\n"
+            "**Extracted Core Concepts:**\n"
+            "- Internal doctrine that should not dominate the consumer brief.\n\n"
+            "**Risk Profile:**\n"
+            "- 200 function(s) handle authentication/secrets\n"
+            "**Code Duplication:** Found many duplicated functions"
+        )
+        engine.manifest = {
+            "metadata": {"total_files_scanned": 2, "total_symbols_indexed": 4},
+            "integrity": {"manifest_hash": "manifest-123"},
+            "file_manifest": [{"file_path": "app.py"}, {"file_path": "tests/test_app.py"}],
+        }
+        engine.symbol_table = {}
+        engine.curation_report = {"functional_overlaps": [{"name": "duplicate"}]}
+
+        result = engine._project_conversation({
+            "message": "Explain this project",
+            "assistant_credentials": {"mode": "session", "provider_keys": {}},
+        })
+
+        self.assertIn("Useful project synopsis for the owner.", result["message"])
+        self.assertNotIn("Internal doctrine", result["message"])
+        self.assertNotIn("Risk Profile", result["message"])
+        self.assertNotIn("handle authentication/secrets", result["message"])
+        self.assertIn("Current findings: functional overlaps: 1", result["message"])
+
     def test_project_conversation_uses_srt1_context_without_creating_execution(self):
         engine = engine_module.SRT1Engine.__new__(engine_module.SRT1Engine)
         engine.repo_path = "C:/project"
