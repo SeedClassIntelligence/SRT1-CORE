@@ -955,6 +955,13 @@ function runtimeUrl(port, page = 'experience.html') {
   return `http://127.0.0.1:${port}/${page}`;
 }
 
+function repositoryRuntimeUrl(port, record = {}, page = 'experience.html') {
+  const params = new URLSearchParams({ ready: '1' });
+  if (record.repo_id) params.set('repo', record.repo_id);
+  if (record.name) params.set('name', record.name);
+  return runtimeUrl(port, `${page}?${params.toString()}`);
+}
+
 async function getJson(path) {
   try {
     const response = await fetch(API + path);
@@ -2732,7 +2739,7 @@ async function waitForRepositoryUnderstanding(port, record = {}) {
           pendingRepositoryActivation = null;
           sessionStorage.removeItem(pendingActivationStorageKey);
           if (Number(port) !== Number(window.location.port)) {
-            window.location.assign(runtimeUrl(port, 'experience.html?ready=1'));
+            window.location.assign(repositoryRuntimeUrl(port, record));
             return;
           }
           const controlRoomLink = document.querySelector('a[href="dashboard.html"]');
@@ -2952,14 +2959,14 @@ async function launchProject(repoId) {
       ],
       actions: result.runtime_port && ['ready', 'running'].includes(result.status)
         ? [
-            { label: 'Open project workspace', primary: true, kind: 'open-url', data: { url: runtimeUrl(result.runtime_port, 'experience.html?ready=1') } },
+            { label: 'Open project workspace', primary: true, kind: 'open-url', data: { url: repositoryRuntimeUrl(result.runtime_port, record) } },
             { label: 'Open project Control Room', kind: 'open-url', data: { url: runtimeUrl(result.runtime_port, 'dashboard.html') } }
           ]
         : []
     });
     if (!result.runtime_port) return;
     if (['ready', 'running'].includes(result.status) && Number(result.runtime_port) !== Number(window.location.port)) {
-      window.location.assign(runtimeUrl(result.runtime_port, 'experience.html?ready=1'));
+      window.location.assign(repositoryRuntimeUrl(result.runtime_port, record));
       return;
     }
     await waitForRepositoryUnderstanding(result.runtime_port, record);
@@ -3205,6 +3212,8 @@ const pageParameters = new URLSearchParams(window.location.search);
 const startFresh = pageParameters.get('start') === '1' || pageParameters.get('new') === '1';
 const readyRuntime = pageParameters.get('ready') === '1';
 const resumeRuntime = pageParameters.get('resume') === '1';
+const launchedRepoId = pageParameters.get('repo') || '';
+const launchedRepoName = pageParameters.get('name') || '';
 const pendingPrompt = pageParameters.get('prompt')
   || sessionStorage.getItem('srt1_pending_prompt');
 let resumedRepositoryActivation = null;
@@ -3241,7 +3250,17 @@ async function initializeExperience() {
       name: pendingRepositoryActivation.name
     });
   } else {
-    if (readyRuntime) await loadCurrentRepositoryDiscussion();
+    if (readyRuntime) {
+      pendingRepositoryActivation = {
+        repoId: launchedRepoId,
+        name: launchedRepoName || projectDisplayName()
+      };
+      addSystemMessage(`Loading Repository Understanding for ${pendingRepositoryActivation.name}.`);
+      await waitForRepositoryUnderstanding(Number(window.location.port) || 7484, {
+        repo_id: launchedRepoId,
+        name: pendingRepositoryActivation.name
+      });
+    }
   }
 }
 initializeExperience();
