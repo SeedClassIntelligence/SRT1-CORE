@@ -36,6 +36,11 @@ class PublicWebsiteMessagingTests(unittest.TestCase):
         self.assertIn("target = 'experience.html'", auth)
         self.assertIn("https://seedreflections.netlify.app/", homepage)
 
+        engine = (root / "srt1_code_indexer" / "engine.py").read_text(encoding="utf-8")
+        self.assertIn('if serve_path == "/":', engine)
+        self.assertIn('serve_path = "/experience.html"', engine)
+        self.assertNotIn('serve_path = "/dashboard.html"', engine)
+
         self.assertNotIn("<!-- FRONT DOOR -->", experience)
         self.assertNotIn("Good afternoon, Darnell.", experience)
         self.assertNotIn("Tell me about your idea.", experience)

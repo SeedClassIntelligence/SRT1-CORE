@@ -6116,7 +6116,7 @@ class SRT1Engine:
                     from urllib.parse import unquote
                     serve_path = path
                     if serve_path == "/":
-                        serve_path = "/dashboard.html"
+                        serve_path = "/experience.html"
                     
                     serve_path = posixpath.normpath(unquote(serve_path))
                     if serve_path.startswith('/'):
