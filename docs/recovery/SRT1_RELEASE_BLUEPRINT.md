@@ -36,6 +36,47 @@ is allowed only when:
 If SRT-1 context is available, it is the first source of repo orientation. Code
 files are then read only as bounded evidence for the current task.
 
+## Priority: Stable Instructions, Generated Intelligence
+
+Release work must protect the distinction between repository-owned source
+instructions and SRT-1-owned operational intelligence.
+
+Stable repository files include:
+
+- `AGENTS.md`
+- `CLAUDE.md`
+- `.cursorrules`
+- `README.md`
+- `CONTRIBUTING.md`
+- architecture and build documents
+
+These files are source artifacts. SRT-1 may read them, extract guidance, record
+provenance, and use them to build routing intelligence. SRT-1 must not rewrite
+or regenerate them during normal repository understanding, context generation,
+recall, reinjection, or WorkCell execution unless the user explicitly authorizes
+that edit.
+
+SRT-1-owned generated intelligence belongs under runtime/state surfaces such as:
+
+- `.srt1/context`
+- `.srt1/workcells`
+- `.srt1` manifest and intelligence outputs
+- WorkCell execution packages
+- FileCell intelligence records
+- route, freshness, dependency, and conflict indexes
+
+The release priority is:
+
+```text
+Repository files remain stable source truth.
+SRT-1 derives compressed, queryable, provenance-aware operational intelligence.
+Assistants query SRT-1 first, then reread source files only when freshness,
+scope, uncertainty, or verification requires it.
+```
+
+This priority is release-critical because it is how SRT-1 reduces repeated repo
+reading without corrupting the repository's standing instructions.
+
 ## Release-Clean Definition
 
 SRT-1 Core is release-clean when all of these are true:
@@ -54,7 +95,11 @@ SRT-1 Core is release-clean when all of these are true:
    private Core implementation.
 10. No Enterprise/private files or implementation are shipped in public Core.
 11. Tests pass for the release-critical paths.
-12. Git status contains only intentional Core changes before commit and push.
+12. Stable instruction files are not mutated by generated context, recall,
+   reinjection, Repository Understanding, or WorkCell execution.
+13. Repository intelligence benchmarks are produced for coverage, routing,
+   context reduction, freshness, and incremental update cost.
+14. Git status contains only intentional Core changes before commit and push.
 
 ## Public Core Boundary
 
@@ -140,6 +185,43 @@ Open Experience
 ```
 
 The user must not be trapped in the control room to perform normal work.
+
+### Gate 2A: Instruction Intelligence Gate
+
+Verify:
+
+- `AGENTS.md`, `CLAUDE.md`, `.cursorrules`, README, and similar standing files
+  are treated as read-only source instructions unless explicitly edited by the
+  user;
+- SRT-1 extracts instruction provenance into generated intelligence instead of
+  rewriting the source instruction files;
+- generated route/context/recall intelligence is stored under SRT-1-owned
+  runtime/state surfaces;
+- assistant context packets cite their source instruction evidence where
+  practical;
+- stale, missing, ambiguous, or changed sources force bounded rereads instead
+  of blind reliance on old generated context.
+
+### Gate 2B: Repository Intelligence Benchmark Gate
+
+Verify that SRT-1 can measure the value of its repository understanding instead
+of only claiming it.
+
+Minimum benchmark output must include:
+
+- files discovered, indexed, classified, mapped, and unknown;
+- FileCell coverage and WorkCell coverage;
+- manifest freshness and stale/degraded/unknown counts;
+- route accuracy sample for representative user tasks;
+- context reduction estimate comparing raw repository context to SRT-1 context
+  packets;
+- repository scan elimination estimate after initial indexing;
+- incremental update cost for changed files;
+- affected tests and dependency relationships for sampled changes.
+
+Benchmark claims must stay evidence-backed. SRT-1 may report estimates and
+confidence levels, but must not claim near-perfect repository understanding
+without a reproducible benchmark result and source evidence.
 
 ### Gate 3: WorkCell Boundary Gate
 
