@@ -56,6 +56,7 @@ import sqlite3
 import uuid
 import secrets
 import ipaddress
+import glob
 import re
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from socketserver import ThreadingMixIn
@@ -574,6 +575,147 @@ class SRT1Engine:
         except Exception as exc:
             return {"status": "error", "error": str(exc), "repositories": registry.list_repositories()}
 
+    def _git_executable(self) -> Optional[str]:
+        """Return a local git executable without requiring it to be on PATH."""
+        git_path = shutil.which("git")
+        if git_path:
+            return git_path
+        candidates = glob.glob(os.path.expanduser(
+            r"~\AppData\Local\GitHubDesktop\app-*\resources\app\git\cmd\git.exe"
+        ))
+        if candidates:
+            def version_key(path: str) -> tuple:
+                app_dir = next((part for part in path.split(os.sep) if part.startswith("app-")), "app-0")
+                return tuple(
+                    int(part) if part.isdigit() else 0
+                    for part in app_dir[4:].split(".")
+                )
+            return sorted(candidates, key=version_key, reverse=True)[0]
+        return None
+
+    def _git_repository_identity(self, git_path: str, repo_path: str) -> Dict[str, str]:
+        """Return immutable clone identity without reading repository content."""
+        identity = {"branch": "unknown", "commit_sha": "unknown"}
+        for key, args in (
+            ("branch", ["rev-parse", "--abbrev-ref", "HEAD"]),
+            ("commit_sha", ["rev-parse", "HEAD"]),
+        ):
+            try:
+                result = subprocess.run(
+                    [git_path, *args],
+                    cwd=repo_path,
+                    capture_output=True,
+                    text=True,
+                    timeout=10,
+                )
+                if result.returncode == 0 and result.stdout.strip():
+                    identity[key] = result.stdout.strip()
+            except (OSError, subprocess.TimeoutExpired):
+                pass
+        return identity
+
+    def _parse_github_repository_url(self, github_url: Optional[str]) -> Dict[str, str]:
+        """Validate and normalize a GitHub repository URL for local cloning."""
+        raw = str(github_url or "").strip()
+        if not raw:
+            raise ValueError("GitHub repository URL is required")
+        if raw.startswith("git@github.com:"):
+            repo_part = raw[len("git@github.com:"):]
+            if repo_part.endswith(".git"):
+                repo_part = repo_part[:-4]
+            parts = [part for part in repo_part.split("/") if part]
+            clone_url = raw
+        else:
+            parsed = urlparse(raw)
+            if parsed.scheme not in {"http", "https"} or parsed.netloc.lower() != "github.com":
+                raise ValueError("Only github.com repository URLs are supported")
+            parts = [part for part in parsed.path.strip("/").split("/") if part]
+            clone_path = "/".join(parts[:2])
+            clone_url = f"https://github.com/{clone_path}.git"
+        if len(parts) < 2:
+            raise ValueError("GitHub URL must include owner and repository name")
+        owner = parts[0]
+        repo = parts[1][:-4] if parts[1].endswith(".git") else parts[1]
+        if not owner or not repo:
+            raise ValueError("GitHub URL must include owner and repository name")
+        safe_owner = "".join(ch if ch.isalnum() or ch in ("-", "_") else "_" for ch in owner)
+        safe_repo = "".join(ch if ch.isalnum() or ch in ("-", "_") else "_" for ch in repo)
+        return {
+            "owner": owner,
+            "repo": repo,
+            "clone_url": clone_url,
+            "safe_name": f"{safe_owner}__{safe_repo}",
+        }
+
+    def _register_github_repository(self, github_url: Optional[str]) -> Dict[str, Any]:
+        """Clone a GitHub repository locally, then register it through Repository Activation."""
+        registry = self._get_repository_registry()
+        if not registry:
+            return {"status": "unavailable", "error": "Repository Activation registry unavailable"}
+        try:
+            parsed = self._parse_github_repository_url(github_url)
+        except Exception as exc:
+            return {"status": "error", "error": str(exc), "repositories": registry.list_repositories()}
+
+        git_path = self._git_executable()
+        if not git_path:
+            return {
+                "status": "error",
+                "error": "Git is required to clone GitHub repositories. Install Git or choose an existing local clone.",
+                "repositories": registry.list_repositories(),
+            }
+
+        clone_root = os.path.join(os.path.expanduser("~"), ".srt1", "github-repositories")
+        os.makedirs(clone_root, exist_ok=True)
+        target_path = os.path.realpath(os.path.join(clone_root, parsed["safe_name"]))
+        clone_root_real = os.path.realpath(clone_root)
+        if not target_path.startswith(clone_root_real + os.sep):
+            return {"status": "error", "error": "Invalid GitHub repository target path", "repositories": registry.list_repositories()}
+
+        try:
+            if os.path.isdir(os.path.join(target_path, ".git")):
+                record = registry.register_path(target_path, activate=False)
+                git_identity = self._git_repository_identity(git_path, target_path)
+                return {
+                    "status": "registered",
+                    "source": "github_existing_clone",
+                    "github": {"owner": parsed["owner"], "repo": parsed["repo"], "url": github_url, **git_identity},
+                    "registered_repository": record.to_dict(),
+                    "active_repository": registry.active_repository(),
+                    "repositories": registry.list_repositories(),
+                    "message": "GitHub repository was already cloned locally and is now registered.",
+                }
+            if os.path.exists(target_path):
+                return {
+                    "status": "error",
+                    "error": f"Clone target already exists but is not a git repository: {target_path}",
+                    "repositories": registry.list_repositories(),
+                }
+            result = subprocess.run(
+                [git_path, "clone", "--depth", "1", parsed["clone_url"], target_path],
+                cwd=clone_root,
+                capture_output=True,
+                text=True,
+                timeout=180,
+            )
+            if result.returncode != 0:
+                detail = (result.stderr or result.stdout or "git clone failed").strip()
+                return {"status": "error", "error": detail, "repositories": registry.list_repositories()}
+            record = registry.register_path(target_path, activate=False)
+            git_identity = self._git_repository_identity(git_path, target_path)
+            return {
+                "status": "registered",
+                "source": "github_clone",
+                "github": {"owner": parsed["owner"], "repo": parsed["repo"], "url": github_url, **git_identity},
+                "registered_repository": record.to_dict(),
+                "active_repository": registry.active_repository(),
+                "repositories": registry.list_repositories(),
+                "message": "GitHub repository cloned and registered. Launch it to build its manifest, FileCells, and WorkCells.",
+            }
+        except subprocess.TimeoutExpired:
+            return {"status": "error", "error": "GitHub clone timed out", "repositories": registry.list_repositories()}
+        except Exception as exc:
+            return {"status": "error", "error": str(exc), "repositories": registry.list_repositories()}
     def _browse_repository_folder(self) -> Dict[str, Any]:
         """Open a local folder picker and register the selected repository path."""
         registry = self._get_repository_registry()
@@ -5846,6 +5988,10 @@ class SRT1Engine:
                     status_code = 200 if result.get("status") in {"ready", "registered", "cancelled"} else 400
                     return self._json(result, status_code)
 
+                elif path == "/api/v1/repositories/register-github":
+                    result = engine._register_github_repository(body.get("url") or body.get("github_url"))
+                    status_code = 200 if result.get("status") in {"ready", "registered"} else 400
+                    return self._json(result, status_code)
                 elif path == "/api/v1/repositories/activate":
                     repo_id = body.get("repo_id")
                     result = engine._activate_repository(repo_id)

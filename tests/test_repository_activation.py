@@ -66,6 +66,33 @@ class RepositoryActivationTests(unittest.TestCase):
         self.assertEqual(status["active_repository"]["file_count"], 2)
         self.assertEqual(status["active_repository"]["workcell_count"], 2)
 
+    def test_engine_normalizes_github_repository_urls(self):
+        engine = engine_module.SRT1Engine.__new__(engine_module.SRT1Engine)
+
+        https_repo = engine._parse_github_repository_url("https://github.com/SeedClassIntelligence/SRT1-CORE")
+        ssh_repo = engine._parse_github_repository_url("git@github.com:SeedClassIntelligence/SRT1-CORE.git")
+
+        self.assertEqual(https_repo["owner"], "SeedClassIntelligence")
+        self.assertEqual(https_repo["repo"], "SRT1-CORE")
+        self.assertEqual(https_repo["clone_url"], "https://github.com/SeedClassIntelligence/SRT1-CORE.git")
+        self.assertEqual(https_repo["safe_name"], "SeedClassIntelligence__SRT1-CORE")
+        self.assertEqual(ssh_repo["clone_url"], "git@github.com:SeedClassIntelligence/SRT1-CORE.git")
+        with self.assertRaises(ValueError):
+            engine._parse_github_repository_url("https://gitlab.com/owner/repo")
+
+    def test_engine_register_github_fails_closed_when_git_is_unavailable(self):
+        with tempfile.TemporaryDirectory() as repo:
+            engine = engine_module.SRT1Engine.__new__(engine_module.SRT1Engine)
+            engine.repo_path = repo
+            engine.repository_registry = RepositoryActivationRegistry(
+                state_dir=str(Path(repo) / ".srt1" / "repositories")
+            )
+            with patch.object(engine, "_git_executable", return_value=None):
+                result = engine._register_github_repository("https://github.com/owner/repo")
+
+        self.assertEqual(result["status"], "error")
+        self.assertIn("Git is required", result["error"])
+        self.assertEqual(result["repositories"], [])
     def test_engine_registers_external_path_without_switching_runtime(self):
         with tempfile.TemporaryDirectory() as active_repo, tempfile.TemporaryDirectory() as other_repo:
             engine = engine_module.SRT1Engine.__new__(engine_module.SRT1Engine)
