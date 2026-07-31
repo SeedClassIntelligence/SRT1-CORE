@@ -909,6 +909,29 @@ class WorkCellRuntimeTests(unittest.TestCase):
             any(event["event_type"] == "assistant.dispatched" for event in current["activity_events"])
         )
 
+    def test_engine_preserves_native_provider_adapter_types_without_secrets(self):
+        engine = engine_module.SRT1Engine.__new__(engine_module.SRT1Engine)
+
+        clean = engine._sanitize_assistant_adapter_config([
+            {
+                "type": "anthropic",
+                "model": "claude-test",
+                "api_key": "must-not-survive",
+            },
+            {
+                "type": "gemini",
+                "model": "gemini-test",
+                "api_key": "must-not-survive",
+            },
+        ])
+
+        self.assertEqual([item["type"] for item in clean], ["anthropic", "gemini"])
+        self.assertEqual(clean[0]["model"], "claude-test")
+        self.assertEqual(clean[1]["model"], "gemini-test")
+        self.assertNotIn("api_key", clean[0])
+        self.assertNotIn("api_key", clean[1])
+        self.assertNotIn("must-not-survive", json.dumps(clean))
+
     def test_engine_resolves_allowed_paths_from_selected_workcell(self):
         with tempfile.TemporaryDirectory() as repo:
             engine = engine_module.SRT1Engine.__new__(engine_module.SRT1Engine)

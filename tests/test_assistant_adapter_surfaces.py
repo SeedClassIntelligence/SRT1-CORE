@@ -17,7 +17,12 @@ class AssistantAdapterSurfaceTests(unittest.TestCase):
             result = engine._configure_assistant_adapters([
                 {"type": "codex"},
                 {"type": "file_context", "name": "local_handoff"},
-                {"type": "custom_http", "endpoint": "http://127.0.0.1:9000/workcell"},
+                {
+                    "type": "custom_http",
+                    "endpoint": "http://127.0.0.1:9000/workcell",
+                    "custom_endpoint_approved": True,
+                    "allow_localhost": True,
+                },
                 {"type": "openai_compatible", "provider": "openai", "endpoint": "https://api.openai.com/v1/chat/completions", "model": "gpt-4o-mini"},
                 {"type": "custom_http", "endpoint": ""},
                 {"type": "openai_compatible", "provider": "openai", "endpoint": "", "model": "gpt-4o-mini"},
@@ -35,6 +40,8 @@ class AssistantAdapterSurfaceTests(unittest.TestCase):
                         "type": "custom_http",
                         "endpoint": "http://127.0.0.1:9000/workcell",
                         "timeout": 20.0,
+                        "custom_endpoint_approved": True,
+                        "allow_localhost": True,
                     },
                     {
                         "type": "openai_compatible",
@@ -48,6 +55,28 @@ class AssistantAdapterSurfaceTests(unittest.TestCase):
 
             reloaded = SCIADispatchBridge(repo_path=repo)
             self.assertEqual(reloaded.assistant_adapters, result["assistant_adapters"])
+
+    def test_custom_endpoint_requires_explicit_approval(self):
+        with tempfile.TemporaryDirectory() as repo:
+            engine = engine_module.SRT1Engine.__new__(engine_module.SRT1Engine)
+            engine.repo_path = repo
+            engine.bridge = SCIADispatchBridge(repo_path=repo)
+
+            result = engine._configure_assistant_adapters([{
+                "type": "custom_http",
+                "endpoint": "https://untrusted.example/workcell",
+            }])
+
+        self.assertEqual(result["status"], "invalid_configuration")
+        self.assertIn("explicit human approval", result["error"])
+
+    def test_private_network_provider_endpoint_is_rejected(self):
+        with self.assertRaises(ValueError):
+            engine_module.SRT1Engine._validate_assistant_endpoint(
+                "http://169.254.169.254/latest/meta-data",
+                provider="custom",
+                custom_approved=True,
+            )
 
     def test_clearing_assistant_adapters_removes_dispatch_method(self):
         with tempfile.TemporaryDirectory() as repo:

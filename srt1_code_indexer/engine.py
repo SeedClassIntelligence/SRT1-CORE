@@ -55,6 +55,7 @@ import webbrowser
 import sqlite3
 import uuid
 import secrets
+import ipaddress
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from socketserver import ThreadingMixIn
 from datetime import datetime, timedelta, timezone
@@ -209,6 +210,60 @@ class SRT1Engine:
     def _semantic_enrichment_enabled(self) -> bool:
         return bool(self.llm) and self._env_flag_enabled("SRT1_ENABLE_SEMANTIC_ENRICHMENT")
 
+    @staticmethod
+    def _is_loopback_host(hostname: str) -> bool:
+        """Return True only for literal/standard loopback host names."""
+        host = str(hostname or "").strip().lower().rstrip(".")
+        if host == "localhost":
+            return True
+        try:
+            return ipaddress.ip_address(host).is_loopback
+        except ValueError:
+            return False
+
+    @classmethod
+    def _validate_assistant_endpoint(
+        cls,
+        endpoint: str,
+        provider: str = "custom",
+        allow_localhost: bool = False,
+        custom_approved: bool = False,
+    ) -> str:
+        """Validate a provider endpoint before a transient credential can reach it."""
+        value = str(endpoint or "").strip()
+        if not value:
+            raise ValueError("Assistant endpoint is required")
+        parsed = urlparse(value)
+        if parsed.scheme not in {"https", "http"} or not parsed.hostname:
+            raise ValueError("Assistant endpoint must be an HTTP(S) URL")
+        is_loopback = cls._is_loopback_host(parsed.hostname)
+        if parsed.scheme != "https" and not (is_loopback and allow_localhost):
+            raise ValueError("Assistant endpoints must use HTTPS; localhost HTTP requires explicit approval")
+
+        try:
+            address = ipaddress.ip_address(parsed.hostname)
+        except ValueError:
+            address = None
+        if address and not address.is_global and not (address.is_loopback and allow_localhost):
+            raise ValueError("Assistant endpoint cannot target private, link-local, or metadata networks")
+
+        provider_name = str(provider or "custom").strip().lower()
+        approved_hosts = {
+            "openai": {"api.openai.com"},
+            "anthropic": {"api.anthropic.com"},
+            "gemini": {"generativelanguage.googleapis.com"},
+            "google": {"generativelanguage.googleapis.com"},
+            "grok": {"api.x.ai"},
+            "xai": {"api.x.ai"},
+            "groq": {"api.groq.com"},
+            "together": {"api.together.xyz"},
+        }
+        expected = approved_hosts.get(provider_name)
+        if expected and parsed.hostname.lower() not in expected:
+            raise ValueError(f"Endpoint host is not approved for provider {provider_name}")
+        if not expected and provider_name in {"custom", "custom_http", "http", "webhook"} and not custom_approved:
+            raise ValueError("Custom assistant endpoints require explicit human approval")
+        return value
     def __init__(self, repo_path: str, task: Optional[str] = None, port: int = 7483):
         self.repo_path = os.path.abspath(repo_path)
         self.task = task
@@ -3047,6 +3102,7 @@ class SRT1Engine:
     ) -> List[Dict[str, Any]]:
         """Return Core-safe assistant adapter configs without storing raw API keys."""
         clean: List[Dict[str, Any]] = []
+        errors: List[str] = []
         for adapter in adapters or []:
             adapter_type = str(adapter.get("type") or "").strip().lower()
             if not adapter_type:
@@ -3066,25 +3122,77 @@ class SRT1Engine:
             elif adapter_type in {"custom_http", "http", "webhook"}:
                 endpoint = str(adapter.get("endpoint") or "").strip()
                 if endpoint:
-                    clean.append({
-                        "type": "custom_http",
-                        "endpoint": endpoint,
-                        "timeout": float(adapter.get("timeout") or 20.0),
-                    })
+                    try:
+                        endpoint = self._validate_assistant_endpoint(
+                            endpoint,
+                            provider="custom",
+                            allow_localhost=bool(adapter.get("allow_localhost")),
+                            custom_approved=bool(adapter.get("custom_endpoint_approved")),
+                        )
+                        clean.append({
+                            "type": "custom_http",
+                            "endpoint": endpoint,
+                            "timeout": min(max(float(adapter.get("timeout") or 20.0), 1.0), 60.0),
+                            "custom_endpoint_approved": True,
+                            "allow_localhost": bool(adapter.get("allow_localhost")),
+                        })
+                    except ValueError as exc:
+                        errors.append(str(exc))
             elif adapter_type in {"openai_compatible", "provider_runtime", "llm_provider"}:
                 endpoint = str(adapter.get("endpoint") or "").strip()
                 model = str(adapter.get("model") or "").strip()
                 provider = str(adapter.get("provider") or "openai").strip().lower()
                 if endpoint and model:
+                    try:
+                        endpoint = self._validate_assistant_endpoint(
+                            endpoint,
+                            provider=provider,
+                            allow_localhost=bool(adapter.get("allow_localhost")),
+                            custom_approved=bool(adapter.get("custom_endpoint_approved")),
+                        )
+                        clean.append({
+                            "type": "openai_compatible",
+                            "provider": provider,
+                            "endpoint": endpoint,
+                            "model": model,
+                            "timeout": min(max(float(adapter.get("timeout") or 60.0), 1.0), 60.0),
+                        })
+                    except ValueError as exc:
+                        errors.append(str(exc))
+            elif adapter_type in {"anthropic", "claude"}:
+                try:
+                    endpoint = self._validate_assistant_endpoint(
+                        str(adapter.get("endpoint") or "https://api.anthropic.com/v1/messages").strip(),
+                        provider="anthropic",
+                    )
                     clean.append({
-                        "type": "openai_compatible",
-                        "provider": provider,
+                        "type": "anthropic",
+                        "provider": "anthropic",
                         "endpoint": endpoint,
-                        "model": model,
-                        "timeout": float(adapter.get("timeout") or 60.0),
+                        "model": str(adapter.get("model") or "claude-sonnet-4-5").strip(),
+                        "timeout": min(max(float(adapter.get("timeout") or 60.0), 1.0), 60.0),
+                        "max_tokens": min(max(int(adapter.get("max_tokens") or 8192), 1), 32768),
                     })
+                except ValueError as exc:
+                    errors.append(str(exc))
+            elif adapter_type in {"gemini", "google"}:
+                model = str(adapter.get("model") or "gemini-2.5-flash").strip()
+                endpoint = str(adapter.get("endpoint") or "").strip()
+                if endpoint:
+                    try:
+                        endpoint = self._validate_assistant_endpoint(endpoint, provider="gemini")
+                    except ValueError as exc:
+                        errors.append(str(exc))
+                        continue
+                clean.append({
+                    "type": "gemini",
+                    "provider": "gemini",
+                    "endpoint": endpoint,
+                    "model": model,
+                    "timeout": min(max(float(adapter.get("timeout") or 60.0), 1.0), 60.0),
+                })
+        self._assistant_adapter_config_errors = errors
         return clean
-
     def _normalize_assistant_credentials(
         self,
         credentials: Optional[Dict[str, Any]],
@@ -3139,31 +3247,16 @@ class SRT1Engine:
             "dispatch_methods": methods,
             "assistant_adapters": adapters,
             "available_adapters": [
-                {
-                    "type": "codex",
-                    "label": "Codex WorkCell handoff",
-                    "description": "Writes bounded WorkCell instructions for Codex.",
-                },
-                {
-                    "type": "file_context",
-                    "label": "File handoff",
-                    "description": "Writes a model-agnostic request package into .srt1/adapters/.",
-                },
-                {
-                    "type": "custom_http",
-                    "label": "Custom HTTP model adapter",
-                    "description": "Posts bounded WorkCell JSON to a developer-controlled endpoint.",
-                },
-                {
-                    "type": "openai_compatible",
-                    "label": "OpenAI-compatible provider runtime",
-                    "description": "Calls any chat-completions-compatible LLM with transient credentials and bounded WorkCell context.",
-                },
+                {"type": "codex", "label": "Codex WorkCell handoff", "description": "Writes bounded WorkCell instructions for Codex."},
+                {"type": "file_context", "label": "File handoff", "description": "Writes a model-agnostic request package into .srt1/adapters/."},
+                {"type": "custom_http", "label": "Custom HTTP model adapter", "description": "Posts bounded WorkCell JSON to a developer-controlled endpoint."},
+                {"type": "openai_compatible", "label": "OpenAI-compatible provider runtime", "description": "Calls any chat-completions-compatible LLM with transient credentials and bounded WorkCell context."},
+                {"type": "anthropic", "label": "Anthropic Claude runtime", "description": "Calls the native Anthropic Messages API with a transient session credential."},
+                {"type": "gemini", "label": "Google Gemini runtime", "description": "Calls the native Gemini generateContent API with a transient session credential."},
             ],
             "slack_seed_endpoint": "/api/v1/slack/seed",
             "slack_command_endpoint": "/api/v1/slack/command",
         }
-
     def _configure_assistant_adapters(
         self, adapters: Optional[List[Dict[str, Any]]]
     ) -> Dict[str, Any]:
@@ -3172,13 +3265,20 @@ class SRT1Engine:
         if not bridge:
             return {"status": "error", "error": "Execution bridge unavailable"}
         clean = self._sanitize_assistant_adapter_config(adapters)
+        errors = list(getattr(self, "_assistant_adapter_config_errors", []) or [])
+        if errors:
+            return {
+                "status": "invalid_configuration",
+                "error": errors[0],
+                "errors": errors,
+                "assistant_adapters": [],
+            }
         bridge.configure(assistant_adapters=clean)
         return {
             "status": "configured",
             "assistant_adapters": clean,
             "dispatch_methods": list(bridge.dispatch_methods),
         }
-
     def _plant_slack_seed(self, body: Dict[str, Any]) -> Dict[str, Any]:
         """Plant a Slack-originated seed through the canonical queue-first path."""
         task = (
