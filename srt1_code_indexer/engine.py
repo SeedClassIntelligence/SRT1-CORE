@@ -200,6 +200,7 @@ class SRT1Engine:
     """
 
     REFLECTION_INTERVAL = 3
+    MAX_REQUEST_BODY_BYTES = 1024 * 1024
 
     @staticmethod
     def _env_flag_enabled(name: str) -> bool:
@@ -274,6 +275,7 @@ class SRT1Engine:
         self.repo_path = os.path.abspath(repo_path)
         self.task = task
         self.port = port
+        self._runtime_session_token = secrets.token_urlsafe(32)
         self._workcell_cancel_events: Dict[str, threading.Event] = {}
 
         # Core SCIA IP
@@ -4713,18 +4715,54 @@ class SRT1Engine:
             def log_message(self, fmt, *args):
                 pass  # Suppress HTTP logs
 
+            def _trusted_browser_origins(self):
+                origins = {
+                    f"http://127.0.0.1:{engine.port}",
+                    f"http://localhost:{engine.port}",
+                }
+                if OperationalRegistry:
+                    try:
+                        entries = OperationalRegistry().get_all_engines().get("engines", {})
+                        for entry in entries.values():
+                            port = int(entry.get("port"))
+                            origins.add(f"http://127.0.0.1:{port}")
+                            origins.add(f"http://localhost:{port}")
+                    except Exception:
+                        pass
+                return origins
+
+            def _origin_allowed(self) -> bool:
+                origin = str(self.headers.get("Origin") or "").strip().rstrip("/")
+                return not origin or origin in self._trusted_browser_origins()
+
+            def _send_cors_headers(self) -> None:
+                origin = str(self.headers.get("Origin") or "").strip().rstrip("/")
+                if origin and origin in self._trusted_browser_origins():
+                    self.send_header("Access-Control-Allow-Origin", origin)
+                    self.send_header("Vary", "Origin")
+
             def _json(self, data, status=200):
                 body = json.dumps(data, indent=2, default=str).encode()
                 self.send_response(status)
                 self.send_header("Content-Type", "application/json")
-                self.send_header("Access-Control-Allow-Origin", "*")
-                self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization")
+                self._send_cors_headers()
+                self.send_header("Cache-Control", "no-store")
                 self.send_header("Content-Length", str(len(body)))
                 self.end_headers()
                 self.wfile.write(body)
 
             def _body(self):
-                length = int(self.headers.get("Content-Length", 0))
+                try:
+                    length = int(self.headers.get("Content-Length", 0))
+                except (TypeError, ValueError):
+                    self._json({"error": "Invalid Content-Length"}, 400)
+                    return None
+                if length < 0 or length > engine.MAX_REQUEST_BODY_BYTES:
+                    self._json({
+                        "error": "Request body exceeds the SRT-1 local API limit",
+                        "max_bytes": engine.MAX_REQUEST_BODY_BYTES,
+                    }, 413)
+                    return None
                 if not length:
                     self._raw_body = b""
                     return {}
@@ -4739,9 +4777,14 @@ class SRT1Engine:
                         for key, values in parsed.items()
                     }
                 try:
-                    return json.loads(raw) if raw else {}
+                    parsed = json.loads(raw) if raw else {}
+                    if not isinstance(parsed, dict):
+                        self._json({"error": "JSON request body must be an object"}, 400)
+                        return None
+                    return parsed
                 except json.JSONDecodeError:
-                    return {"text": raw}
+                    self._json({"error": "Malformed JSON request body"}, 400)
+                    return None
 
             def _authenticate_cloud(self):
                 auth_header = self.headers.get('Authorization')
@@ -4760,39 +4803,66 @@ class SRT1Engine:
                         return row[0]
                 return None
 
-            def _check_auth(self, endpoint: str) -> bool:
-                """Check authentication. Returns True if authorized."""
-                if not engine.auth:
-                    return True  # Auth not configured
+            def _check_auth(self, endpoint: str, mutation: bool = False) -> bool:
+                """Enforce browser origin and per-runtime authorization."""
+                if not self._origin_allowed():
+                    self._json({"error": "Browser origin is not allowed by this SRT-1 runtime"}, 403)
+                    return False
                     
                 ui_routes = [
                     "/dashboard", "/consumer", "/admin", "/mobile", "/observatory", "/constellation",
                     "/auth.html", "/index.html", "/comparison.html", "/documentation.html",
                     "/assets/", "/js/", "/sw.js", "/manifest.json", "/download"
                 ]
-                if endpoint == "/" or any(endpoint.startswith(p) for p in ui_routes):
+                if not mutation and (endpoint == "/" or any(endpoint.startswith(p) for p in ui_routes)):
                     return True
+
+                if not mutation:
+                    return True
+
+                supplied_session = str(self.headers.get("X-SRT1-Session") or "")
+                runtime_session = str(getattr(engine, "_runtime_session_token", "") or "")
+                if supplied_session and runtime_session and hmac.compare_digest(supplied_session, runtime_session):
+                    return True
+
+                if endpoint in {"/api/v1/slack/seed", "/api/v1/slack/command"}:
+                    if os.getenv("SRT1_SLACK_SIGNING_SECRET") and self.headers.get("X-Slack-Signature"):
+                        return True
+
+                auth_header = str(self.headers.get("Authorization") or "")
+                dev_token = str(getattr(engine, "dev_token", "") or "")
+                if dev_token and auth_header.startswith("Bearer "):
+                    supplied = auth_header.split(" ", 1)[1]
+                    if hmac.compare_digest(supplied, dev_token):
+                        return True
 
                 client_ip = self.client_address[0] if self.client_address else "127.0.0.1"
-                
-                # Local developer dashboard bypasses API auth
-                if client_ip == "127.0.0.1":
-                    return True
-                    
-                ok, err = engine.auth.authenticate(
-                    headers=dict(self.headers),
-                    client_ip=client_ip,
-                    endpoint=endpoint,
-                )
-                if not ok:
-                    self._json({"error": err, "hint": "Use: Authorization: Bearer <token>"}, 401)
-                return ok
+                if engine.auth:
+                    ok, err = engine.auth.authenticate(
+                        headers=dict(self.headers),
+                        client_ip=client_ip,
+                        endpoint=endpoint,
+                    )
+                    if ok:
+                        return True
+                    self._json({"error": err, "hint": "Use the runtime session or a valid bearer token"}, 401)
+                    return False
+                self._json({
+                    "error": "Missing SRT-1 runtime session",
+                    "hint": "Load /api/v1/runtime/session from the same-origin SRT-1 interface first",
+                }, 401)
+                return False
 
             def do_OPTIONS(self):
-                self.send_response(200)
-                self.send_header("Access-Control-Allow-Origin", "*")
+                if not self._origin_allowed():
+                    self.send_response(403)
+                    self.end_headers()
+                    return
+                self.send_response(204)
+                self._send_cors_headers()
                 self.send_header("Access-Control-Allow-Methods", "GET, POST, PATCH, OPTIONS")
-                self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization, x-api-key")
+                self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-SRT1-Session, X-SRT1-Request")
+                self.send_header("Access-Control-Max-Age", "600")
                 self.end_headers()
 
             def do_GET(self):
@@ -4803,6 +4873,17 @@ class SRT1Engine:
 
                 if not self._check_auth(path):
                     return
+
+                if path == "/api/v1/runtime/session":
+                    fetch_site = str(self.headers.get("Sec-Fetch-Site") or "").lower()
+                    if fetch_site == "cross-site":
+                        return self._json({"error": "Cross-site runtime bootstrap is forbidden"}, 403)
+                    return self._json({
+                        "session_token": engine._runtime_session_token,
+                        "runtime_port": engine.port,
+                        "origin": f"http://127.0.0.1:{engine.port}",
+                        "expires": "runtime_shutdown",
+                    })
 
                 if path == "/language-coverage":
                     coverage = engine.manifest.get("language_coverage", {})
@@ -5952,7 +6033,8 @@ class SRT1Engine:
 
             def do_POST(self):
                 path = urlparse(self.path).path
-                print(f"DEBUG: do_POST called with path: {path} (raw self.path: {self.path})")
+                if not self._check_auth(path, mutation=True):
+                    return
 
                 # Optional private proxy routing. Public Core fails closed when absent.
                 if path.startswith("/v1/"):
@@ -5972,12 +6054,9 @@ class SRT1Engine:
                         self.wfile.write(json.dumps(msg).encode("utf-8"))
                     return
 
-                if path == "/enforcement/override":
-                    pass # Preserve legacy override route behavior.
-                elif not self._check_auth(path):
-                    return
-
                 body = self._body()
+                if body is None:
+                    return
 
                 if path == "/api/v1/enforcement/nudge/toggle":
                     enabled = body.get("enabled", True)
@@ -6592,10 +6671,12 @@ class SRT1Engine:
             def do_PATCH(self):
                 path = urlparse(self.path).path
 
-                if not self._check_auth(path):
+                if not self._check_auth(path, mutation=True):
                     return
 
                 body = self._body()
+                if body is None:
+                    return
 
                 # PATCH /seeds/<id> — Update seed growth or stage
                 if path.startswith("/seeds/"):

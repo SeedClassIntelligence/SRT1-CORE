@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 
 <html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
@@ -1720,6 +1720,39 @@ function renderMarkdown(text) {
 const API = (window.location.port && window.location.port !== '8080' && window.location.port !== '8000')
   ? window.location.origin
   : (localStorage.getItem('srt1_engine_origin') || 'http://127.0.0.1:8475');
+
+const srtNativeFetch = window.fetch.bind(window);
+const srtRuntimeSessions = new Map();
+
+async function getSrtRuntimeSession(origin) {
+  if (srtRuntimeSessions.has(origin)) return srtRuntimeSessions.get(origin);
+  const pending = srtNativeFetch(origin + '/api/v1/runtime/session', {
+    method: 'GET', cache: 'no-store', headers: { 'X-SRT1-Request': 'bootstrap' }
+  }).then(async response => {
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.session_token) throw new Error(data.error || 'SRT-1 runtime session unavailable');
+    return data.session_token;
+  }).catch(error => {
+    srtRuntimeSessions.delete(origin);
+    throw error;
+  });
+  srtRuntimeSessions.set(origin, pending);
+  return pending;
+}
+
+window.fetch = async function srt1SecuredFetch(input, init = {}) {
+  const target = new URL(typeof input === 'string' ? input : input.url, window.location.href);
+  const method = String(init.method || (input && input.method) || 'GET').toUpperCase();
+  const mutation = ['POST', 'PATCH', 'PUT', 'DELETE'].includes(method);
+  const loopback = ['127.0.0.1', 'localhost', '::1'].includes(target.hostname);
+  if (!mutation || !loopback) return srtNativeFetch(input, init);
+  const token = await getSrtRuntimeSession(target.origin);
+  const headers = new Headers((input && input.headers) || {});
+  new Headers(init.headers || {}).forEach((value, key) => headers.set(key, value));
+  headers.set('X-SRT1-Session', token);
+  headers.set('X-SRT1-Request', 'browser');
+  return srtNativeFetch(input, { ...init, headers });
+};
 let manifest = null;
 let manifestLoaded = false;
 let manifestLoading = false;

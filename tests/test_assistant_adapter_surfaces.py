@@ -162,6 +162,19 @@ class AssistantAdapterSurfaceTests(unittest.TestCase):
         self.assertTrue(verified["verified"])
         self.assertFalse(replayed["verified"])
 
+    def test_local_mutation_routes_use_runtime_session_header(self):
+        root = Path(__file__).resolve().parents[1]
+        engine = (root / "srt1_code_indexer" / "engine.py").read_text(encoding="utf-8")
+        dashboard = (root / "srt1_platform" / "pwa" / "dashboard.html").read_text(encoding="utf-8")
+        experience = (root / "srt1_platform" / "pwa" / "experience.html").read_text(encoding="utf-8")
+
+        self.assertIn("/api/v1/runtime/session", engine)
+        self.assertIn("X-SRT1-Session", engine)
+        self.assertIn("MAX_REQUEST_BODY_BYTES", engine)
+        self.assertIn("getSrtRuntimeSession", dashboard)
+        self.assertIn("X-SRT1-Session", dashboard)
+        self.assertIn("getSrtRuntimeSession", experience)
+        self.assertIn("X-SRT1-Session", experience)
     def test_dashboard_contains_assistant_adapter_and_slack_wiring(self):
         dashboard = (
             Path(__file__).resolve().parents[1]
