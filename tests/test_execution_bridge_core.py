@@ -6,8 +6,11 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 
 from srt1_platform.assistant_adapters import (
+    AssistantAdapterRegistry,
+    AnthropicAssistantAdapter,
     CustomHTTPAssistantAdapter,
     FileHandoffAssistantAdapter,
+    GeminiAssistantAdapter,
     OpenAICompatibleAssistantAdapter,
     WorkCellExecutionRequest,
 )
@@ -238,6 +241,158 @@ class ExecutionBridgeCoreTests(unittest.TestCase):
         self.assertIn("must_respect_pause_stop_cancel", captured["body"])
         self.assertNotIn("sk-test-secret", captured["body"])
         self.assertFalse(result.response["secret_persisted"])
+
+    def test_provider_project_conversation_is_grounded_and_has_no_write_contract(self):
+        captured = {}
+
+        class FakeResponse:
+            def __enter__(self): return self
+            def __exit__(self, exc_type, exc, tb): return False
+            def read(self):
+                return b'{"choices":[{"message":{"content":"{\"message\":\"Grounded answer\"}"}}]}'
+
+        def fake_urlopen(request, timeout=0):
+            captured["body"] = request.data.decode("utf-8")
+            return FakeResponse()
+
+        request = WorkCellExecutionRequest(
+            seed_id="project_conversation",
+            intent="What is this project designed to do?",
+            blueprint='{"synopsis":"Known repository evidence"}',
+            allowed_paths=["__conversation_only_no_write_scope__"],
+            restricted_paths=["*"],
+            metadata={"conversation_only": True, "conversation_history": []},
+            transient_credentials={"together": "session-secret"},
+        )
+        with patch("urllib.request.urlopen", side_effect=fake_urlopen):
+            result = OpenAICompatibleAssistantAdapter(
+                provider="together", endpoint="https://api.together.test/v1/chat/completions", model="test-model"
+            ).dispatch(request)
+
+        self.assertEqual(result.status, "dispatched")
+        self.assertIn("Known repository evidence", captured["body"])
+        self.assertIn("discussion_only", captured["body"])
+        self.assertIn("must_not_write_files", captured["body"])
+        self.assertNotIn("proposed_changes", captured["body"])
+        self.assertNotIn("session-secret", captured["body"])
+        self.assertNotIn("sk-test-secret", captured["body"])
+        self.assertFalse(result.response["secret_persisted"])
+
+    def test_provider_registry_returns_sanitized_degraded_result_on_runtime_failure(self):
+        request = WorkCellExecutionRequest(
+            seed_id="project_conversation",
+            intent="Explain the project",
+            blueprint='{"synopsis":"Known repository evidence"}',
+            allowed_paths=["__conversation_only_no_write_scope__"],
+            restricted_paths=["*"],
+            metadata={"conversation_only": True},
+            transient_credentials={"together": "session-secret"},
+        )
+        registry = AssistantAdapterRegistry([{
+            "type": "openai_compatible",
+            "provider": "together",
+            "endpoint": "https://api.together.test/v1/chat/completions",
+            "model": "test-model",
+        }])
+
+        with patch.object(
+            OpenAICompatibleAssistantAdapter,
+            "dispatch",
+            side_effect=RuntimeError("session-secret must never escape"),
+        ):
+            result = registry.dispatch_all(request)["openai_compatible"]
+
+        self.assertEqual(result["status"], "degraded")
+        self.assertIn("failed", result["message"])
+        self.assertNotIn("session-secret", result["message"])
+
+    def test_anthropic_native_provider_uses_messages_contract_and_transient_key(self):
+        captured = {}
+
+        class FakeResponse:
+            def __enter__(self): return self
+            def __exit__(self, exc_type, exc, tb): return False
+            def read(self):
+                return json.dumps({
+                    "content": [{"type": "text", "text": '{"proposed_changes": []}'}]
+                }).encode("utf-8")
+
+        def fake_urlopen(request, timeout=0):
+            captured["headers"] = {key.lower(): value for key, value in request.header_items()}
+            captured["body"] = json.loads(request.data.decode("utf-8"))
+            return FakeResponse()
+
+        request = WorkCellExecutionRequest(
+            seed_id="seed_anthropic",
+            intent="Update app.py safely",
+            allowed_paths=["app.py"],
+            transient_credentials={"anthropic": "anthropic-test-secret"},
+        )
+        with patch("urllib.request.urlopen", side_effect=fake_urlopen):
+            result = AnthropicAssistantAdapter(model="claude-test").dispatch(request)
+
+        self.assertEqual(result.status, "dispatched")
+        self.assertEqual(captured["headers"]["x-api-key"], "anthropic-test-secret")
+        self.assertEqual(captured["headers"]["anthropic-version"], "2023-06-01")
+        self.assertEqual(captured["body"]["messages"][0]["role"], "user")
+        self.assertIn("proposed_changes", captured["body"]["system"])
+        self.assertNotIn("anthropic-test-secret", json.dumps(captured["body"]))
+        self.assertEqual(
+            result.response["result"]["choices"][0]["message"]["content"],
+            '{"proposed_changes": []}',
+        )
+        self.assertFalse(result.response["secret_persisted"])
+
+    def test_gemini_native_provider_uses_generate_content_and_transient_key(self):
+        captured = {}
+
+        class FakeResponse:
+            def __enter__(self): return self
+            def __exit__(self, exc_type, exc, tb): return False
+            def read(self):
+                return json.dumps({
+                    "candidates": [{
+                        "content": {"parts": [{"text": '{"proposed_changes": []}'}]}
+                    }]
+                }).encode("utf-8")
+
+        def fake_urlopen(request, timeout=0):
+            captured["url"] = request.full_url
+            captured["headers"] = {key.lower(): value for key, value in request.header_items()}
+            captured["body"] = json.loads(request.data.decode("utf-8"))
+            return FakeResponse()
+
+        request = WorkCellExecutionRequest(
+            seed_id="seed_gemini",
+            intent="Update app.py safely",
+            allowed_paths=["app.py"],
+            transient_credentials={"gemini": "gemini-test-secret"},
+        )
+        with patch("urllib.request.urlopen", side_effect=fake_urlopen):
+            result = GeminiAssistantAdapter(model="gemini-test").dispatch(request)
+
+        self.assertEqual(result.status, "dispatched")
+        self.assertIn("gemini-test:generateContent", captured["url"])
+        self.assertEqual(captured["headers"]["x-goog-api-key"], "gemini-test-secret")
+        self.assertEqual(captured["body"]["contents"][0]["role"], "user")
+        self.assertEqual(captured["body"]["generationConfig"]["responseMimeType"], "application/json")
+        self.assertNotIn("gemini-test-secret", json.dumps(captured["body"]))
+        self.assertEqual(
+            result.response["result"]["choices"][0]["message"]["content"],
+            '{"proposed_changes": []}',
+        )
+        self.assertFalse(result.response["secret_persisted"])
+
+    def test_native_providers_fail_closed_without_key_or_scope(self):
+        scoped = WorkCellExecutionRequest(seed_id="seed_native", intent="Work", allowed_paths=["app.py"])
+        unscoped = WorkCellExecutionRequest(
+            seed_id="seed_native",
+            intent="Work",
+            transient_credentials={"anthropic": "secret"},
+        )
+        self.assertEqual(AnthropicAssistantAdapter().dispatch(scoped).status, "degraded")
+        self.assertEqual(AnthropicAssistantAdapter().dispatch(unscoped).status, "degraded")
+        self.assertEqual(GeminiAssistantAdapter().dispatch(scoped).status, "degraded")
 
     def test_openai_compatible_provider_fails_closed_without_key_or_scope(self):
         scoped = WorkCellExecutionRequest(

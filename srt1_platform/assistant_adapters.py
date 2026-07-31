@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import os
+import urllib.error
 import urllib.request
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -293,12 +294,7 @@ class OpenAICompatibleAssistantAdapter(BaseAssistantAdapter):
                 {
                     "role": "system",
                     "content": (
-                        "You are operating inside SRT-1. Return only a JSON object. "
-                        "Do not write files directly and do not claim files were changed. "
-                        "All file edits must be returned as proposed_changes for human review. "
-                        "Each proposed change must include file_path, action, new_content, and rationale. "
-                        "Use only MODIFY or CREATE actions. Stay inside allowed paths and obey pause, stop, and cancel controls. "
-                        "If no safe change is available, return {\"proposed_changes\": []}."
+                        _bounded_provider_prompt(request)
                     ),
                 },
                 {
@@ -333,6 +329,21 @@ class OpenAICompatibleAssistantAdapter(BaseAssistantAdapter):
         )
 
     def _build_model_payload(self, request: WorkCellExecutionRequest) -> Dict[str, Any]:
+        if request.metadata.get("conversation_only"):
+            return {
+                "mode": "project_conversation",
+                "user_message": request.intent,
+                "repository_context": request.blueprint,
+                "conversation_history": request.metadata.get("conversation_history", []),
+                "trust_state": dict(request.trust_state),
+                "response_contract": {
+                    "discussion_only": True,
+                    "must_not_write_files": True,
+                    "must_not_claim_execution": True,
+                    "must_ground_repository_claims_in_supplied_context": True,
+                    "json_schema": {"message": "grounded conversational response"},
+                },
+            }
         return {
             "seed_id": request.seed_id,
             "intent": request.intent,
@@ -364,6 +375,194 @@ class OpenAICompatibleAssistantAdapter(BaseAssistantAdapter):
         }
 
 
+def _bounded_provider_prompt(request: Optional[WorkCellExecutionRequest] = None) -> str:
+    if request and request.metadata.get("conversation_only"):
+        return (
+            "You are the conversational reasoning layer inside SRT-1. "
+            "Discuss the user's code project using only the repository evidence supplied by SRT-1. "
+            "Do not write files, propose file mutations, claim work was executed, or broaden repository access. "
+            "Clearly distinguish known repository facts from recommendations. "
+            "Return only a JSON object with one string field named message."
+        )
+    return (
+        "You are operating inside SRT-1. Return only a JSON object. "
+        "Do not write files directly and do not claim files were changed. "
+        "All file edits must be returned as proposed_changes for human review. "
+        "Each proposed change must include file_path, action, new_content, and rationale. "
+        "Use only MODIFY or CREATE actions. Stay inside allowed paths and obey pause, stop, and cancel controls. "
+        'If no safe change is available, return {"proposed_changes": []}.'
+    )
+
+
+def _bounded_provider_payload(request: WorkCellExecutionRequest) -> Dict[str, Any]:
+    return OpenAICompatibleAssistantAdapter()._build_model_payload(request)
+
+
+def _normalized_chat_result(content: str) -> Dict[str, Any]:
+    """Normalize native provider text for the shared proposal and chat paths."""
+    return {"choices": [{"message": {"content": str(content or "")}}]}
+
+
+class AnthropicAssistantAdapter(BaseAssistantAdapter):
+    """Call Anthropic Messages with a bounded WorkCell request."""
+
+    name = "anthropic"
+
+    def __init__(
+        self,
+        endpoint: str = "https://api.anthropic.com/v1/messages",
+        model: str = "claude-sonnet-4-5",
+        timeout: float = 60.0,
+        max_tokens: int = 8192,
+    ):
+        self.endpoint = endpoint or "https://api.anthropic.com/v1/messages"
+        self.model = model or "claude-sonnet-4-5"
+        self.timeout = timeout
+        self.max_tokens = max_tokens
+
+    def dispatch(self, request: WorkCellExecutionRequest) -> AssistantDispatchResult:
+        credential = request.transient_credentials.get("anthropic")
+        if not credential and len(request.transient_credentials) == 1:
+            credential = next(iter(request.transient_credentials.values()))
+        if not credential:
+            return AssistantDispatchResult(
+                adapter=self.name,
+                status="degraded",
+                message="anthropic session credential is required",
+            )
+        if not request.allowed_paths:
+            return AssistantDispatchResult(
+                adapter=self.name,
+                status="degraded",
+                message="validated WorkCell allowed paths are required",
+            )
+
+        payload = {
+            "model": self.model,
+            "max_tokens": self.max_tokens,
+            "temperature": 0.2,
+            "system": _bounded_provider_prompt(request),
+            "messages": [{
+                "role": "user",
+                "content": json.dumps(_bounded_provider_payload(request), indent=2, sort_keys=True),
+            }],
+        }
+        req = urllib.request.Request(
+            self.endpoint,
+            data=json.dumps(payload).encode("utf-8"),
+            headers={
+                "Content-Type": "application/json",
+                "x-api-key": credential,
+                "anthropic-version": "2023-06-01",
+                "X-SRT1-Credential-Mode": "session",
+                "X-SRT1-Credential-Provider": "anthropic",
+            },
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=self.timeout) as response:
+            body = response.read().decode("utf-8")
+        native_result = json.loads(body) if body else {}
+        content = "".join(
+            str(block.get("text") or "")
+            for block in (native_result.get("content") or [])
+            if isinstance(block, dict) and block.get("type") == "text"
+        )
+        return AssistantDispatchResult(
+            adapter=self.name,
+            status="dispatched",
+            message="Bounded WorkCell request completed by Anthropic",
+            response={
+                "provider": "anthropic",
+                "model": self.model,
+                "endpoint": self.endpoint,
+                "result": _normalized_chat_result(content),
+                "native_result": native_result,
+                "secret_persisted": False,
+            },
+        )
+
+
+class GeminiAssistantAdapter(BaseAssistantAdapter):
+    """Call Gemini generateContent with a bounded WorkCell request."""
+
+    name = "gemini"
+
+    def __init__(
+        self,
+        endpoint: str = "",
+        model: str = "gemini-2.5-flash",
+        timeout: float = 60.0,
+    ):
+        self.model = model or "gemini-2.5-flash"
+        self.endpoint = endpoint or (
+            f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent"
+        )
+        self.timeout = timeout
+
+    def dispatch(self, request: WorkCellExecutionRequest) -> AssistantDispatchResult:
+        credential = request.transient_credentials.get("gemini")
+        if not credential and len(request.transient_credentials) == 1:
+            credential = next(iter(request.transient_credentials.values()))
+        if not credential:
+            return AssistantDispatchResult(
+                adapter=self.name,
+                status="degraded",
+                message="gemini session credential is required",
+            )
+        if not request.allowed_paths:
+            return AssistantDispatchResult(
+                adapter=self.name,
+                status="degraded",
+                message="validated WorkCell allowed paths are required",
+            )
+
+        payload = {
+            "systemInstruction": {"parts": [{"text": _bounded_provider_prompt(request)}]},
+            "contents": [{
+                "role": "user",
+                "parts": [{
+                    "text": json.dumps(_bounded_provider_payload(request), indent=2, sort_keys=True),
+                }],
+            }],
+            "generationConfig": {
+                "temperature": 0.2,
+                "responseMimeType": "application/json",
+            },
+        }
+        req = urllib.request.Request(
+            self.endpoint,
+            data=json.dumps(payload).encode("utf-8"),
+            headers={
+                "Content-Type": "application/json",
+                "x-goog-api-key": credential,
+                "X-SRT1-Credential-Mode": "session",
+                "X-SRT1-Credential-Provider": "gemini",
+            },
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=self.timeout) as response:
+            body = response.read().decode("utf-8")
+        native_result = json.loads(body) if body else {}
+        candidates = native_result.get("candidates") or []
+        parts = ((candidates[0].get("content") or {}).get("parts") or []) if candidates else []
+        content = "".join(
+            str(part.get("text") or "") for part in parts if isinstance(part, dict)
+        )
+        return AssistantDispatchResult(
+            adapter=self.name,
+            status="dispatched",
+            message="Bounded WorkCell request completed by Gemini",
+            response={
+                "provider": "gemini",
+                "model": self.model,
+                "endpoint": self.endpoint,
+                "result": _normalized_chat_result(content),
+                "native_result": native_result,
+                "secret_persisted": False,
+            },
+        )
+
+
 class AssistantAdapterRegistry:
     """Build adapters from Core-safe configuration dictionaries."""
 
@@ -382,7 +581,26 @@ class AssistantAdapterRegistry:
                     message="Unknown assistant adapter type",
                 ).to_dict()
                 continue
-            results[adapter.name] = adapter.dispatch(request).to_dict()
+            try:
+                results[adapter.name] = adapter.dispatch(request).to_dict()
+            except urllib.error.HTTPError as exc:
+                results[adapter.name] = AssistantDispatchResult(
+                    adapter=adapter.name,
+                    status="degraded",
+                    message=f"Provider request failed with HTTP {exc.code}",
+                ).to_dict()
+            except (urllib.error.URLError, TimeoutError):
+                results[adapter.name] = AssistantDispatchResult(
+                    adapter=adapter.name,
+                    status="degraded",
+                    message="Provider request could not reach the configured endpoint",
+                ).to_dict()
+            except Exception:
+                results[adapter.name] = AssistantDispatchResult(
+                    adapter=adapter.name,
+                    status="degraded",
+                    message="Provider request failed before a usable response was returned",
+                ).to_dict()
         return results
 
     def _build_adapter(self, config: Dict[str, Any]) -> Optional[BaseAssistantAdapter]:
@@ -402,6 +620,19 @@ class AssistantAdapterRegistry:
                 provider=str(config.get("provider") or "openai"),
                 endpoint=str(config.get("endpoint") or "https://api.openai.com/v1/chat/completions"),
                 model=str(config.get("model") or "gpt-4o-mini"),
+                timeout=float(config.get("timeout") or 60.0),
+            )
+        if adapter_type in {"anthropic", "claude"}:
+            return AnthropicAssistantAdapter(
+                endpoint=str(config.get("endpoint") or "https://api.anthropic.com/v1/messages"),
+                model=str(config.get("model") or "claude-sonnet-4-5"),
+                timeout=float(config.get("timeout") or 60.0),
+                max_tokens=int(config.get("max_tokens") or 8192),
+            )
+        if adapter_type in {"gemini", "google"}:
+            return GeminiAssistantAdapter(
+                endpoint=str(config.get("endpoint") or ""),
+                model=str(config.get("model") or "gemini-2.5-flash"),
                 timeout=float(config.get("timeout") or 60.0),
             )
         return None
