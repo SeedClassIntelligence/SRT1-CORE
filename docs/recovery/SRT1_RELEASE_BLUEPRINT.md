@@ -131,7 +131,7 @@ Public Core must not include:
 - Enterprise backend implementation
 - proprietary governance loops
 - private execution infrastructure
-- unrelated LegalTrigger implementation
+- unrelated external product/workspace implementation
 
 Seed Signature may be mentioned as the external signing and attribution
 platform. Core may request or store public metadata such as signature status,
@@ -283,7 +283,7 @@ Before commit or push, scan staged diff for:
 - SION internals
 - private audit ledger/chain implementation
 - Enterprise backend implementation
-- LegalTrigger bleed
+- unrelated external product/workspace bleed
 - generated runtime state
 - scratch/demo artifacts
 

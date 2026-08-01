@@ -36,8 +36,8 @@ Do not mix files from those folders into Core without a boundary review.
 
 ## Product Separation
 
-SRT-1 Core, SRT-1 Enterprise, Seed Signature, Seed Reflections, and LegalTrigger
-are separate product surfaces.
+SRT-1 Core, SRT-1 Enterprise, Seed Signature, Seed Reflections, and unrelated
+external products/workspaces are separate product surfaces.
 
 Core may reference external products by integration boundary, but Core must not
 absorb their private implementation.
@@ -51,7 +51,7 @@ Core must not ship:
 - SION internals
 - private audit chain
 - Enterprise backend implementation
-- unrelated LegalTrigger implementation
+- unrelated external product/workspace implementation
 - Seed Reflections application source
 
 ## Dirty File Meaning
