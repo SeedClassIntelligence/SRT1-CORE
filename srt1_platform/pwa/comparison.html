@@ -214,7 +214,7 @@
     
     <div class="nav-top-right" id="nav-auth">
       <a href="auth.html?mode=login" class="signin">Sign In</a>
-      <a href="auth.html?mode=signup&type=developer&next=dashboard.html" class="signup">Sign Up</a>
+      <a href="auth.html?mode=signup&type=developer&next=experience.html" class="signup">Sign Up</a>
     </div>
   </div>
   <div class="nav-bottom">
@@ -309,7 +309,7 @@
           <div class="feat-row"><span class="fi has">✓</span>SHA-256 trust chain across all pipeline stages <span class="excl-pill">ONLY SRT-1</span></div>
           <div class="feat-row"><span class="fi has">✓</span>Manifest hash, lineage, and external signing readiness <span class="excl-pill">ONLY SRT-1</span></div>
           <div class="feat-row"><span class="fi has">✓</span>Detective-first findings: dupes, stale files, gaps, and reviewable recovery actions <span class="excl-pill">ONLY SRT-1</span></div>
-          <div class="feat-row"><span class="fi has">✓</span>CLAUDE.md, .cursorrules, AGENTS.md auto-generated <span class="excl-pill">ONLY SRT-1</span></div>
+          <div class="feat-row"><span class="fi has">✓</span>Generated runtime context packets from AGENTS.md, CLAUDE.md, .cursorrules, and manifest evidence <span class="excl-pill">ONLY SRT-1</span></div>
           <div class="feat-row"><span class="fi has">✓</span>Live dashboard at localhost:7484 by default <span class="excl-pill">ONLY SRT-1</span></div>
           <div class="feat-row"><span class="fi has">✓</span>MCP server grounded in your actual codebase <span class="excl-pill">ONLY SRT-1</span></div>
         </div>
@@ -361,9 +361,9 @@
           <tr><td class="rl">Session handoff summaries</td><td class="us"><span class="yb">✓</span> Paste into any new conversation <span class="only">ONLY</span></td><td><span class="n">✗</span> Does not exist</td></tr>
           <tr><td class="rl">What happens to originals</td><td class="us">Analyzed, signed, preserved</td><td>Verbatim or discarded</td></tr>
 
-          <tr class="rc"><td colspan="3">💰 CONSUMER PRICING</td></tr>
-          <tr><td class="rl">Starter Recovery</td><td class="us">$9/mo (Metered recoveries)</td><td>Requires massive overhead</td></tr>
-          <tr><td class="rl">Cross-Platform Dashboard</td><td class="us">$15/mo (Unlimited Access)</td><td style="color:var(--text4)">None / Siloed</td></tr>
+          <tr class="rc"><td colspan="3">CONSUMER PRODUCT BOUNDARY</td></tr>
+          <tr><td class="rl">Seed Reflections</td><td class="us">Separate consumer continuity product</td><td>Not part of SRT-1 Core packaging</td></tr>
+          <tr><td class="rl">SRT-1 Core</td><td class="us">Local developer repo-continuity runtime</td><td style="color:var(--text4)">Not priced as the consumer reflection app</td></tr>
           <tr><td class="rl">Data Architecture</td><td class="us"><span class="yb">✓</span> Pure Python stdlib SQLite</td><td><span class="n">✗</span> Heavy Vector DB dependencies</td></tr>
 
         </tbody>
@@ -387,7 +387,7 @@
           <tr><td class="rl">Code indexing</td><td class="us"><span class="yb">✓</span> 10+ languages fully supported <span class="only">NATIVE</span></td></tr>
           <tr><td class="rl">Role &amp; risk tagging</td><td class="us"><span class="yb">✓</span> Every function classified autonomously <span class="only">NATIVE</span></td></tr>
           <tr><td class="rl">Detective-first findings</td><td class="us"><span class="yb">✓</span> Dupes, stale files, gaps, and reviewable recovery actions <span class="only">NATIVE</span></td></tr>
-          <tr><td class="rl">AI context file generation</td><td class="us"><span class="yb">✓</span> Continual generation of CLAUDE.md · .cursorrules · AGENTS.md <span class="only">NATIVE</span></td></tr>
+          <tr><td class="rl">Assistant context delivery</td><td class="us"><span class="yb">✓</span> Generated context packets and WorkCell packages from stable instruction evidence <span class="only">NATIVE</span></td></tr>
           <tr><td class="rl">Live codebase dashboard</td><td class="us"><span class="yb">✓</span> localhost:7484 by default — repository cockpit <span class="only">NATIVE</span></td></tr>
 
           <tr class="rc"><td colspan="2">🌱 SEED SYSTEM (DEVELOPER ASSET)</td></tr>
@@ -406,9 +406,9 @@
           <tr><td class="rl">Intellectual provenance protocol</td><td class="us"><span class="yb">✓</span> Core prepares the artifact trail; Seed Signature provides signing authority <span class="only">BOUNDARY SAFE</span></td></tr>
           <tr><td class="rl">Local activity timeline</td><td class="us"><span class="yb">✓</span> Tracks indexing, seeds, WorkCell dispatch, review, and verification events <span class="only">CORE</span></td></tr>
 
-          <tr class="rc"><td colspan="2">💰 DEVELOPER &amp; TEAM PRICING</td></tr>
-          <tr><td class="rl">Developer Intelligence</td><td class="us">$39/mo (Full Development Asset Insight)</td></tr>
-          <tr><td class="rl">SRT-1 Governance</td><td class="us">$349/yr (For Dev Teams and Repositories)</td></tr>
+          <tr class="rc"><td colspan="2">DEVELOPER &amp; TEAM PACKAGING</td></tr>
+          <tr><td class="rl">Developer Core</td><td class="us">Local-first Core distribution; pricing and packaging under review before paid launch</td></tr>
+          <tr><td class="rl">Enterprise</td><td class="us">Separate private/team product with its own dashboard, backend, governance, and managed pricing</td></tr>
 
         </tbody>
       </table>
@@ -440,8 +440,8 @@
 &nbsp;&nbsp;<span class="sk">operation_type</span>:&nbsp;&nbsp;<span class="sv">"codebase_manifest"</span><br>
 }<br>
 <br>
-<span style="color:var(--text4);font-size:11px">// No other system establishes this level of provenance.</span><br>
-<span style="color:var(--text4);font-size:11px">// This is SRT-1. This is the cryptographic record.</span>
+<span style="color:var(--text4);font-size:11px">// Core records the evidence trail.</span><br>
+<span style="color:var(--text4);font-size:11px">// Seed Signature provides authority signing when connected.</span>
       </div>
     </div>
   </div>
@@ -454,7 +454,7 @@
   <div class="cta-inner">
     <span class="eyebrow" style="display:block;margin-bottom:16px">The original. The standard.</span>
     <h2>Stop losing your ideas.<br><span class="hl">Start owning them.</span></h2>
-    <p>One system. Uncompromising continuity, deterministic codebase intelligence, and cryptographic provenance. Complete control over your development process.</p>
+    <p>One local Core for repo continuity, deterministic codebase intelligence, WorkCell boundaries, and external Seed Signature-ready provenance.</p>
     <div class="install">
       <code>pip install srt1-core</code>
       <button class="cp" onclick="navigator.clipboard.writeText('pip install srt1-core');this.textContent='Copied!';setTimeout(()=>this.textContent='Copy',1500)">Copy</button>

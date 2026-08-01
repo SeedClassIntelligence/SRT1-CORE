@@ -663,7 +663,7 @@ body.theme-light .file-intel-popover{box-shadow:0 18px 40px rgba(15,23,42,0.18);
       <button type="button" id="themeToggle" onclick="toggleDashboardTheme()" class="theme-toggle">Light Mode</button>
       <a href="/experience.html" class="download-btn" style="font-size:12px;padding:8px 12px;text-decoration:none;background:var(--green);color:#06110b;border-color:var(--green);">Open Standard Experience</a>
       <button onclick="showIntroModal(true)" class="download-btn" style="font-size:12px;padding:8px 12px;">Core Help</button>
-      <a href="/auth.html?mode=signup&type=developer&next=dashboard.html" class="download-btn" style="font-size:12px;padding:8px 12px;text-decoration:none;">Sign Up / Login</a>
+      <a href="/auth.html?mode=signup&type=developer&next=experience.html" class="download-btn" style="font-size:12px;padding:8px 12px;text-decoration:none;">Sign Up / Login</a>
       <a href="observatory.html" onclick="event.preventDefault();navPage('observatory')" style="display:inline-flex;align-items:center;padding:8px 16px;background:var(--bg3);border:1px solid var(--border2);color:var(--text);border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;transition:all 0.15s;">
         Open Observatory
       </a>
@@ -954,7 +954,7 @@ body.theme-light .file-intel-popover{box-shadow:0 18px 40px rgba(15,23,42,0.18);
       <div id="licenseUpgrade" style="margin-top:16px;padding:16px;background:linear-gradient(135deg,rgba(88,166,255,.06),rgba(57,208,216,.04));border:1px solid rgba(88,166,255,.2);border-radius:10px;">
         <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:6px;">Unlock Pro Features</div>
         <div style="font-size:12px;color:var(--text3);line-height:1.6;margin-bottom:12px;">Upgrade to Pro for richer local constellation coordination, multi-workspace observability, and advanced packaging. Core remains local-first and usable without proprietary backend services.</div>
-        <a href="/contact.html?plan=pro&payment=paypal" style="display:block;text-align:center;padding:10px;border-radius:8px;font-weight:700;font-size:13px;background:var(--blue,#58a6ff);color:#000;border:none;cursor:pointer;text-decoration:none;">Get Pro with PayPal — $19/mo</a>
+        <a href="/contact.html?plan=pro&intent=pricing-review" style="display:block;text-align:center;padding:10px;border-radius:8px;font-weight:700;font-size:13px;background:var(--blue,#58a6ff);color:#000;border:none;cursor:pointer;text-decoration:none;">Join Pro pricing review</a>
       </div>
     </div>
 
@@ -2216,7 +2216,7 @@ async function loadManifest(options = {}) {
       trustEl.style.fontSize = '20px';
     }
     document.getElementById('statFilesSub').textContent = 'Engine not running';
-    document.getElementById('statSymbolsSub').textContent = 'Start: python srt1_code_indexer_engine.py';
+    document.getElementById('statSymbolsSub').textContent = 'Start: srt1 start --repo . --port 7484';
     document.getElementById('statReflectionsSub').textContent = `${API} not responding`;
     document.getElementById('statTrustSub').textContent = 'Engine offline';
   } finally {
@@ -5314,5 +5314,3 @@ function setDashboardPreference(key, value) {
 setTimeout(() => showIntroModal(false), 500);
 </script>
 </body></html>
-
-

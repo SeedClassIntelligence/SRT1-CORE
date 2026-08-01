@@ -384,7 +384,7 @@
     <a href="srt1-core.html" class="nav-logo">SRT<em>-1</em> <span style="font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;margin-left:4px">CORE</span></a>
     <div class="nav-top-right" id="nav-auth">
       <a href="auth.html?mode=login" class="signin">Sign In</a>
-      <a href="auth.html?mode=signup&type=developer&next=dashboard.html" class="signup">Sign Up</a>
+      <a href="auth.html?mode=signup&type=developer&next=experience.html" class="signup">Sign Up</a>
     </div>
   </div>
   <div class="nav-bottom">
@@ -462,15 +462,15 @@
 
     <!-- ── QUICKSTART ── -->
     <h2 id="quickstart">⚡ Quickstart</h2>
-    <p>Register a local repository, build repo understanding, and open the dashboard cockpit.</p>
+    <p>Register a local repository, build repo understanding, and open the Standard Experience. Use the dashboard as the advanced control room when you need deeper diagnostics.</p>
     <h3>1. Install</h3>
     <pre style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:16px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan);margin-bottom:16px;overflow-x:auto">pip install srt1-core</pre>
     <h3>2. Start SRT-1 for a local repository</h3>
     <pre style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:16px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--text2);margin-bottom:16px;overflow-x:auto">srt1 start --repo /path/to/your/repository --port 7484</pre>
-    <h3>3. Open the dashboard</h3>
-    <pre style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:16px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--text2);margin-bottom:16px;overflow-x:auto">http://127.0.0.1:7484/dashboard</pre>
+    <h3>3. Open the Standard Experience</h3>
+    <pre style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:16px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--text2);margin-bottom:16px;overflow-x:auto">http://127.0.0.1:7484/experience.html</pre>
     <h3>4. Register or switch repositories</h3>
-    <p>Use the dashboard Repository Manager to register a local folder, launch its runtime, stop stale runtimes, and select the repository SRT-1 should manage. After activation, SRT-1 builds the manifest, FileCells, WorkCells, recall context, and verification surfaces for that project.</p>
+    <p>Use the Standard Experience to choose a folder, paste a path, connect a GitHub repository, or continue a registered repository. Use the dashboard Repository Manager when you need advanced runtime launch, stop, and switch controls. After activation, SRT-1 builds the manifest, FileCells, WorkCells, recall context, and verification surfaces for that project.</p>
 
     <h2 id="architecture">Architecture</h2>
     <p>SRT-1 starts before the assistant receives a task. First, the user activates a repository. Core scans the local project, builds a manifest, derives FileCells, creates WorkCells, and exposes the result through the dashboard, MCP/context surfaces, and local HTTP API.</p>
@@ -537,7 +537,7 @@ srt1 stop --port 7484</pre>
       <tbody>
         <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">Trust bootstrap entry</td><td style="padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan)">bootstrap</td><td style="padding:8px 12px;color:var(--text3)">Engine startup after indexing</td></tr>
         <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">Enforcement violations</td><td style="padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan)">enforcement</td><td style="padding:8px 12px;color:var(--text3)">When violations are detected</td></tr>
-        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">Context documents</td><td style="padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan)">context_generation</td><td style="padding:8px 12px;color:var(--text3)">After AGENTS.md is written</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">Context packets</td><td style="padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan)">context_generation</td><td style="padding:8px 12px;color:var(--text3)">After SRT-1 reads standing instruction evidence and writes generated context under SRT-1 runtime state</td></tr>
         <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">Violation resolutions</td><td style="padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan)">enforcement_resolve</td><td style="padding:8px 12px;color:var(--text3)">When developer resolves a block</td></tr>
         <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">Violation overrides</td><td style="padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan)">enforcement_override</td><td style="padding:8px 12px;color:var(--text3)">When developer overrides with justification and external signing is configured</td></tr>
       </tbody>
@@ -592,8 +592,8 @@ srt1 stop --port 7484</pre>
       </tr></thead>
       <tbody>
         <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">External signing hook</td><td style="padding:8px 12px;color:var(--green)">✓</td><td style="padding:8px 12px;color:var(--green)">✓</td></tr>
-        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">DataEncryptor</td><td style="padding:8px 12px;color:var(--text3)">—</td><td style="padding:8px 12px;color:var(--green)">✓</td></tr>
-        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">AccessAuditLog</td><td style="padding:8px 12px;color:var(--text3)">—</td><td style="padding:8px 12px;color:var(--green)">✓</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">Private encryption implementation</td><td style="padding:8px 12px;color:var(--text3)">excluded</td><td style="padding:8px 12px;color:var(--green)">external/private</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">Private audit implementation</td><td style="padding:8px 12px;color:var(--text3)">excluded</td><td style="padding:8px 12px;color:var(--green)">external/private</td></tr>
         <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">IntegrityValidator</td><td style="padding:8px 12px;color:var(--text3)">—</td><td style="padding:8px 12px;color:var(--green)">✓</td></tr>
         <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">ExecutionGraph</td><td style="padding:8px 12px;color:var(--text3)">—</td><td style="padding:8px 12px;color:var(--green)">✓</td></tr>
         <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">Private memory integration</td><td style="padding:8px 12px;color:var(--text3)">—</td><td style="padding:8px 12px;color:var(--green)">✓</td></tr>

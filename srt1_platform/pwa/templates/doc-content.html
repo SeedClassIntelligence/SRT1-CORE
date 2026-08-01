@@ -28,7 +28,7 @@
       </a>
       <a href="#context-injection" class="doc-card" style="color:inherit">
         <h3>ðŸ§  AI Context Injection</h3>
-        <p>How AGENTS.md and CLAUDE.md give AI complete repo comprehension.</p>
+        <p>How generated SRT-1 context packets use stable instruction evidence without rewriting source guidance.</p>
       </a>
       <a href="#signing" class="doc-card" style="color:inherit">
         <h3>ðŸ” External Signing</h3>
@@ -40,7 +40,7 @@
       </a>
       <a href="#engine-api" class="doc-card" style="color:inherit">
         <h3>âš¡ Engine API</h3>
-        <p>HTTP endpoints on port 7483 for dashboard and automation.</p>
+        <p>HTTP endpoints on the active runtime port, defaulting to 7484.</p>
       </a>
     </div>
 
@@ -50,7 +50,7 @@
     <h3>1. Install</h3>
     <pre style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:16px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan);margin-bottom:16px;overflow-x:auto">pip install srt1-core</pre>
     <h3>2. Start local repo understanding</h3>
-    <pre style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:16px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--text2);margin-bottom:16px;overflow-x:auto">srt1-code-indexer --repo_path . --port 7484</pre>
+    <pre style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:16px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--text2);margin-bottom:16px;overflow-x:auto">srt1 start --repo . --port 7484</pre>
     <h3>What Gets Signed</h3>
     <div style="overflow-x:auto;margin-bottom:24px">
     <table style="width:100%;border-collapse:collapse;font-size:14px;color:var(--text2)">
@@ -62,14 +62,14 @@
       <tbody>
         <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">Trust bootstrap entry</td><td style="padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan)">bootstrap</td><td style="padding:8px 12px;color:var(--text3)">Engine startup after indexing</td></tr>
         <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">Enforcement violations</td><td style="padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan)">enforcement</td><td style="padding:8px 12px;color:var(--text3)">When violations are detected</td></tr>
-        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">Context documents</td><td style="padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan)">context_generation</td><td style="padding:8px 12px;color:var(--text3)">After AGENTS.md is written</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">Context packets</td><td style="padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan)">context_generation</td><td style="padding:8px 12px;color:var(--text3)">After SRT-1 reads standing instruction evidence and writes generated context under SRT-1 runtime state</td></tr>
         <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">Violation resolutions</td><td style="padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan)">enforcement_resolve</td><td style="padding:8px 12px;color:var(--text3)">When developer resolves a block</td></tr>
         <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">Violation overrides</td><td style="padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan)">enforcement_override</td><td style="padding:8px 12px;color:var(--text3)">When developer overrides with justification</td></tr>
       </tbody>
     </table>
     </div>
     <h3>Signature Envelope</h3>
-    <p>Each signed artifact receives a sealed envelope containing a composite SHA-256 hash (content + semantic + timestamp), a unique <code style="color:var(--cyan);background:var(--bg-card);padding:2px 8px;border-radius:4px;font-size:13px">SCIA-[hash]</code> signature ID, and a chain link to the previous signature. The signing authority verifies via a three-pillar model: content integrity, registry presence, and digest validation.</p>
+    <p>When external Seed Signature is connected, a signed artifact can receive a signature ID, timestamp, attribution metadata, content hash, and lineage link. Public Core records the returned trust state and fails closed when required signing is unavailable.</p>
 
     <!-- â”€â”€ OPTIONAL PRIVATE INTEGRATIONS â”€â”€ -->
     <h2 id="scia-packages">ðŸ“¦ Optional Private Integrations</h2>
@@ -85,8 +85,8 @@
       <tbody>
         <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan)">External signing hook</td><td style="padding:8px 12px">Optional external authority attaches provenance when configured</td></tr>
         <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan)">IntegrityValidator</td><td style="padding:8px 12px">SHA-256 content hashing, tamper detection, file verification</td></tr>
-        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan)">DataEncryptor</td><td style="padding:8px 12px">AES-256-GCM encryption at rest for sensitive data</td></tr>
-        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan)">AccessAuditLog</td><td style="padding:8px 12px">Append-only SQLite audit trail of all actions</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan)">Private encryption</td><td style="padding:8px 12px">Enterprise/private capability; not shipped as a public Core implementation</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan)">Private audit trail</td><td style="padding:8px 12px">Enterprise/private capability; public Core may expose audit-shaped metadata without shipping the private ledger</td></tr>
         <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan)">ExecutionGraph</td><td style="padding:8px 12px">DAG-based operation tracking across pipeline stages</td></tr>
       </tbody>
     </table>
@@ -117,8 +117,8 @@
       </tr></thead>
       <tbody>
         <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">External signing hook</td><td style="padding:8px 12px;color:var(--green)">âœ“</td><td style="padding:8px 12px;color:var(--green)">âœ“</td></tr>
-        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">DataEncryptor</td><td style="padding:8px 12px;color:var(--text3)">â€”</td><td style="padding:8px 12px;color:var(--green)">âœ“</td></tr>
-        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">AccessAuditLog</td><td style="padding:8px 12px;color:var(--text3)">â€”</td><td style="padding:8px 12px;color:var(--green)">âœ“</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">Private encryption implementation</td><td style="padding:8px 12px;color:var(--text3)">excluded</td><td style="padding:8px 12px;color:var(--green)">external/private</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">Private audit implementation</td><td style="padding:8px 12px;color:var(--text3)">excluded</td><td style="padding:8px 12px;color:var(--green)">external/private</td></tr>
         <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">IntegrityValidator</td><td style="padding:8px 12px;color:var(--text3)">â€”</td><td style="padding:8px 12px;color:var(--green)">âœ“</td></tr>
         <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">ExecutionGraph</td><td style="padding:8px 12px;color:var(--text3)">â€”</td><td style="padding:8px 12px;color:var(--green)">âœ“</td></tr>
         <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">Private memory integration</td><td style="padding:8px 12px;color:var(--text3)">â€”</td><td style="padding:8px 12px;color:var(--green)">âœ“</td></tr>
@@ -127,8 +127,8 @@
     </div>
 
     <!-- â”€â”€ ENGINE API â”€â”€ -->
-    <h2 id="engine-api">âš¡ Engine API (Port 7483)</h2>
-    <p>The SRT-1 engine exposes a local HTTP API on port 7483. The developer dashboard and mobile PWA communicate through these endpoints.</p>
+    <h2 id="engine-api">Engine API (Default Port 7484)</h2>
+    <p>The SRT-1 engine exposes a local HTTP API on the active runtime port, defaulting to 7484. The Standard Experience, dashboard, and mobile PWA communicate through these endpoints.</p>
     <h3>GET Endpoints</h3>
     <div style="overflow-x:auto;margin-bottom:24px">
     <table style="width:100%;border-collapse:collapse;font-size:14px;color:var(--text2)">
@@ -164,4 +164,3 @@
     <p>All enforcement responses include a <code style="color:var(--cyan);background:var(--bg-card);padding:2px 8px;border-radius:4px;font-size:13px">_provenance</code> field when the signing service is connected â€” cryptographic proof of the action.</p>
 
   </main>
-

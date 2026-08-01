@@ -93,16 +93,17 @@ pip install srt1-core
 Start a local SRT-1 engine over a project folder:
 
 ```bash
-srt1-index --repo_path ./my_project
+srt1 start --repo ./my_project --port 7484
 ```
 
-The engine should index the repo, maintain local manifest/context state, and expose local observability surfaces. The exact port may be assigned by the local engine.
+The engine indexes the repo, maintains local manifest/context state, and exposes the Experience and advanced dashboard surfaces. `srt1-index --repo_path ./my_project` remains available as the legacy engine entrypoint.
 
 Example local endpoints:
 
 | Surface | Example URL | Purpose |
 | --- | --- | --- |
-| Dashboard | `http://localhost:{port}/dashboard` | Human observability and review surface |
+| Experience | `http://localhost:{port}/experience.html` | Primary user journey: intake, discussion, seeds, WorkCells, review |
+| Dashboard | `http://localhost:{port}/dashboard` | Advanced observability and administration surface |
 | Mobile PWA | `http://localhost:{port}/mobile` | Mobile review/status companion |
 | Status API | `http://localhost:{port}/status` | JSON engine telemetry |
 
