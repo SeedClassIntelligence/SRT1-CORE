@@ -643,6 +643,7 @@ button { cursor: pointer; }
       </button>
     </div>
     <div class="top-actions">
+      <button class="ghost" id="startBtn">Start New</button>
       <button class="ghost" id="briefBtn">Brief me</button>
       <button class="ghost" id="projectAssistantBtn">Project Assistant</button>
       <button class="ghost" id="featureMapBtn">Feature Map</button>
@@ -883,8 +884,7 @@ const pendingActivationStorageKey = 'srt1_pending_repository_activation';
 const workcellProviderSessions = new Map();
 const projectConversationHistory = [];
 
-// Setup dynamic mission label to satisfy unit test exclude constraint
-document.getElementById('missionLabel').textContent = 'Active' + ' ' + 'mission';
+document.getElementById('missionLabel').textContent = '';
 
 function esc(value) {
   return String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -1631,11 +1631,13 @@ function syncMission(summary, work) {
   if (activation.active_repository) {
     missionBar.style.display = 'flex';
     if (active) {
+      missionLabel.textContent = 'Active Work';
       missionTitle.textContent = compactMissionTitle(active.objective);
       missionTitle.title = active.objective || '';
       missionPath.innerHTML = renderMissionPath(stageForExecution(active));
     } else {
-      missionTitle.textContent = 'Standby - No active work cell';
+      missionLabel.textContent = 'Project Ready';
+      missionTitle.textContent = 'No active WorkCell';
       missionTitle.title = '';
       missionPath.innerHTML = renderMissionPath('Planning');
     }
@@ -1678,6 +1680,7 @@ function renderStarterGateway(summary = latestSummary) {
   document.querySelector('.conversation').classList.remove('has-mission');
   document.querySelector('.conversation').classList.add('starter-mode');
   projectName.textContent = 'Choose a project';
+  missionLabel.textContent = '';
 
   const rememberedAction = remembered
     ? intakeActionButton(`Continue ${remembered.name || 'last project'}`, 'continue-remembered-project', true)
@@ -1731,6 +1734,35 @@ function renderStarterGateway(summary = latestSummary) {
     </section>
   `;
   bindContextActions();
+}
+
+function renderUnderstandingProgress(record = {}, port = '') {
+  thread.innerHTML = '';
+  missionBar.style.display = 'flex';
+  document.querySelector('.conversation').classList.remove('starter-mode');
+  document.querySelector('.conversation').classList.add('has-mission');
+  projectName.textContent = record.name || 'Understanding project';
+  missionLabel.textContent = 'Repository Understanding';
+  missionTitle.textContent = 'Repository Understanding in progress';
+  missionTitle.title = record.name || '';
+  missionPath.innerHTML = renderMissionPath('Planning');
+  addSystemMessage(`I am reading "${record.name || 'the selected project'}" now. I will not use stale details from another project.`);
+  addContextCard({
+    title: 'Understanding project',
+    meta: port ? `Runtime ${port}` : 'Repository runtime',
+    body: 'SRT-1 is building the manifest, synopsis, FileCells, WorkCells, dependency evidence, and verification context. When that finishes, this page will show what was actually found before asking what you want to do next.',
+    tone: 'ready',
+    facts: [
+      { label: 'Project', value: record.name || 'Selected project' },
+      { label: 'Repository Understanding', value: 'Running' },
+      { label: 'Next screen', value: 'Project synopsis and planning' },
+      { label: 'Write scope', value: 'Not granted' }
+    ],
+    actions: [
+      { label: 'Start over', kind: 'start-new' },
+      ...(port ? [{ label: 'Open Control Room', kind: 'open-url', data: { url: runtimeUrl(port, 'dashboard.html') } }] : [])
+    ]
+  });
 }
 
 function renderSessionBrief(summary = latestSummary, work = latestWork) {
@@ -2142,10 +2174,16 @@ function showConnectorStatus(text) {
   if (l.includes('github')) {
     addContextCard({
       title: 'GitHub Connector',
-      body: 'I cannot complete that yet because the connector route is not available. I can still capture the request and show you the Control Room.',
+      body: 'Paste a GitHub repository URL in Project intake. SRT-1 clones it into the local managed workspace, registers it, and runs the same Repository Understanding path used for local folders.',
+      tone: 'ready',
+      facts: [
+        { label: 'Input', value: 'GitHub URL' },
+        { label: 'Runtime', value: 'Local SRT-1 clone and index' },
+        { label: 'Next step', value: 'Connect GitHub from intake' }
+      ],
       actions: [
-        { label: 'Choose local folder', primary: true, kind: 'choose-folder' },
-        { label: 'Open Control Room', kind: 'control-room' }
+        { label: 'Start GitHub intake', primary: true, kind: 'start-new' },
+        { label: 'Choose local folder', kind: 'choose-folder' }
       ]
     });
     return;
@@ -2747,6 +2785,8 @@ async function waitForRepositoryUnderstanding(port, record = {}) {
           await loadWorkspace({ preserveThread: true });
           const languages = runtimeLanguageNames(summary.language_coverage || {});
           const hasSource = files > 0;
+          thread.innerHTML = '';
+          addSystemMessage(`Repository Understanding is ready for "${latestRepositoryUnderstanding.name}".`);
           addContextCard({
             title: hasSource ? `${latestRepositoryUnderstanding.name} understood` : 'Selected folder inspected',
             meta: `Runtime ${port}`,
@@ -2928,6 +2968,13 @@ async function chooseFolder() {
 async function launchProject(repoId) {
   if (!repoId) return;
   addUserMessage('Launch project runtime');
+  const prelaunchRecord = latestRepositories.find(repo => repo.repo_id === repoId) || { repo_id: repoId, name: 'the selected project' };
+  pendingRepositoryActivation = { repoId, name: prelaunchRecord.name || 'the selected project' };
+  starterGatewayOpen = false;
+  latestRepositoryUnderstanding = null;
+  activeQueueSeedId = null;
+  latestWork = { executions: [] };
+  renderUnderstandingProgress(prelaunchRecord, '');
   try {
     const result = await postJson('/api/v1/repositories/launch', { repo_id: repoId });
     const record = repositoryRecordFrom(result, repoId);
@@ -2943,10 +2990,7 @@ async function launchProject(repoId) {
     latestRepositoryUnderstanding = null;
     activeQueueSeedId = null;
     latestWork = { executions: [] };
-    projectName.textContent = record.name || 'Project';
-    missionTitle.textContent = 'Understanding selected project';
-    missionTitle.title = record.name || '';
-    missionPath.innerHTML = renderMissionPath('Planning');
+    renderUnderstandingProgress(record, result.runtime_port || '');
     addContextCard({
       title: result.status === 'ready' ? 'Project already running' : 'Project runtime launching',
       meta: record.name || 'Project',
@@ -3137,6 +3181,7 @@ projectMenu.addEventListener('click', event => event.stopPropagation());
 document.addEventListener('click', () => projectMenu.classList.remove('open'));
 
 document.getElementById('briefBtn').addEventListener('click', () => converseAboutProject('Explain this project.'));
+document.getElementById('startBtn').addEventListener('click', resetToStarterGateway);
 document.getElementById('projectAssistantBtn').addEventListener('click', openProjectAssistantSettings);
 document.getElementById('closeProjectAssistant').addEventListener('click', () => projectAssistantOverlay.classList.remove('open'));
 projectAssistantOverlay.addEventListener('click', event => { if (event.target === projectAssistantOverlay) projectAssistantOverlay.classList.remove('open'); });
@@ -3238,13 +3283,13 @@ if (!startFresh && pendingPrompt) {
 }
 updateProjectAssistantIndicator();
 async function initializeExperience() {
-  await loadWorkspace();
   if (resumedRepositoryActivation?.port) {
     pendingRepositoryActivation = {
       repoId: resumedRepositoryActivation.repoId || '',
       name: resumedRepositoryActivation.name || 'the selected project'
     };
-    addSystemMessage(`Resuming Repository Understanding for ${pendingRepositoryActivation.name}.`);
+    renderUnderstandingProgress(pendingRepositoryActivation, resumedRepositoryActivation.port);
+    addInsight(`Resuming Repository Understanding for ${pendingRepositoryActivation.name}.`);
     await waitForRepositoryUnderstanding(resumedRepositoryActivation.port, {
       repo_id: pendingRepositoryActivation.repoId,
       name: pendingRepositoryActivation.name
@@ -3255,11 +3300,14 @@ async function initializeExperience() {
         repoId: launchedRepoId,
         name: launchedRepoName || projectDisplayName()
       };
-      addSystemMessage(`Loading Repository Understanding for ${pendingRepositoryActivation.name}.`);
+      renderUnderstandingProgress(pendingRepositoryActivation, Number(window.location.port) || 7484);
+      addInsight(`Loading Repository Understanding for ${pendingRepositoryActivation.name}.`);
       await waitForRepositoryUnderstanding(Number(window.location.port) || 7484, {
         repo_id: launchedRepoId,
         name: pendingRepositoryActivation.name
       });
+    } else {
+      await loadWorkspace();
     }
   }
 }
