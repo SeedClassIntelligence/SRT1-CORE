@@ -2563,12 +2563,28 @@ async function showProposalsContext() {
     }
 
     proposals.forEach(proposal => {
-      const changes = proposal.proposed_changes || [];
+      const changes = [
+        ...(proposal.files_write || []).map(file => ({ action: 'MODIFY', file_path: file })),
+        ...(proposal.files_create || []).map(file => ({ action: 'CREATE', file_path: file })),
+        ...(proposal.files_delete || []).map(file => ({ action: 'DELETE', file_path: file }))
+      ];
       const status = proposal.status || 'awaiting_review';
 
-      let bodyText = `Proposal ID: ${proposal.proposal_id}\nTask: ${proposal.task}\nStatus: ${status}`;
+      let bodyText = `Proposal ID: ${proposal.proposal_id}\nStatus: ${status}\nBoundary: ${proposal.boundary_allowed === false ? 'blocked' : 'inside WorkCell scope'}`;
       if (changes.length) {
-        bodyText += '\n\nProposed Changes:\n' + changes.map(c => `- [${c.action}] ${c.file_path}: ${c.rationale || 'No rationale'}`).join('\n');
+        bodyText += '\n\nProposed Changes:\n' + changes.map(c => `- [${c.action}] ${c.file_path}`).join('\n');
+      }
+
+      let actions = [];
+      if (status === 'awaiting_review') {
+        actions = [
+          { label: 'Approve Proposal', primary: true, kind: 'review-proposal', data: { proposalId: proposal.proposal_id, action: 'approve' } },
+          { label: 'Send Back', danger: true, kind: 'review-proposal', data: { proposalId: proposal.proposal_id, action: 'reject' } }
+        ];
+      } else if (status === 'approved') {
+        actions = [
+          { label: 'Apply Approved Change', primary: true, kind: 'apply-proposal', data: { proposalId: proposal.proposal_id } }
+        ];
       }
 
       addContextCard({
@@ -2579,12 +2595,9 @@ async function showProposalsContext() {
         facts: [
           { label: 'Files changed', value: String(changes.length) },
           { label: 'Status', value: status },
-          { label: 'Created', value: proposal.timestamp ? proposal.timestamp.split('T')[0] : 'unknown' }
+          { label: 'Created', value: proposal.created_at ? proposal.created_at.split('T')[0] : 'unknown' }
         ],
-        actions: status === 'awaiting_review' ? [
-          { label: 'Approve & Apply', primary: true, kind: 'apply-proposal', data: { proposalId: proposal.proposal_id } },
-          { label: 'Reject', danger: true, kind: 'review-proposal', data: { proposalId: proposal.proposal_id, action: 'reject' } }
-        ] : []
+        actions
       });
     });
   } catch (error) {
@@ -2619,17 +2632,27 @@ async function reviewProposal(proposalId, action) {
   addUserMessage(`${action.charAt(0).toUpperCase() + action.slice(1)} proposal ${proposalId}`);
   try {
     const result = await postJson(`/api/v1/change-proposals/${encodeURIComponent(proposalId)}/review`, { action });
+    const reviewLabel = action === 'approve' ? 'Approved'
+      : action === 'reject' ? 'Rejected'
+      : action === 'return' || action === 'revise' ? 'Returned'
+      : `${action.charAt(0).toUpperCase() + action.slice(1)}ed`;
     addContextCard({
-      title: `Proposal ${action.charAt(0).toUpperCase() + action.slice(1)}ed`,
+      title: `Proposal ${reviewLabel}`,
       meta: proposalId,
-      body: result.message || `The change proposal has been ${action}ed.`,
+      body: result.message || `The change proposal has been ${reviewLabel.toLowerCase()}.`,
       tone: action === 'reject' ? 'danger' : 'ready',
       facts: [
         { label: 'Status', value: result.status || 'reviewed' }
       ],
-      actions: [
-        { label: 'Open Control Room', kind: 'control-room' }
-      ]
+      actions: result.status === 'approved'
+        ? [
+            { label: 'Apply Approved Change', primary: true, kind: 'apply-proposal', data: { proposalId } },
+            { label: 'Review Proposals', kind: 'inspect-proposals' }
+          ]
+        : [
+            { label: 'Review Proposals', kind: 'inspect-proposals' },
+            { label: 'Open Control Room', kind: 'control-room' }
+          ]
     });
     await loadWorkspace({ preserveThread: true });
   } catch (error) {
