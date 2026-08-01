@@ -10,7 +10,7 @@ readme = "README.md"
 license = "BUSL-1.1"
 requires-python = ">=3.9"
 authors = [
-    {name = "William Darnell Jernigan IV"}
+    {name = "Seed Class Intelligence"}
 ]
 keywords = [
     "scia", "srt-1", "code-indexer", "anti-hallucination",

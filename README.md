@@ -199,6 +199,6 @@ The source code is available for reading, auditing, and permitted use under the 
 
 ## Author
 
-William Darnell Jernigan IV - THE ORIGINAL SEED
+Seed Class Intelligence - THE ORIGINAL SEED
 
 Architecture: Seed-Class Intelligence Architecture (SCIA)

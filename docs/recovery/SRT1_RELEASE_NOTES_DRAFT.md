@@ -17,7 +17,7 @@ SRT-1 Core is a local repo-continuity and alignment partner for AI coding assist
 - SRT-1 Core does not ship private Seed Signature authority, private keys, SCIA memory/security implementation, SION internals, private audit chain, or Enterprise backend.
 - WorkCell execution handoff is available, but fully autonomous multi-agent orchestration remains a future hardening area.
 - Slack and additional communication surfaces should plant seeds into the same WorkCell path, but production install flows require a separate release gate.
-- Website pricing/payment copy must remain PayPal-first and should be reviewed before paid launch.
+- Website pricing/payment copy remains under review and should not publish stale fixed prices before paid launch.
 - Some dashboard/website visual assets still need polish for final product packaging.
 
 ## Required Verification Before Tag
